@@ -595,41 +595,31 @@ export function WorkoutRunner({
           </div>
           <div className="mt-2 text-sm text-muted-foreground">Appuie sur une tuile pour saisir.</div>
         </div>
-        <div className="mt-4 grid gap-3">
+        <div className="mt-4 grid grid-cols-2 gap-3">
           <button
             type="button"
-            className="group relative rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-card to-muted/30 p-5 text-left shadow-sm transition-all active:scale-[0.98] hover:border-primary/40 hover:shadow-md"
+            className="group relative rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-card to-muted/30 p-4 text-left shadow-sm transition-all active:scale-[0.98] hover:border-primary/40 hover:shadow-md"
             onClick={() => openInputSheet("weight")}
           >
-            <div className="flex items-center justify-between">
-              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Charge</div>
-              <div className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                Modifier
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-1">
-              <span className="text-4xl font-bold tabular-nums tracking-tight">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Charge</div>
+            <div className="mt-1 flex items-baseline gap-0.5">
+              <span className="text-3xl font-bold tabular-nums tracking-tight">
                 {activeWeight || "—"}
               </span>
-              <span className="text-lg font-medium text-muted-foreground">kg</span>
+              <span className="text-sm font-medium text-muted-foreground">kg</span>
             </div>
           </button>
           <button
             type="button"
-            className="group relative rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-card to-muted/30 p-5 text-left shadow-sm transition-all active:scale-[0.98] hover:border-primary/40 hover:shadow-md"
+            className="group relative rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-card to-muted/30 p-4 text-left shadow-sm transition-all active:scale-[0.98] hover:border-primary/40 hover:shadow-md"
             onClick={() => openInputSheet("reps")}
           >
-            <div className="flex items-center justify-between">
-              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Répétitions</div>
-              <div className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                Modifier
-              </div>
-            </div>
-            <div className="mt-2 flex items-baseline gap-1">
-              <span className="text-4xl font-bold tabular-nums tracking-tight">
+            <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Reps</div>
+            <div className="mt-1 flex items-baseline gap-0.5">
+              <span className="text-3xl font-bold tabular-nums tracking-tight">
                 {activeReps || "—"}
               </span>
-              <span className="text-lg font-medium text-muted-foreground">reps</span>
+              <span className="text-sm font-medium text-muted-foreground">reps</span>
             </div>
           </button>
         </div>
