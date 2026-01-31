@@ -256,39 +256,39 @@ const CalendarCell = memo(function CalendarCell({
 
   const bg =
     tone === "full"
-      ? "bg-emerald-700/90"
+      ? "bg-primary"
       : tone === "half"
-      ? "bg-emerald-50"
+      ? "bg-primary/10"
       : tone === "none"
-      ? "bg-orange-50"
-      : "bg-zinc-50";
+      ? "bg-muted"
+      : "bg-muted/50";
 
   const border =
     tone === "full"
-      ? "border-emerald-700"
+      ? "border-primary"
       : tone === "half"
-      ? "border-emerald-200"
+      ? "border-primary/30"
       : tone === "none"
-      ? "border-orange-200"
-      : "border-zinc-200";
+      ? "border-muted-foreground/20"
+      : "border-border";
 
-  const text = tone === "full" ? "text-white" : "text-zinc-900";
+  const text = tone === "full" ? "text-primary-foreground" : "text-foreground";
 
   // micro-progress 2 segments (no overflow)
-  const segOff = tone === "full" ? "bg-white/25" : "bg-zinc-300";
-  const segOn = tone === "full" ? "bg-white" : "bg-emerald-600";
+  const segOff = tone === "full" ? "bg-primary-foreground/25" : "bg-muted-foreground/30";
+  const segOn = tone === "full" ? "bg-primary-foreground" : "bg-primary";
 
   const ring = isSelected
     ? tone === "full"
-      ? "ring-2 ring-white/50"
-      : "ring-2 ring-zinc-900/10"
+      ? "ring-2 ring-primary-foreground/50"
+      : "ring-2 ring-primary/30"
     : "";
 
   // Aujourd'hui = contour accentué (sans texte)
   const todayRing = isToday
     ? tone === "full"
-      ? "ring-2 ring-white/40"
-      : "ring-2 ring-zinc-900/25"
+      ? "ring-2 ring-primary-foreground/40"
+      : "ring-2 ring-primary/50"
     : "";
 
   return (
@@ -351,7 +351,7 @@ function Drawer({
           />
           <motion.div
             className={cn(
-              "fixed z-50 bg-white shadow-2xl",
+              "fixed z-50 bg-background shadow-2xl",
               // Mobile: bottom sheet
               "left-0 right-0 bottom-0 top-auto h-[88vh] rounded-t-3xl",
               // Desktop: drawer à droite
@@ -366,12 +366,12 @@ function Drawer({
           >
             <div className="flex h-full flex-col">
               <div className="px-5 pt-3 sm:hidden">
-                <div className="mx-auto h-1.5 w-12 rounded-full bg-zinc-200" />
+                <div className="mx-auto h-1.5 w-12 rounded-full bg-muted" />
               </div>
 
-              <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-4 sm:px-5 py-3">
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background px-4 sm:px-5 py-3">
                 <div className="min-w-0">
-                  <div className="truncate text-base font-semibold text-zinc-900">{title}</div>
+                  <div className="truncate text-base font-semibold text-foreground">{title}</div>
                 </div>
                 <IconButton onClick={onClose} label="Fermer">
                   <X className="h-5 w-5" />
@@ -420,9 +420,9 @@ function Modal({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
           >
-            <div className="w-full max-w-md rounded-3xl border bg-white shadow-2xl overflow-hidden">
+            <div className="w-full max-w-md rounded-3xl border bg-background shadow-2xl overflow-hidden">
               <div className="flex items-center justify-between border-b px-4 py-3">
-                <div className="truncate text-base font-semibold text-zinc-900">{title}</div>
+                <div className="truncate text-base font-semibold text-foreground">{title}</div>
                 <IconButton onClick={onClose} label="Fermer">
                   <X className="h-5 w-5" />
                 </IconButton>
@@ -438,7 +438,7 @@ function Modal({
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-700">
+    <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
       {children}
     </span>
   );
@@ -458,9 +458,9 @@ function IconButton({
   disabled?: boolean;
 }) {
   const tones = {
-    neutral: "bg-white border-zinc-200 text-zinc-900 hover:bg-zinc-50",
-    dark: "bg-zinc-900 border-zinc-900 text-white hover:bg-zinc-800",
-    sky: "bg-sky-50 border-sky-200 text-sky-900 hover:bg-sky-100",
+    neutral: "bg-background border-border text-foreground hover:bg-muted",
+    dark: "bg-foreground border-foreground text-background hover:opacity-90",
+    sky: "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20",
   };
 
   return (
@@ -471,7 +471,7 @@ function IconButton({
       className={cn(
         "inline-flex items-center justify-center rounded-2xl border p-2 transition",
         tones[tone],
-        disabled && "opacity-50 cursor-not-allowed hover:bg-white"
+        disabled && "opacity-50 cursor-not-allowed hover:bg-background"
       )}
       aria-label={label}
       title={label}
