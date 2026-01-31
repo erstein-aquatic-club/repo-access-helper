@@ -81,13 +81,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           isFocusMode && "hidden",
         )}
       >
-        <div className="flex items-stretch justify-around px-2 h-16">
+        <div className="flex items-stretch justify-evenly h-16 overflow-x-auto scrollbar-hide">
           {navItems.map((item) => {
             const isActive = location === item.href;
             return (
               <Link key={item.href} href={item.href}>
                 <a className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-w-[64px] transition-colors relative",
+                  "flex flex-col items-center justify-center gap-0.5 py-2 flex-1 min-w-0 max-w-[72px] transition-colors relative active:scale-95",
                   isActive 
                     ? "text-primary" 
                     : "text-muted-foreground active:text-foreground"
@@ -99,10 +99,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
                   </div>
                   {item.label === "Messagerie" && unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-2 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card animate-pulse" />
+                    <span className="absolute top-1.5 right-1/2 translate-x-4 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card animate-pulse" />
                   )}
                   <span className={cn(
-                    "text-[10px] font-semibold tracking-tight",
+                    "text-[10px] font-semibold tracking-tight truncate w-full text-center px-0.5",
                     isActive ? "text-primary" : "text-muted-foreground"
                   )}>
                     {item.label}

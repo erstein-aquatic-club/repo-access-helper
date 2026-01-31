@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { WorkoutRunner, resolveNextStep } from "@/components/strength/WorkoutRunner";
+import { BottomActionBar } from "@/components/shared/BottomActionBar";
 
 const normalizeStrengthCycle = (value?: string | null): StrengthCycleType => {
   if (value === "endurance" || value === "hypertrophie" || value === "force") {
@@ -630,7 +631,7 @@ export default function Strength() {
     <div
       className={cn(
         "space-y-4 md:space-y-6",
-        poolMode && "bg-slate-950 text-slate-50 contrast-125 [&_.text-muted-foreground]:text-slate-300",
+        poolMode && "dark bg-background text-foreground contrast-125",
         largeText && "text-lg leading-relaxed [&_.text-xs]:text-sm [&_.text-sm]:text-base",
       )}
     >
@@ -1032,54 +1033,88 @@ export default function Strength() {
                )}
 
                {screenMode === "reader" && activeSession && (
-                   <div className="space-y-4 md:space-y-6 animate-in fade-in">
-                       <div className="flex flex-wrap items-center gap-3">
-                           <Button
-                             variant="ghost"
-                             size="sm"
+                   <div className="space-y-5 animate-in fade-in pb-28">
+                       {/* Header compact avec retour */}
+                       <div className="flex items-center gap-3">
+                           <button
+                             type="button"
                              onClick={() => setScreenMode("list")}
-                             className="gap-2"
+                             className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-colors hover:bg-muted active:scale-95"
+                             aria-label="Retour"
                            >
-                               <ChevronLeft className="h-4 w-4" />
-                               Retour à la liste
-                           </Button>
-                           <Badge variant="outline">{cycleOptions.find((option) => option.value === cycleType)?.label}</Badge>
-                           <Button onClick={handleLaunchFocus} className="ml-auto">
-                               Focus
-                           </Button>
+                               <ChevronLeft className="h-5 w-5" />
+                           </button>
+                           <div className="flex-1 min-w-0">
+                               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
+                                   {cycleOptions.find((option) => option.value === cycleType)?.label}
+                               </p>
+                               <h1 className="text-xl font-bold tracking-tight truncate">{activeSession.title}</h1>
+                           </div>
                        </div>
-                       <Card className="border-l-4 border-l-primary/70">
-                           <CardHeader>
+
+                       {/* Hero card avec infos clés */}
+                       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-5">
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-12 -mt-12" />
+                           <div className="relative space-y-4">
+                               {/* Badges */}
                                <div className="flex flex-wrap items-center gap-2">
                                    {activeAssignment && (
-                                       <Badge variant="default">Assignée</Badge>
+                                       <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1 text-xs font-bold uppercase text-primary">
+                                           <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                           Assignée
+                                       </span>
                                    )}
                                    {!activeAssignment && (
-                                       <Badge variant="secondary">Catalogue</Badge>
+                                       <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+                                           Catalogue
+                                       </span>
                                    )}
                                    {activeAssignment?.assigned_date && (
-                                       <Badge variant="outline">
-                                           Prévue le {format(new Date(activeAssignment.assigned_date), "dd/MM")}
-                                       </Badge>
+                                       <span className="text-xs text-muted-foreground">
+                                           Prévue le {format(new Date(activeAssignment.assigned_date), "dd MMM")}
+                                       </span>
                                    )}
                                </div>
-                               <CardTitle className="text-2xl uppercase">{activeSession.title}</CardTitle>
-                               <CardDescription>{activeSession.description}</CardDescription>
-                           </CardHeader>
-                           <CardContent className="space-y-4">
-                               <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase text-muted-foreground">
-                                   <Badge variant="secondary">{activeFilteredItems.length} exercices</Badge>
-                                   <Badge variant="outline">{cycleOptions.find((option) => option.value === cycleType)?.label}</Badge>
+
+                               {/* Description */}
+                               {activeSession.description && (
+                                   <p className="text-sm text-muted-foreground leading-relaxed">
+                                       {activeSession.description}
+                                   </p>
+                               )}
+
+                               {/* Stats row */}
+                               <div className="flex items-center gap-4">
+                                   <div className="flex items-center gap-2">
+                                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-background/80">
+                                           <Dumbbell className="h-4 w-4 text-primary" />
+                                       </div>
+                                       <div>
+                                           <p className="text-lg font-bold leading-none">{activeFilteredItems.length}</p>
+                                           <p className="text-[10px] uppercase text-muted-foreground font-semibold">Exercices</p>
+                                       </div>
+                                   </div>
+                                   <div className="h-8 w-px bg-border" />
+                                   <div className="flex items-center gap-2">
+                                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-background/80">
+                                           <Calendar className="h-4 w-4 text-muted-foreground" />
+                                       </div>
+                                       <div>
+                                           <p className="text-lg font-bold leading-none">{cycleOptions.find((option) => option.value === cycleType)?.label}</p>
+                                           <p className="text-[10px] uppercase text-muted-foreground font-semibold">Cycle</p>
+                                       </div>
+                                   </div>
                                </div>
-                           </CardContent>
-                           <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                               <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                   <span>Lecture complète</span>
-                                   <span>•</span>
-                                   <span>Focus pas-à-pas disponible</span>
-                               </div>
-                           </CardFooter>
-                       </Card>
+                           </div>
+                       </div>
+
+                       {/* Section header */}
+                       <div className="flex items-center gap-2 pt-1">
+                           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                               Programme détaillé
+                           </span>
+                           <div className="flex-1 h-px bg-border" />
+                       </div>
 
                        <div className="space-y-4">
                            {activeFilteredItems.map((item, index) => {
@@ -1097,29 +1132,39 @@ export default function Strength() {
                                    : "—";
                                const notes = item.notes?.trim();
                                return (
-                                   <Card key={`${item.exercise_id}-${index}`} className="border-l-4 border-l-slate-300/60">
-                                       <CardHeader className="pb-3">
-                                           <div className="flex flex-wrap items-start justify-between gap-3">
-                                               <div>
-                                                   <Badge variant="outline" className="mb-2">
-                                                       Bloc {index + 1}
-                                                   </Badge>
-                                                   <CardTitle className="text-lg uppercase">
+                                   <div 
+                                       key={`${item.exercise_id}-${index}`} 
+                                       className="group relative rounded-2xl border bg-card p-4 shadow-sm transition-all hover:shadow-md"
+                                   >
+                                       {/* Numéro de bloc en badge flottant */}
+                                       <div className="absolute -top-2.5 left-4 inline-flex items-center justify-center rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold text-primary-foreground shadow-sm">
+                                           {index + 1}
+                                       </div>
+
+                                       <div className="pt-2 space-y-3">
+                                           {/* Header exercice */}
+                                           <div className="flex items-start justify-between gap-3">
+                                               <div className="flex-1 min-w-0">
+                                                   <h3 className="font-bold text-base tracking-tight truncate">
                                                        {exercise?.nom_exercice ?? item.exercise_name ?? "Exercice"}
-                                                   </CardTitle>
-                                                   <CardDescription>
-                                                       {exercise?.exercise_type ? `Type : ${exercise.exercise_type}` : "Type : exercice"}
-                                                   </CardDescription>
+                                                   </h3>
+                                                   {exercise?.exercise_type && (
+                                                       <p className="text-xs text-muted-foreground">{exercise.exercise_type}</p>
+                                                   )}
                                                </div>
                                                <Sheet>
                                                    <SheetTrigger asChild>
-                                                       <Button variant="outline" size="sm">
-                                                           Détails
-                                                       </Button>
+                                                       <button
+                                                           type="button"
+                                                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-colors hover:bg-muted active:scale-95"
+                                                           aria-label="Voir les détails"
+                                                       >
+                                                           <Info className="h-4 w-4" />
+                                                       </button>
                                                    </SheetTrigger>
-                                                   <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
-                                                       <SheetHeader>
-                                                           <SheetTitle>
+                                                   <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-3xl">
+                                                       <SheetHeader className="text-left">
+                                                           <SheetTitle className="text-xl">
                                                                {exercise?.nom_exercice ?? item.exercise_name ?? "Exercice"}
                                                            </SheetTitle>
                                                            <SheetDescription>
@@ -1127,62 +1172,78 @@ export default function Strength() {
                                                            </SheetDescription>
                                                        </SheetHeader>
                                                        <div className="mt-6 space-y-4 text-sm">
-                                                           <div className="grid gap-3 sm:grid-cols-2">
-                                                               <div className="rounded-md border bg-muted/30 p-3">
-                                                                   <div className="text-[10px] uppercase text-muted-foreground font-semibold">Charge cible</div>
-                                                                   <div className="text-base font-semibold">{chargeLabel}</div>
+                                                           <div className="grid gap-3 grid-cols-2">
+                                                               <div className="rounded-xl border bg-muted/30 p-4">
+                                                                   <div className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Charge cible</div>
+                                                                   <div className="text-lg font-bold">{chargeLabel}</div>
                                                                </div>
-                                                               <div className="rounded-md border bg-muted/30 p-3">
-                                                                   <div className="text-[10px] uppercase text-muted-foreground font-semibold">Repos</div>
-                                                                   <div className="text-base font-semibold">
+                                                               <div className="rounded-xl border bg-muted/30 p-4">
+                                                                   <div className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Repos</div>
+                                                                   <div className="text-lg font-bold">
                                                                        {formatStrengthSeconds(item.rest_seconds)}
                                                                    </div>
                                                                </div>
                                                            </div>
-                                                           <div className="rounded-md border bg-muted/30 p-3">
-                                                               <div className="text-[10px] uppercase text-muted-foreground font-semibold">Notes coach</div>
-                                                               <div className="text-sm text-muted-foreground">
-                                                                   {notes || "Aucune note spécifique."}
+                                                           {notes && (
+                                                               <div className="rounded-xl border bg-primary/5 border-primary/20 p-4">
+                                                                   <div className="text-[10px] uppercase text-primary font-semibold mb-1">Notes coach</div>
+                                                                   <div className="text-sm text-foreground">
+                                                                       {notes}
+                                                                   </div>
                                                                </div>
-                                                           </div>
+                                                           )}
                                                        </div>
                                                    </SheetContent>
                                                </Sheet>
                                            </div>
-                                       </CardHeader>
-                                       <CardContent className="grid gap-3 sm:grid-cols-4 text-sm">
-                                           <div className="rounded-md border bg-muted/20 p-3">
-                                               <div className="text-[10px] uppercase text-muted-foreground font-semibold">Séries</div>
-                                               <div className="text-lg font-bold">{formatStrengthValue(item.sets)}</div>
-                                           </div>
-                                           <div className="rounded-md border bg-muted/20 p-3">
-                                               <div className="text-[10px] uppercase text-muted-foreground font-semibold">Reps</div>
-                                               <div className="text-lg font-bold">{formatStrengthValue(item.reps)}</div>
-                                           </div>
-                                           <div className="rounded-md border bg-muted/20 p-3">
-                                               <div className="text-[10px] uppercase text-muted-foreground font-semibold">Repos</div>
-                                               <div className="text-lg font-bold">
-                                                   {formatStrengthSeconds(item.rest_seconds)}
+
+                                           {/* Stats grid compact - 2x2 sur mobile */}
+                                           <div className="grid grid-cols-2 gap-2">
+                                               <div className="rounded-xl bg-muted/40 p-3 text-center">
+                                                   <p className="text-2xl font-bold leading-none">{formatStrengthValue(item.sets)}</p>
+                                                   <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Séries</p>
+                                               </div>
+                                               <div className="rounded-xl bg-muted/40 p-3 text-center">
+                                                   <p className="text-2xl font-bold leading-none">{formatStrengthValue(item.reps)}</p>
+                                                   <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Reps</p>
+                                               </div>
+                                               <div className="rounded-xl bg-muted/40 p-3 text-center">
+                                                   <p className="text-lg font-bold leading-none">{chargeLabel}</p>
+                                                   <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Charge</p>
+                                               </div>
+                                               <div className="rounded-xl bg-muted/40 p-3 text-center">
+                                                   <p className="text-lg font-bold leading-none">{formatStrengthSeconds(item.rest_seconds)}</p>
+                                                   <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Repos</p>
                                                </div>
                                            </div>
-                                           <div className="rounded-md border bg-muted/20 p-3">
-                                               <div className="text-[10px] uppercase text-muted-foreground font-semibold">Charge cible</div>
-                                               <div className="text-lg font-bold">{chargeLabel}</div>
-                                           </div>
-                                       </CardContent>
-                                       <CardFooter className="flex flex-col gap-1 border-t text-sm text-muted-foreground">
-                                           <span>Notes coach</span>
-                                           <span>{notes || "Aucune note spécifique."}</span>
-                                       </CardFooter>
-                                   </Card>
+
+                                           {/* Notes si présentes */}
+                                           {notes && (
+                                               <div className="rounded-xl bg-primary/5 border border-primary/20 px-3 py-2">
+                                                   <p className="text-xs text-muted-foreground"><span className="font-semibold text-primary">Coach:</span> {notes}</p>
+                                               </div>
+                                           )}
+                                       </div>
+                                   </div>
                                );
                            })}
                            {activeFilteredItems.length === 0 && (
-                               <div className="p-6 border-2 border-dashed rounded-lg text-center text-muted-foreground">
+                               <div className="p-6 border-2 border-dashed rounded-xl text-center text-muted-foreground">
                                    Aucun exercice disponible pour cette séance.
                                </div>
                            )}
                        </div>
+
+                       {/* Bottom action bar fixe */}
+                       <BottomActionBar>
+                           <Button
+                               className="flex-1 h-12 rounded-xl font-semibold text-base"
+                               onClick={handleLaunchFocus}
+                           >
+                               <Play className="h-5 w-5 mr-2" />
+                               Lancer le Focus
+                           </Button>
+                       </BottomActionBar>
                    </div>
                )}
            </TabsContent>
