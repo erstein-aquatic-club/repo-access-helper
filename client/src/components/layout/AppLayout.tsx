@@ -73,28 +73,44 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      {/* Mobile Bottom Nav */}
+      {/* Mobile Bottom Nav - Enhanced for accessibility */}
       <nav
         className={cn(
-          "md:hidden fixed bottom-0 left-0 w-full h-16 bg-card border-t border-border/50 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]",
+          "md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border/50 z-50 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.1)]",
+          "supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]",
           isFocusMode && "hidden",
         )}
       >
-        <div className="grid grid-flow-col auto-cols-fr items-center gap-1 px-2 w-full">
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href}>
-              <a className={cn(
-                "flex flex-col items-center justify-center h-full min-h-16 gap-1 transition-colors relative",
-                location === item.href ? "text-primary" : "text-muted-foreground"
-              )}>
-                <item.icon className={cn("h-5 w-5", location === item.href && "fill-current/20")} />
-                {item.label === "Messagerie" && unreadCount > 0 && (
-                    <span className="absolute top-2 right-3 h-2 w-2 rounded-full bg-primary animate-pulse" />
-                )}
-                <span className="sr-only">{item.label}</span>
-              </a>
-            </Link>
-          ))}
+        <div className="flex items-stretch justify-around px-2 h-16">
+          {navItems.map((item) => {
+            const isActive = location === item.href;
+            return (
+              <Link key={item.href} href={item.href}>
+                <a className={cn(
+                  "flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-w-[64px] transition-colors relative",
+                  isActive 
+                    ? "text-primary" 
+                    : "text-muted-foreground active:text-foreground"
+                )}>
+                  <div className={cn(
+                    "flex items-center justify-center h-7 w-7 rounded-xl transition-colors",
+                    isActive && "bg-primary/10"
+                  )}>
+                    <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
+                  </div>
+                  {item.label === "Messagerie" && unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-2 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card animate-pulse" />
+                  )}
+                  <span className={cn(
+                    "text-[10px] font-semibold tracking-tight",
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  )}>
+                    {item.label}
+                  </span>
+                </a>
+              </Link>
+            );
+          })}
         </div>
       </nav>
     </div>
