@@ -12,6 +12,9 @@ export default defineConfig({
     "import.meta.env.VITE_SWIM_SYNC_ENDPOINT": JSON.stringify(
       process.env.VITE_SWIM_SYNC_ENDPOINT ?? "",
     ),
+    "import.meta.env.VITE_SWIM_SYNC_TOKEN": JSON.stringify(
+      process.env.VITE_SWIM_SYNC_TOKEN ?? "",
+    ),
   },
   plugins: [
     react(),
