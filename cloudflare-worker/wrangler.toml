@@ -2,9 +2,10 @@ name = "suivi-natation-api"
 main = "src/index.js"
 compatibility_date = "2024-12-01"
 
+# Secrets are set via GitHub Actions or `wrangler secret put`.
+# Required secrets: AUTH_SECRET, SHARED_TOKEN
+# Do NOT hardcode secret values here.
 [vars]
-AUTH_SECRET = "ersteinaquaticclub2026"
-SHARED_TOKEN = "ersteinaquaticclub2026"
 
 [triggers]
 crons = ["0 6 * * *"]
