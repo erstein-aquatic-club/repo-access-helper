@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -18,9 +18,9 @@ import {
   X,
 } from "lucide-react";
 import { BottomActionBar } from "@/components/shared/BottomActionBar";
-import { ModalMaxSize } from "@/components/shared/ModalMaxSize";
 import { ScrollContainer } from "@/components/shared/ScrollContainer";
 import { ScaleSelector5 } from "@/components/shared/ScaleSelector5";
+import { cn } from "@/lib/utils";
 import type { Exercise, StrengthSessionTemplate } from "@/lib/api";
 
 export const resolveSetNumber = (log: any, fallbackIndex: number) => {
@@ -437,10 +437,10 @@ export function WorkoutRunner({
   if (currentStep > workoutPlan.length) {
     return (
       <div className="space-y-6 animate-in fade-in">
-        <Card className="border-t-8 border-t-green-500 shadow-xl">
+        <Card className="border-t-8 border-t-primary shadow-xl">
           <CardHeader className="text-center pb-2">
-            <div className="mx-auto bg-green-100 p-4 rounded-full w-fit mb-4">
-              <CheckCircle2 className="h-12 w-12 text-green-600" />
+            <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
+              <CheckCircle2 className="h-12 w-12 text-primary" />
             </div>
             <CardTitle className="text-3xl uppercase font-display italic">Séance Terminée !</CardTitle>
             <CardDescription className="text-lg">
@@ -549,7 +549,7 @@ export function WorkoutRunner({
           <div className="text-xs font-semibold text-muted-foreground">Séance</div>
           <div className="flex items-center gap-2">
             <div className="h-2 w-28 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-slate-900" style={{ width: `${progressPct}%` }} />
+              <div className="h-full rounded-full bg-primary" style={{ width: `${progressPct}%` }} />
             </div>
             <div className="text-sm font-semibold">{progressPct}%</div>
           </div>
@@ -595,25 +595,41 @@ export function WorkoutRunner({
           </div>
           <div className="mt-2 text-sm text-muted-foreground">Appuie sur une tuile pour saisir.</div>
         </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid gap-3">
           <button
             type="button"
-            className="rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:border-muted-foreground/30"
+            className="group relative rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-card to-muted/30 p-5 text-left shadow-sm transition-all active:scale-[0.98] hover:border-primary/40 hover:shadow-md"
             onClick={() => openInputSheet("weight")}
           >
-            <div className="text-xs font-semibold uppercase text-muted-foreground">Charge</div>
-            <div className="mt-3 text-xl font-semibold">
-              {activeWeight ? `${activeWeight}` : "—"} <span className="text-base text-muted-foreground">kg</span>
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Charge</div>
+              <div className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                Modifier
+              </div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1">
+              <span className="text-4xl font-bold tabular-nums tracking-tight">
+                {activeWeight || "—"}
+              </span>
+              <span className="text-lg font-medium text-muted-foreground">kg</span>
             </div>
           </button>
           <button
             type="button"
-            className="rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:border-muted-foreground/30"
+            className="group relative rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-card to-muted/30 p-5 text-left shadow-sm transition-all active:scale-[0.98] hover:border-primary/40 hover:shadow-md"
             onClick={() => openInputSheet("reps")}
           >
-            <div className="text-xs font-semibold uppercase text-muted-foreground">Répétitions</div>
-            <div className="mt-3 text-xl font-semibold">
-              {activeReps || "—"} <span className="text-base text-muted-foreground">reps</span>
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Répétitions</div>
+              <div className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                Modifier
+              </div>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1">
+              <span className="text-4xl font-bold tabular-nums tracking-tight">
+                {activeReps || "—"}
+              </span>
+              <span className="text-lg font-medium text-muted-foreground">reps</span>
             </div>
           </button>
         </div>
@@ -634,31 +650,36 @@ export function WorkoutRunner({
       </Card>
 
       {!inputSheetOpen && !isResting ? (
-        <BottomActionBar className="bottom-16 z-[60] md:bottom-0">
+        <BottomActionBar 
+          className="bottom-0 z-[60]" 
+          containerClassName="gap-3 py-4"
+        >
           <Button
-            className="flex-1 min-w-0 rounded-2xl px-3 py-2 text-xs font-semibold sm:text-sm"
+            className="flex-1 min-w-0 h-12 rounded-xl text-sm font-bold shadow-lg active:scale-95 transition-transform"
             onClick={handleValidateSet}
           >
-            <Check className="mr-2 h-4 w-4" /> Valider
+            <Check className="mr-2 h-5 w-5" /> Valider série
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="flex-1 min-w-0 rounded-2xl px-3 py-2 text-xs font-semibold sm:text-sm"
+            className="h-12 w-12 rounded-xl p-0 active:scale-95 transition-transform"
             onClick={() => {
               if (restDuration <= 0) return;
               startRestTimer(restDuration);
             }}
+            aria-label="Démarrer le repos"
           >
-            <Timer className="mr-2 h-4 w-4" /> Repos
+            <Timer className="h-5 w-5" />
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="flex-1 min-w-0 rounded-2xl px-3 py-2 text-xs font-semibold sm:text-sm"
+            className="h-12 w-12 rounded-xl p-0 active:scale-95 transition-transform"
             onClick={() => advanceExercise()}
+            aria-label="Exercice suivant"
           >
-            Suivant <ChevronRight className="ml-2 h-4 w-4" />
+            <ChevronRight className="h-5 w-5" />
           </Button>
         </BottomActionBar>
       ) : null}
@@ -693,7 +714,7 @@ export function WorkoutRunner({
               </div>
               <div className="mt-6 h-3 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full rounded-full bg-slate-900"
+                  className="h-full rounded-full bg-primary"
                   style={{
                     width: restDuration ? `${(restTimer / restDuration) * 100}%` : "0%",
                   }}
@@ -814,7 +835,7 @@ export function WorkoutRunner({
                     </div>
                   </div>
                   <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-slate-900" style={{ width: `${pct}%` }} />
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
                   </div>
                 </Card>
               );
@@ -823,121 +844,163 @@ export function WorkoutRunner({
         </SheetContent>
       </Sheet>
 
-      {inputSheetOpen ? <span className="sr-only">Saisie série</span> : null}
-      <Dialog open={inputSheetOpen} onOpenChange={setInputSheetOpen}>
-      <DialogContent className="max-w-none border-0 bg-transparent p-0 shadow-none">
-          <ModalMaxSize className="mx-auto w-full max-w-md bg-background p-6 shadow-xl">
-            <DialogHeader>
-              <DialogTitle>Saisie série</DialogTitle>
-              <DialogDescription>
-                Étape {activeInput === "weight" ? "1" : "2"}/2 · Objectif{" "}
+      {/* Input Bottom Sheet - Mobile-first numpad */}
+      <Drawer open={inputSheetOpen} onOpenChange={setInputSheetOpen}>
+        <DrawerContent className="max-h-[90vh]">
+          <div className="mx-auto w-full max-w-md px-4 pb-8">
+            <DrawerHeader className="pb-2">
+              <DrawerTitle className="text-center">
+                {activeInput === "weight" ? "Charge" : "Répétitions"}
+              </DrawerTitle>
+              <DrawerDescription className="text-center">
+                Série {currentSetIndex}/{formatStrengthValue(currentBlock?.sets)} · Objectif{" "}
                 {formatStrengthValue(currentBlock?.reps)} reps
-              </DialogDescription>
-            </DialogHeader>
-            <ScrollContainer className="mt-4 max-h-[65vh] pr-1">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <button
-                  type="button"
-                  className={`rounded-2xl border p-4 text-left shadow-sm ${
-                    activeInput === "weight" ? "bg-muted/20" : "bg-card"
-                  }`}
-                  onClick={() => selectInputType("weight")}
-                >
-                  <div className="text-xs font-semibold uppercase text-muted-foreground">Charge</div>
-                  <div className="mt-3 text-xl font-semibold">
-                    {activeInput === "weight"
-                      ? draftValue
-                      : String(currentSetInputs[currentSetIndex - 1]?.weight ?? targetWeight ?? "—")} {""}
-                    <span className="text-base text-muted-foreground">kg</span>
-                  </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    {activeInput === "weight" ? "Saisie en cours" : "Appuie pour modifier"}
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-2xl border p-4 text-left shadow-sm ${
-                    activeInput === "reps" ? "bg-muted/20" : "bg-card"
-                  }`}
-                  onClick={() => selectInputType("reps")}
-                >
-                  <div className="text-xs font-semibold uppercase text-muted-foreground">Reps</div>
-                  <div className="mt-3 text-xl font-semibold">
-                    {activeInput === "reps"
-                      ? draftValue
-                      : String(currentSetInputs[currentSetIndex - 1]?.reps ?? currentBlock?.reps ?? "—")} {""}
-                    <span className="text-base text-muted-foreground">reps</span>
-                  </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    {activeInput === "reps" ? "Saisie en cours" : "Appuie pour modifier"}
-                  </div>
-                </button>
-              </div>
-              {activeInput === "weight" && targetWeight > 0 && (
-                <div className="space-y-3">
-                  <div className="text-sm font-semibold text-muted-foreground">Suggestions</div>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      targetWeight - 10,
-                      targetWeight - 5,
-                      targetWeight - 2.5,
-                      targetWeight,
-                      targetWeight + 2.5,
-                      targetWeight + 5,
-                    ]
-                      .filter((value) => value > 0)
-                      .map((value) => (
-                        <Button
-                          key={value}
-                          variant="outline"
-                          className="rounded-full"
-                          onClick={() => setDraftValue(String(value))}
-                        >
-                          {value} kg
-                        </Button>
-                      ))}
-                  </div>
+              </DrawerDescription>
+            </DrawerHeader>
+
+            {/* Toggle between weight/reps */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <button
+                type="button"
+                className={cn(
+                  "rounded-xl border-2 p-4 text-center transition-all",
+                  activeInput === "weight"
+                    ? "border-primary bg-primary/10 shadow-sm"
+                    : "border-muted bg-card hover:border-muted-foreground/30"
+                )}
+                onClick={() => selectInputType("weight")}
+              >
+                <div className="text-xs font-semibold uppercase text-muted-foreground">Charge</div>
+                <div className="mt-1 text-2xl font-bold tabular-nums">
+                  {activeInput === "weight"
+                    ? draftValue || "—"
+                    : String(currentSetInputs[currentSetIndex - 1]?.weight ?? targetWeight ?? "—")}
+                  <span className="ml-1 text-base font-normal text-muted-foreground">kg</span>
                 </div>
-              )}
-              <div className="grid grid-cols-3 gap-3">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                  <Button
-                    key={num}
-                    variant="outline"
-                    className="py-4 text-base"
-                    onClick={() => appendDraft(String(num))}
-                  >
-                    {num}
-                  </Button>
-                ))}
-                <Button variant="outline" className="py-4 text-base" onClick={() => appendDraft(".")}>.
-                </Button>
-                <Button variant="outline" className="py-4 text-base" onClick={() => appendDraft("0")}>
-                  0
-                </Button>
-                <Button
-                  variant="outline"
-                  className="py-4 text-base"
-                  onClick={() => setDraftValue((prev) => prev.slice(0, -1))}
-                >
-                  ←
-                </Button>
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded-xl border-2 p-4 text-center transition-all",
+                  activeInput === "reps"
+                    ? "border-primary bg-primary/10 shadow-sm"
+                    : "border-muted bg-card hover:border-muted-foreground/30"
+                )}
+                onClick={() => selectInputType("reps")}
+              >
+                <div className="text-xs font-semibold uppercase text-muted-foreground">Reps</div>
+                <div className="mt-1 text-2xl font-bold tabular-nums">
+                  {activeInput === "reps"
+                    ? draftValue || "—"
+                    : String(currentSetInputs[currentSetIndex - 1]?.reps ?? currentBlock?.reps ?? "—")}
+                  <span className="ml-1 text-base font-normal text-muted-foreground">reps</span>
+                </div>
+              </button>
+            </div>
+
+            {/* Quick suggestions for weight */}
+            {activeInput === "weight" && targetWeight > 0 && (
+              <div className="mb-4">
+                <div className="text-xs font-semibold text-muted-foreground mb-2">Suggestions</div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    targetWeight - 10,
+                    targetWeight - 5,
+                    targetWeight,
+                    targetWeight + 5,
+                    targetWeight + 10,
+                  ]
+                    .filter((v) => v > 0)
+                    .map((v) => (
+                      <Button
+                        key={v}
+                        variant={Number(draftValue) === v ? "default" : "outline"}
+                        size="sm"
+                        className="rounded-full px-4 h-10 text-sm font-semibold"
+                        onClick={() => setDraftValue(String(v))}
+                      >
+                        {v} kg
+                      </Button>
+                    ))}
+                </div>
               </div>
-              <Button variant="outline" className="w-full" onClick={() => setDraftValue("")}>
+            )}
+
+            {/* Quick suggestions for reps */}
+            {activeInput === "reps" && (
+              <div className="mb-4">
+                <div className="text-xs font-semibold text-muted-foreground mb-2">Suggestions</div>
+                <div className="flex flex-wrap gap-2">
+                  {[6, 8, 10, 12, 15, 20].map((v) => (
+                    <Button
+                      key={v}
+                      variant={Number(draftValue) === v ? "default" : "outline"}
+                      size="sm"
+                      className="rounded-full px-4 h-10 text-sm font-semibold"
+                      onClick={() => setDraftValue(String(v))}
+                    >
+                      {v}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Large numpad - mobile optimized */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                <Button
+                  key={num}
+                  variant="outline"
+                  className="h-14 text-xl font-semibold rounded-xl active:scale-95 transition-transform"
+                  onClick={() => appendDraft(String(num))}
+                >
+                  {num}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                className="h-14 text-xl font-semibold rounded-xl active:scale-95 transition-transform"
+                onClick={() => appendDraft(".")}
+              >
+                ,
+              </Button>
+              <Button
+                variant="outline"
+                className="h-14 text-xl font-semibold rounded-xl active:scale-95 transition-transform"
+                onClick={() => appendDraft("0")}
+              >
+                0
+              </Button>
+              <Button
+                variant="outline"
+                className="h-14 text-xl font-semibold rounded-xl active:scale-95 transition-transform"
+                onClick={() => setDraftValue((prev) => prev.slice(0, -1))}
+              >
+                ⌫
+              </Button>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 h-14 text-base font-semibold rounded-xl"
+                onClick={() => setDraftValue("")}
+              >
                 Effacer
               </Button>
-              <div className="flex gap-3 pb-2">
-                <Button variant="outline" className="flex-1" onClick={() => setInputSheetOpen(false)}>
-                  Fermer
-                </Button>
-                <Button className="flex-1" onClick={applyDraftValue}>
-                  {activeInput === "weight" ? "Valider charge" : "Valider série"}
-                </Button>
-              </div>
-            </ScrollContainer>
-          </ModalMaxSize>
-        </DialogContent>
-      </Dialog>
+              <Button
+                className="flex-1 h-14 text-base font-semibold rounded-xl"
+                onClick={applyDraftValue}
+              >
+                <Check className="mr-2 h-5 w-5" />
+                Valider
+              </Button>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
