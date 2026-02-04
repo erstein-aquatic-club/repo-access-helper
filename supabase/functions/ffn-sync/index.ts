@@ -302,6 +302,7 @@ Deno.serve(async (req) => {
             .update({
               time_seconds: rec.time_seconds,
               record_date: rec.record_date,
+              record_type: "comp",
               notes,
             })
             .eq("id", existing.id);
@@ -325,6 +326,7 @@ Deno.serve(async (req) => {
             pool_length: rec.pool_length,
             time_seconds: rec.time_seconds,
             record_date: rec.record_date,
+            record_type: "comp",
             notes,
           });
 
