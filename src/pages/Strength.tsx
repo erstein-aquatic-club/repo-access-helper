@@ -1116,7 +1116,8 @@ export default function Strength() {
                            <div className="flex-1 h-px bg-border" />
                        </div>
 
-                        <div className="space-y-2">
+                       {/* Liste compacte d'exercices - mobile first */}
+                       <div className="space-y-2">
                            {activeFilteredItems.map((item, index) => {
                                const exercise = exerciseLookup.get(item.exercise_id);
                                const percentValue = Number(item.percent_1rm);
@@ -1129,104 +1130,109 @@ export default function Strength() {
                                    ? targetWeight > 0
                                        ? `${targetWeight} kg (${percentValue}% 1RM)`
                                        : `${percentValue}% 1RM`
-                                   : "—";
+                                   : null;
                                const notes = item.notes?.trim();
+                               const setsVal = formatStrengthValue(item.sets);
+                               const repsVal = formatStrengthValue(item.reps);
+                               const restVal = formatStrengthSeconds(item.rest_seconds);
+
                                return (
-                                    <Sheet key={`${item.exercise_id}-${index}`}>
-                                        <SheetTrigger asChild>
-                                            <button
-                                                type="button"
-                                                className="group w-full flex items-center gap-3 rounded-xl border bg-card p-3 text-left transition-all active:scale-[0.98] hover:border-primary/30 hover:shadow-sm"
-                                            >
-                                                {/* Numéro compact */}
-                                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">
-                                                    {index + 1}
+                                   <Sheet key={`${item.exercise_id}-${index}`}>
+                                       <SheetTrigger asChild>
+                                           <button
+                                               type="button"
+                                               className="w-full flex items-center gap-3 rounded-xl border bg-card px-3 py-3 text-left transition-all active:scale-[0.98] hover:border-primary/50 hover:shadow-sm"
+                                           >
+                                               {/* Numéro */}
+                                               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                                                   {index + 1}
                                                </div>
 
-                                                {/* Content compact */}
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className="font-semibold text-sm truncate">
-                                                        {exercise?.nom_exercice ?? item.exercise_name ?? "Exercice"}
-                                                    </h3>
-                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                                        <span className="font-medium">{formatStrengthValue(item.sets)} × {formatStrengthValue(item.reps)}</span>
-                                                        <span className="text-border">•</span>
-                                                        <span>Repos {formatStrengthSeconds(item.rest_seconds)}</span>
-                                                    </div>
+                                               {/* Titre exercice */}
+                                               <div className="flex-1 min-w-0">
+                                                   <p className="font-semibold text-sm truncate">
+                                                       {exercise?.nom_exercice ?? item.exercise_name ?? "Exercice"}
+                                                   </p>
                                                </div>
 
-                                                {/* Chevron */}
-                                                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-colors group-hover:text-primary" />
-                                            </button>
-                                        </SheetTrigger>
-                                        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-3xl pb-8">
-                                            <SheetHeader className="text-left pb-4">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold">
-                                                        {index + 1}
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <SheetTitle className="text-xl">
-                                                            {exercise?.nom_exercice ?? item.exercise_name ?? "Exercice"}
-                                                        </SheetTitle>
-                                                        {exercise?.exercise_type && (
-                                                            <p className="text-sm text-muted-foreground">{exercise.exercise_type}</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </SheetHeader>
+                                               {/* Stats compactes: séries×reps | repos */}
+                                               <div className="flex items-center gap-2 shrink-0 text-xs font-medium text-muted-foreground">
+                                                   <span className="font-mono">{setsVal}×{repsVal}</span>
+                                                   <span className="text-border">|</span>
+                                                   <span className="font-mono">{restVal}</span>
+                                                   <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+                                               </div>
+                                           </button>
+                                       </SheetTrigger>
 
-                                            {/* GIF illustration */}
-                                            {exercise?.illustration_gif && (
-                                                <div className="relative aspect-video rounded-xl overflow-hidden bg-muted mb-4">
-                                                    <img
-                                                        src={exercise.illustration_gif}
-                                                        alt={`Démonstration de ${exercise.nom_exercice}`}
-                                                        className="w-full h-full object-contain"
-                                                    />
-                                                </div>
-                                            )}
+                                       {/* Fiche détaillée exercice */}
+                                       <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl pb-8">
+                                           <SheetHeader className="text-left pb-4">
+                                               <div className="flex items-start gap-3">
+                                                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+                                                       {index + 1}
+                                                   </div>
+                                                   <div className="flex-1 min-w-0">
+                                                       <SheetTitle className="text-xl leading-tight">
+                                                           {exercise?.nom_exercice ?? item.exercise_name ?? "Exercice"}
+                                                       </SheetTitle>
+                                                       {exercise?.exercise_type && (
+                                                           <p className="text-sm text-muted-foreground mt-0.5">{exercise.exercise_type}</p>
+                                                       )}
+                                                   </div>
+                                               </div>
+                                           </SheetHeader>
 
-                                            {/* Description */}
-                                            {exercise?.description && (
-                                                <div className="rounded-xl bg-muted/30 p-4 mb-4">
-                                                    <p className="text-sm text-muted-foreground leading-relaxed">
-                                                        {exercise.description}
-                                                    </p>
-                                                </div>
-                                            )}
+                                           <div className="space-y-4">
+                                               {/* GIF illustration */}
+                                               {exercise?.illustration_gif && (
+                                                   <div className="rounded-2xl overflow-hidden bg-muted/30 border">
+                                                       <img
+                                                           src={exercise.illustration_gif}
+                                                           alt={exercise.nom_exercice ?? "Exercice"}
+                                                           className="w-full h-auto max-h-64 object-contain"
+                                                           loading="lazy"
+                                                       />
+                                                   </div>
+                                               )}
 
-                                            {/* Stats grid */}
-                                            <div className="grid gap-3 grid-cols-2 mb-4">
-                                                <div className="rounded-xl border bg-muted/30 p-4 text-center">
-                                                    <div className="text-2xl font-bold">{formatStrengthValue(item.sets)}</div>
-                                                    <div className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Séries</div>
-                                                </div>
-                                                <div className="rounded-xl border bg-muted/30 p-4 text-center">
-                                                    <div className="text-2xl font-bold">{formatStrengthValue(item.reps)}</div>
-                                                    <div className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Répétitions</div>
-                                                </div>
-                                                <div className="rounded-xl border bg-muted/30 p-4 text-center">
-                                                    <div className="text-lg font-bold">{chargeLabel}</div>
-                                                    <div className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Charge cible</div>
-                                                </div>
-                                                <div className="rounded-xl border bg-muted/30 p-4 text-center">
-                                                    <div className="text-lg font-bold">{formatStrengthSeconds(item.rest_seconds)}</div>
-                                                    <div className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Repos</div>
-                                                </div>
-                                            </div>
+                                               {/* Description */}
+                                               {exercise?.description && (
+                                                   <div className="text-sm text-muted-foreground leading-relaxed">
+                                                       {exercise.description}
+                                                   </div>
+                                               )}
 
-                                            {/* Notes coach */}
-                                            {notes && (
-                                                <div className="rounded-xl border bg-primary/5 border-primary/20 p-4">
-                                                    <div className="text-[10px] uppercase text-primary font-semibold mb-1">Notes du coach</div>
-                                                    <div className="text-sm text-foreground leading-relaxed">
-                                                        {notes}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </SheetContent>
-                                    </Sheet>
+                                               {/* Stats grid 2×2 */}
+                                               <div className="grid grid-cols-2 gap-2">
+                                                   <div className="rounded-xl bg-muted/40 p-3 text-center">
+                                                       <p className="text-2xl font-bold leading-none">{setsVal}</p>
+                                                       <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Séries</p>
+                                                   </div>
+                                                   <div className="rounded-xl bg-muted/40 p-3 text-center">
+                                                       <p className="text-2xl font-bold leading-none">{repsVal}</p>
+                                                       <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Reps</p>
+                                                   </div>
+                                                   <div className="rounded-xl bg-muted/40 p-3 text-center">
+                                                       <p className="text-lg font-bold leading-none">{chargeLabel ?? "—"}</p>
+                                                       <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Charge</p>
+                                                   </div>
+                                                   <div className="rounded-xl bg-muted/40 p-3 text-center">
+                                                       <p className="text-lg font-bold leading-none">{restVal}</p>
+                                                       <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Repos</p>
+                                                   </div>
+                                               </div>
+
+                                               {/* Notes coach */}
+                                               {notes && (
+                                                   <div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
+                                                       <div className="text-[10px] uppercase text-primary font-semibold mb-1">Notes coach</div>
+                                                       <div className="text-sm text-foreground">{notes}</div>
+                                                   </div>
+                                               )}
+                                           </div>
+                                       </SheetContent>
+                                   </Sheet>
                                );
                            })}
                            {activeFilteredItems.length === 0 && (
@@ -1236,14 +1242,14 @@ export default function Strength() {
                            )}
                        </div>
 
-                       {/* Bottom action bar fixe */}
+                       {/* Bottom action bar fixe - plus visible */}
                        <BottomActionBar>
                            <Button
-                               className="flex-1 h-12 rounded-xl font-semibold text-base"
+                               className="flex-1 h-14 rounded-xl font-bold text-base bg-primary hover:bg-primary/90 shadow-lg"
                                onClick={handleLaunchFocus}
                            >
                                <Play className="h-5 w-5 mr-2" />
-                               Lancer le Focus
+                               Lancer la séance
                            </Button>
                        </BottomActionBar>
                    </div>
