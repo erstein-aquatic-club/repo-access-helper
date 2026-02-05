@@ -1109,14 +1109,14 @@ export default function Strength() {
                        </div>
 
                        {/* Section header */}
-                       <div className="flex items-center gap-2 pt-1">
+                        <div className="flex items-center justify-between gap-2 pt-1">
                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                               Programme détaillé
+                                {activeFilteredItems.length} exercice{activeFilteredItems.length > 1 ? "s" : ""}
                            </span>
                            <div className="flex-1 h-px bg-border" />
                        </div>
 
-                       <div className="space-y-4">
+                        <div className="space-y-2">
                            {activeFilteredItems.map((item, index) => {
                                const exercise = exerciseLookup.get(item.exercise_id);
                                const percentValue = Number(item.percent_1rm);
@@ -1132,99 +1132,101 @@ export default function Strength() {
                                    : "—";
                                const notes = item.notes?.trim();
                                return (
-                                   <div 
-                                       key={`${item.exercise_id}-${index}`} 
-                                       className="group relative rounded-2xl border bg-card p-4 shadow-sm transition-all hover:shadow-md"
-                                   >
-                                       {/* Numéro de bloc en badge flottant */}
-                                       <div className="absolute -top-2.5 left-4 inline-flex items-center justify-center rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold text-primary-foreground shadow-sm">
-                                           {index + 1}
-                                       </div>
+                                    <Sheet key={`${item.exercise_id}-${index}`}>
+                                        <SheetTrigger asChild>
+                                            <button
+                                                type="button"
+                                                className="group w-full flex items-center gap-3 rounded-xl border bg-card p-3 text-left transition-all active:scale-[0.98] hover:border-primary/30 hover:shadow-sm"
+                                            >
+                                                {/* Numéro compact */}
+                                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">
+                                                    {index + 1}
+                                               </div>
 
-                                       <div className="pt-2 space-y-3">
-                                           {/* Header exercice */}
-                                           <div className="flex items-start justify-between gap-3">
-                                               <div className="flex-1 min-w-0">
-                                                   <h3 className="font-bold text-base tracking-tight truncate">
-                                                       {exercise?.nom_exercice ?? item.exercise_name ?? "Exercice"}
-                                                   </h3>
-                                                   {exercise?.exercise_type && (
-                                                       <p className="text-xs text-muted-foreground">{exercise.exercise_type}</p>
-                                                   )}
+                                                {/* Content compact */}
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-semibold text-sm truncate">
+                                                        {exercise?.nom_exercice ?? item.exercise_name ?? "Exercice"}
+                                                    </h3>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                                        <span className="font-medium">{formatStrengthValue(item.sets)} × {formatStrengthValue(item.reps)}</span>
+                                                        <span className="text-border">•</span>
+                                                        <span>Repos {formatStrengthSeconds(item.rest_seconds)}</span>
+                                                    </div>
                                                </div>
-                                               <Sheet>
-                                                   <SheetTrigger asChild>
-                                                       <button
-                                                           type="button"
-                                                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-colors hover:bg-muted active:scale-95"
-                                                           aria-label="Voir les détails"
-                                                       >
-                                                           <Info className="h-4 w-4" />
-                                                       </button>
-                                                   </SheetTrigger>
-                                                   <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-3xl">
-                                                       <SheetHeader className="text-left">
-                                                           <SheetTitle className="text-xl">
-                                                               {exercise?.nom_exercice ?? item.exercise_name ?? "Exercice"}
-                                                           </SheetTitle>
-                                                           <SheetDescription>
-                                                               {exercise?.description ?? "Description indisponible pour cet exercice."}
-                                                           </SheetDescription>
-                                                       </SheetHeader>
-                                                       <div className="mt-6 space-y-4 text-sm">
-                                                           <div className="grid gap-3 grid-cols-2">
-                                                               <div className="rounded-xl border bg-muted/30 p-4">
-                                                                   <div className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Charge cible</div>
-                                                                   <div className="text-lg font-bold">{chargeLabel}</div>
-                                                               </div>
-                                                               <div className="rounded-xl border bg-muted/30 p-4">
-                                                                   <div className="text-[10px] uppercase text-muted-foreground font-semibold mb-1">Repos</div>
-                                                                   <div className="text-lg font-bold">
-                                                                       {formatStrengthSeconds(item.rest_seconds)}
-                                                                   </div>
-                                                               </div>
-                                                           </div>
-                                                           {notes && (
-                                                               <div className="rounded-xl border bg-primary/5 border-primary/20 p-4">
-                                                                   <div className="text-[10px] uppercase text-primary font-semibold mb-1">Notes coach</div>
-                                                                   <div className="text-sm text-foreground">
-                                                                       {notes}
-                                                                   </div>
-                                                               </div>
-                                                           )}
-                                                       </div>
-                                                   </SheetContent>
-                                               </Sheet>
-                                           </div>
 
-                                           {/* Stats grid compact - 2x2 sur mobile */}
-                                           <div className="grid grid-cols-2 gap-2">
-                                               <div className="rounded-xl bg-muted/40 p-3 text-center">
-                                                   <p className="text-2xl font-bold leading-none">{formatStrengthValue(item.sets)}</p>
-                                                   <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Séries</p>
-                                               </div>
-                                               <div className="rounded-xl bg-muted/40 p-3 text-center">
-                                                   <p className="text-2xl font-bold leading-none">{formatStrengthValue(item.reps)}</p>
-                                                   <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Reps</p>
-                                               </div>
-                                               <div className="rounded-xl bg-muted/40 p-3 text-center">
-                                                   <p className="text-lg font-bold leading-none">{chargeLabel}</p>
-                                                   <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Charge</p>
-                                               </div>
-                                               <div className="rounded-xl bg-muted/40 p-3 text-center">
-                                                   <p className="text-lg font-bold leading-none">{formatStrengthSeconds(item.rest_seconds)}</p>
-                                                   <p className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Repos</p>
-                                               </div>
-                                           </div>
+                                                {/* Chevron */}
+                                                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-colors group-hover:text-primary" />
+                                            </button>
+                                        </SheetTrigger>
+                                        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-3xl pb-8">
+                                            <SheetHeader className="text-left pb-4">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold">
+                                                        {index + 1}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <SheetTitle className="text-xl">
+                                                            {exercise?.nom_exercice ?? item.exercise_name ?? "Exercice"}
+                                                        </SheetTitle>
+                                                        {exercise?.exercise_type && (
+                                                            <p className="text-sm text-muted-foreground">{exercise.exercise_type}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </SheetHeader>
 
-                                           {/* Notes si présentes */}
-                                           {notes && (
-                                               <div className="rounded-xl bg-primary/5 border border-primary/20 px-3 py-2">
-                                                   <p className="text-xs text-muted-foreground"><span className="font-semibold text-primary">Coach:</span> {notes}</p>
-                                               </div>
-                                           )}
-                                       </div>
-                                   </div>
+                                            {/* GIF illustration */}
+                                            {exercise?.illustration_gif && (
+                                                <div className="relative aspect-video rounded-xl overflow-hidden bg-muted mb-4">
+                                                    <img
+                                                        src={exercise.illustration_gif}
+                                                        alt={`Démonstration de ${exercise.nom_exercice}`}
+                                                        className="w-full h-full object-contain"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {/* Description */}
+                                            {exercise?.description && (
+                                                <div className="rounded-xl bg-muted/30 p-4 mb-4">
+                                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                                        {exercise.description}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* Stats grid */}
+                                            <div className="grid gap-3 grid-cols-2 mb-4">
+                                                <div className="rounded-xl border bg-muted/30 p-4 text-center">
+                                                    <div className="text-2xl font-bold">{formatStrengthValue(item.sets)}</div>
+                                                    <div className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Séries</div>
+                                                </div>
+                                                <div className="rounded-xl border bg-muted/30 p-4 text-center">
+                                                    <div className="text-2xl font-bold">{formatStrengthValue(item.reps)}</div>
+                                                    <div className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Répétitions</div>
+                                                </div>
+                                                <div className="rounded-xl border bg-muted/30 p-4 text-center">
+                                                    <div className="text-lg font-bold">{chargeLabel}</div>
+                                                    <div className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Charge cible</div>
+                                                </div>
+                                                <div className="rounded-xl border bg-muted/30 p-4 text-center">
+                                                    <div className="text-lg font-bold">{formatStrengthSeconds(item.rest_seconds)}</div>
+                                                    <div className="text-[10px] uppercase text-muted-foreground font-semibold mt-1">Repos</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Notes coach */}
+                                            {notes && (
+                                                <div className="rounded-xl border bg-primary/5 border-primary/20 p-4">
+                                                    <div className="text-[10px] uppercase text-primary font-semibold mb-1">Notes du coach</div>
+                                                    <div className="text-sm text-foreground leading-relaxed">
+                                                        {notes}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </SheetContent>
+                                    </Sheet>
                                );
                            })}
                            {activeFilteredItems.length === 0 && (
