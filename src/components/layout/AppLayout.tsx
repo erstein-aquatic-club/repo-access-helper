@@ -69,7 +69,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content */}
-      <main className="container max-w-md mx-auto p-4 md:max-w-3xl lg:max-w-4xl animate-in fade-in duration-300">
+      <main className="container max-w-md mx-auto p-4 md:max-w-3xl lg:max-w-4xl">
         {children}
       </main>
 
