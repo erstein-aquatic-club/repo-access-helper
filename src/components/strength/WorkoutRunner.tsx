@@ -11,7 +11,6 @@ import {
   Check,
   CheckCircle2,
   ChevronRight,
-  Delete,
   Dumbbell,
   Pause,
   RotateCcw,
@@ -23,8 +22,9 @@ import { ScrollContainer } from "@/components/shared/ScrollContainer";
 import { ScaleSelector5 } from "@/components/shared/ScaleSelector5";
 import { cn } from "@/lib/utils";
 import type { Exercise, StrengthSessionTemplate } from "@/lib/api";
+import type { SetLogEntry, OneRmEntry, WorkoutFinishData, SetInputValues } from "@/lib/types";
 
-export const resolveSetNumber = (log: any, fallbackIndex: number) => {
+export const resolveSetNumber = (log: SetLogEntry | null | undefined, fallbackIndex: number) => {
   const raw = Number(log?.set_index ?? log?.set_number ?? log?.setIndex ?? fallbackIndex);
   if (!Number.isFinite(raw) || raw <= 0) {
     return fallbackIndex;
@@ -34,14 +34,14 @@ export const resolveSetNumber = (log: any, fallbackIndex: number) => {
 
 export const resolveNextStep = (
   items: StrengthSessionTemplate["items"] = [],
-  logs: any[] | null | undefined,
+  logs: SetLogEntry[] | null | undefined,
   progressPct?: number | null,
 ) => {
   if (!items.length) return 0;
   const usableLogs = Array.isArray(logs) ? logs : [];
   if (usableLogs.length > 0) {
-    const logsByExercise = new Map<number, any[]>();
-    usableLogs.forEach((log: any, index: number) => {
+    const logsByExercise = new Map<number, SetLogEntry[]>();
+    usableLogs.forEach((log: SetLogEntry, index: number) => {
       if (!log?.exercise_id) return;
       const existing = logsByExercise.get(log.exercise_id) ?? [];
       existing.push({ ...log, set_index: resolveSetNumber(log, index + 1) });
@@ -95,12 +95,12 @@ export function WorkoutRunner({
 }: {
   session: StrengthSessionTemplate;
   exercises: Exercise[];
-  oneRMs: any[];
-  onFinish: (data: any) => void;
+  oneRMs: OneRmEntry[];
+  onFinish: (data: WorkoutFinishData) => void;
   onStart?: () => Promise<void> | void;
-  onLogSets?: (logs: any[]) => Promise<void> | void;
+  onLogSets?: (logs: SetLogEntry[]) => Promise<void> | void;
   onProgress?: (progressPct: number) => Promise<void> | void;
-  initialLogs?: any[] | null;
+  initialLogs?: SetLogEntry[] | null;
   isFinishing?: boolean;
   initialStep?: number;
   onStepChange?: (step: number) => void;
@@ -109,7 +109,7 @@ export function WorkoutRunner({
   onExitFocus?: () => void;
 }) {
   const [currentStep, setCurrentStep] = useState(initialStep ?? 0);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<SetLogEntry[]>([]);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isActive, setIsActive] = useState(true);
   const [restTimer, setRestTimer] = useState(0);
@@ -128,11 +128,11 @@ export function WorkoutRunner({
   const [isGifOpen, setIsGifOpen] = useState(false);
 
   useEffect(() => {
-    let interval: any = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (isActive) {
       interval = setInterval(() => setElapsedTime((t) => t + 1), 1000);
     }
-    return () => clearInterval(interval);
+    return () => { if (interval) clearInterval(interval); };
   }, [isActive]);
 
   useEffect(() => {
@@ -147,14 +147,14 @@ export function WorkoutRunner({
   }, [isGifOpen]);
 
   useEffect(() => {
-    let interval: any = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (isResting && !isRestPaused && restTimer > 0) {
       interval = setInterval(() => setRestTimer((t) => t - 1), 1000);
     } else if (restTimer === 0 && isResting) {
       setIsResting(false);
       setIsRestPaused(false);
     }
-    return () => clearInterval(interval);
+    return () => { if (interval) clearInterval(interval); };
   }, [isResting, isRestPaused, restTimer]);
 
   const workoutPlan = session.items || [];
@@ -170,9 +170,9 @@ export function WorkoutRunner({
     : null;
   const muscleTags = (() => {
     const raw =
-      (currentExerciseDef as any)?.muscle_groups ??
-      (currentExerciseDef as any)?.muscles ??
-      (currentExerciseDef as any)?.muscleGroups ??
+      (currentExerciseDef as Record<string, unknown> | undefined)?.muscle_groups ??
+      (currentExerciseDef as Record<string, unknown> | undefined)?.muscles ??
+      (currentExerciseDef as Record<string, unknown> | undefined)?.muscleGroups ??
       [];
     return Array.isArray(raw) ? raw : [];
   })();
@@ -188,10 +188,10 @@ export function WorkoutRunner({
     : 0;
   const targetWeight = hasPercent ? Math.round(rm * (percentValue / 100)) : 0;
 
-  const [currentSetInputs, setCurrentSetInputs] = useState<any>({});
+  const [currentSetInputs, setCurrentSetInputs] = useState<Record<number, SetInputValues>>({});
   const logLookup = useMemo(() => {
-    const map = new Map<string, any>();
-    logs.forEach((log: any, index: number) => {
+    const map = new Map<string, SetLogEntry>();
+    logs.forEach((log: SetLogEntry, index: number) => {
       const setNumber = resolveSetNumber(log, index + 1);
       if (!log.exercise_id) return;
       map.set(`${log.exercise_id}-${setNumber}`, log);
@@ -247,15 +247,15 @@ export function WorkoutRunner({
 
   useEffect(() => {
     if (!initialLogs) {
-      setLogs((prev: any[]) => (prev.length ? [] : prev));
-      setCurrentSetInputs((prev: Record<string, any>) =>
+      setLogs((prev: SetLogEntry[]) => (prev.length ? [] : prev));
+      setCurrentSetInputs((prev: Record<number, SetInputValues>) =>
         Object.keys(prev).length ? {} : prev,
       );
       return;
     }
     setLogs(initialLogs);
     if (!initialLogs.length) {
-      setCurrentSetInputs((prev: Record<string, any>) =>
+      setCurrentSetInputs((prev: Record<number, SetInputValues>) =>
         Object.keys(prev).length ? {} : prev,
       );
       setCurrentStep((prev: number) => (prev === 0 ? prev : 0));
@@ -263,8 +263,8 @@ export function WorkoutRunner({
     }
     const blocks = session.items || [];
     if (!blocks.length) return;
-    const logsByExercise = new Map<number, any[]>();
-    initialLogs.forEach((log: any, index: number) => {
+    const logsByExercise = new Map<number, SetLogEntry[]>();
+    initialLogs.forEach((log: SetLogEntry, index: number) => {
       if (!log.exercise_id) return;
       const existing = logsByExercise.get(log.exercise_id) ?? [];
       existing.push({ ...log, set_index: resolveSetNumber(log, index + 1) });
@@ -274,7 +274,7 @@ export function WorkoutRunner({
     if (resolvedStep > 0 && resolvedStep <= blocks.length) {
       const block = blocks[resolvedStep - 1];
       const existing = logsByExercise.get(block.exercise_id) ?? [];
-      const inputs = existing.reduce((acc: any, log: any, index: number) => {
+      const inputs = existing.reduce((acc: Record<number, SetInputValues>, log: SetLogEntry, index: number) => {
         const setNumber = resolveSetNumber(log, index + 1);
         acc[setNumber - 1] = {
           reps: log.reps ?? undefined,
@@ -374,7 +374,7 @@ export function WorkoutRunner({
         ? Number(draftValue.replace(",", "."))
         : Number(draftValue);
     if (!Number.isFinite(parsed)) return;
-    setCurrentSetInputs((prev: any) => ({
+    setCurrentSetInputs((prev: Record<number, SetInputValues>) => ({
       ...prev,
       [currentSetIndex - 1]: {
         ...prev[currentSetIndex - 1],
@@ -405,8 +405,8 @@ export function WorkoutRunner({
 
   if (currentStep === 0) {
     return (
-      <div className="space-y-6 text-center py-8 animate-in zoom-in duration-300 motion-reduce:animate-none">
-        <div className="h-24 w-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto animate-pulse motion-reduce:animate-none">
+      <div className="space-y-6 text-center py-8 animate-in zoom-in duration-300">
+        <div className="h-24 w-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto animate-pulse">
           <Dumbbell className="h-10 w-10 text-primary ml-1" />
         </div>
         <div>
@@ -437,7 +437,7 @@ export function WorkoutRunner({
 
   if (currentStep > workoutPlan.length) {
     return (
-      <div className="space-y-6 animate-in fade-in motion-reduce:animate-none">
+      <div className="space-y-6 animate-in fade-in">
         <Card className="border-t-8 border-t-primary shadow-xl">
           <CardHeader className="text-center pb-2">
             <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
@@ -535,6 +535,7 @@ export function WorkoutRunner({
                 alt=""
                 className="h-full w-full object-cover"
                 loading="lazy"
+                decoding="async"
               />
             ) : (
               <Dumbbell className="h-5 w-5 text-muted-foreground" />
@@ -645,7 +646,7 @@ export function WorkoutRunner({
 
       {!inputSheetOpen && !isResting ? (
         <BottomActionBar 
-          className="bottom-0 z-modal"
+          className="bottom-0 z-[60]" 
           containerClassName="gap-3 py-4"
         >
           <Button
@@ -679,7 +680,7 @@ export function WorkoutRunner({
       ) : null}
 
       {isResting && (
-        <div className="fixed inset-0 z-modal flex flex-col bg-background/95 pb-[env(safe-area-inset-bottom)]">
+        <div className="fixed inset-0 z-50 flex flex-col bg-background/95 pb-[env(safe-area-inset-bottom)]">
           <div className="flex items-start justify-between border-b px-6 py-4">
             <div>
               <div className="text-xs font-semibold text-muted-foreground">Timer</div>
@@ -771,7 +772,7 @@ export function WorkoutRunner({
 
       {isGifOpen && currentExerciseDef?.illustration_gif && (
         <div
-          className="fixed inset-0 z-modal bg-black/50"
+          className="fixed inset-0 z-50 bg-black/50"
           onClick={() => setIsGifOpen(false)}
         >
           <div
@@ -791,7 +792,6 @@ export function WorkoutRunner({
                 src={currentExerciseDef.illustration_gif}
                 alt=""
                 className="max-h-[80vh] w-auto max-w-[92vw] rounded-2xl"
-                loading="lazy"
               />
             </div>
           </div>
@@ -971,9 +971,8 @@ export function WorkoutRunner({
                 variant="outline"
                 className="h-14 text-xl font-semibold rounded-xl active:scale-95 transition-transform"
                 onClick={() => setDraftValue((prev) => prev.slice(0, -1))}
-                aria-label="Effacer le dernier caractère"
               >
-                <Delete className="h-5 w-5" />
+                ⌫
               </Button>
             </div>
 

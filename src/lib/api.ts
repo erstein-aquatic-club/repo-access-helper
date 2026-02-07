@@ -1,616 +1,103 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { supabaseConfig } from "./config";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth";
 
-// --- Types ---
+// --- Types (re-exported from api/types.ts for backward compatibility) ---
+export type {
+  Session,
+  Exercise,
+  StrengthCycleType,
+  StrengthSessionTemplate,
+  StrengthSessionItem,
+  SwimSessionTemplate,
+  SwimSessionItem,
+  Assignment,
+  Notification,
+  UserProfile,
+  AthleteSummary,
+  GroupSummary,
+  UpcomingBirthday,
+  UserSummary,
+  SwimRecord,
+  ClubRecord,
+  ClubRecordSwimmer,
+  TimesheetShift,
+  TimesheetLocation,
+  FeatureCapability,
+  ApiCapabilities,
+  ApiErrorInfo,
+  SyncSessionInput,
+  StrengthRunPayload,
+  StrengthSetPayload,
+} from "./api/types";
 
-const isNetworkAvailable = () => {
-  if (typeof navigator === "undefined") {
-    return true;
-  }
-  return navigator.onLine;
-};
+import type {
+  Session,
+  Exercise,
+  StrengthCycleType,
+  StrengthSessionTemplate,
+  StrengthSessionItem,
+  SwimSessionTemplate,
+  SwimSessionItem,
+  Assignment,
+  Notification,
+  UserProfile,
+  AthleteSummary,
+  GroupSummary,
+  UpcomingBirthday,
+  UserSummary,
+  SwimRecord,
+  ClubRecord,
+  ClubRecordSwimmer,
+  TimesheetShift,
+  TimesheetLocation,
+  ApiCapabilities,
+  ApiErrorInfo,
+} from "./api/types";
 
-const canUseSupabase = () => supabaseConfig.hasSupabase && isNetworkAvailable();
+// --- Utilities (imported from api/client.ts) ---
+import {
+  canUseSupabase,
+  STORAGE_KEYS,
+  safeInt,
+  safeOptionalInt,
+  safeOptionalNumber,
+  normalizeScaleToFive,
+  expandScaleToTen,
+  estimateOneRm,
+  normalizeCycleType,
+  normalizeExerciseType,
+  normalizeStrengthItem,
+  validateStrengthItems,
+  mapDbExerciseToApi,
+  mapApiExerciseToDb,
+  delay,
+  parseRawPayload,
+  fetchUserGroupIds,
+} from "./api/client";
 
-export interface Session {
-  id: number;
-  athlete_id?: number;
-  athlete_name: string;
-  date: string;
-  slot: string;
-  effort: number;
-  feeling: number;
-  rpe?: number | null;
-  performance?: number | null;
-  engagement?: number | null;
-  fatigue?: number | null;
-  distance: number;
-  duration: number;
-  comments: string;
-  created_at: string;
-}
+// --- Helpers (imported from api/helpers.ts) ---
+import {
+  normalizeExercise,
+  mapToDbSession,
+  mapFromDbSession,
+  type Pagination,
+  type NotificationListResult,
+  type StrengthExerciseSummary,
+  type StrengthHistoryResult,
+  type StrengthHistoryAggregateEntry,
+  type StrengthHistoryAggregateResult,
+  type SyncSessionInputWithId,
+} from "./api/helpers";
 
-export interface Exercise {
-  id: number;
-  name?: string;
-  numero_exercice?: number | null;
-  nom_exercice: string;
-  description?: string | null;
-  illustration_gif?: string | null;
-  exercise_type: "strength" | "warmup";
-  warmup_reps?: number | null;
-  warmup_duration?: number | null;
-  Nb_series_endurance?: number | null;
-  Nb_reps_endurance?: number | null;
-  pct_1rm_endurance?: number | null;
-  recup_endurance?: number | null;
-  recup_exercices_endurance?: number | null;
-  Nb_series_hypertrophie?: number | null;
-  Nb_reps_hypertrophie?: number | null;
-  pct_1rm_hypertrophie?: number | null;
-  recup_hypertrophie?: number | null;
-  recup_exercices_hypertrophie?: number | null;
-  Nb_series_force?: number | null;
-  Nb_reps_force?: number | null;
-  pct_1rm_force?: number | null;
-  recup_force?: number | null;
-  recup_exercices_force?: number | null;
-}
+// Re-export error utilities for backward compatibility
+export { parseApiError, summarizeApiError } from "./api/client";
 
-export type StrengthCycleType = "endurance" | "hypertrophie" | "force";
-
-export interface StrengthSessionTemplate {
-  id: number;
-  title: string;
-  name?: string;
-  description: string;
-  cycle: StrengthCycleType;
-  cycle_type?: StrengthCycleType | null;
-  items?: StrengthSessionItem[];
-}
-
-export interface StrengthSessionItem {
-  exercise_id: number;
-  order_index: number;
-  sets: number;
-  reps: number;
-  rest_seconds: number;
-  percent_1rm: number;
-  cycle_type?: StrengthCycleType | null;
-  notes?: string;
-  // Join fields
-  exercise_name?: string;
-  category?: string;
-}
-
-export interface SwimSessionTemplate {
-    id: number;
-    name: string;
-    description?: string | null;
-    created_by?: number | null;
-    created_at?: string | null;
-    updated_at?: string | null;
-    items?: SwimSessionItem[];
-}
-
-export interface SwimSessionItem {
-    id?: number;
-    catalog_id?: number;
-    ordre?: number;
-    label?: string | null;
-    distance?: number | null;
-    duration?: number | null;
-    intensity?: string | null;
-    notes?: string | null;
-    raw_payload?: Record<string, any> | null;
-}
-
-export interface Assignment {
-    id: number;
-    session_id: number;
-    session_type: "swim" | "strength";
-    title: string;
-    description: string;
-    assigned_date: string;
-    status: string;
-    // Strength fields
-    items?: StrengthSessionItem[] | SwimSessionItem[];
-    cycle?: string;
-}
-
-export interface Notification {
-  id: number;
-  target_id?: number;
-  target_user_id?: number | null;
-  target_group_id?: number | null;
-  target_group_name?: string | null;
-  sender_id?: number | null;
-  sender_email?: string | null;
-  sender_name?: string | null;
-  sender_role?: string | null;
-  counterparty_id?: number | null;
-  counterparty_name?: string | null;
-  counterparty_role?: string | null;
-  sender: string;
-  title: string;
-  message: string;
-  type: string;
-  read: boolean;
-  date: string;
-  related_id?: number;
-}
-
-export interface UserProfile {
-  id?: number | null;
-  display_name?: string;
-  email?: string | null;
-  birthdate?: string | null;
-  group_id?: number | null;
-  group_label?: string | null;
-  objectives?: string | null;
-  bio?: string | null;
-  avatar_url?: string | null;
-  ffn_iuf?: string | null;
-}
-
-export interface AthleteSummary {
-  id: number | null;
-  display_name: string;
-  group_label?: string | null;
-}
-
-export interface GroupSummary {
-  id: number;
-  name: string;
-  member_count?: number | null;
-}
-
-export interface UpcomingBirthday {
-  id: number;
-  display_name: string;
-  birthdate: string;
-  next_birthday: string;
-  days_until: number;
-}
-
-export interface UserSummary {
-  id: number;
-  display_name: string;
-  role: string;
-  email?: string | null;
-  is_active?: number | boolean;
-  group_label?: string | null;
-}
-
-export interface SwimRecord {
-  id: number;
-  athlete_id: number;
-  athlete_name?: string | null;
-  event_name: string;
-  pool_length?: number | null;
-  time_seconds?: number | null;
-  record_date?: string | null;
-  notes?: string | null;
-  record_type?: string | null;
-  /** Points FFN (normalisés en base dans swim_records.ffn_points) */
-  ffn_points?: number | null;
-  /** Compat legacy: certains payloads peuvent encore exposer "points" */
-  points?: number | null;
-}
-
-export interface ClubRecord {
-  id: number;
-  performance_id: number;
-  athlete_name: string;
-  sex: string;
-  pool_m: number;
-  event_code: string;
-  event_label?: string | null;
-  age: number;
-  time_ms: number;
-  record_date?: string | null;
-}
-
-export interface ClubRecordSwimmer {
-  id: number | null;
-  source_type: "user" | "manual";
-  user_id?: number | null;
-  display_name: string;
-  iuf?: string | null;
-  sex?: "M" | "F" | null;
-  birthdate?: string | null;
-  is_active: number;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
-
-export interface TimesheetShift {
-  id: number;
-  coach_id: number;
-  coach_name?: string | null;
-  shift_date: string;
-  start_time: string;
-  end_time?: string | null;
-  location?: string | null;
-  is_travel: boolean;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
-
-export interface TimesheetLocation {
-  id: number;
-  name: string;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
-
-export type FeatureCapability = {
-  available: boolean;
-  missingTables?: string[];
-};
-
-export type ApiCapabilities = {
-  version?: string | null;
-  timesheet: FeatureCapability;
-  messaging: FeatureCapability;
-  mode: "supabase" | "local";
-};
-
-export type ApiErrorInfo = {
-  message: string;
-  code?: string;
-  status?: number;
-};
-
-// src/lib/api.ts
-
-
-
-// STORAGE MOCK (Since we don't have a real DB in this mode, we use local storage to simulate backend persistence for development)
-// In a real app, this would be replacing fetch calls to the worker.
-const STORAGE_KEYS = {
-  SESSIONS: "suivi_natation_sessions",
-  EXERCISES: "suivi_natation_exercises",
-  STRENGTH_SESSIONS: "suivi_natation_strength_sessions",
-  SWIM_SESSIONS: "suivi_natation_swim_sessions",
-  ASSIGNMENTS: "suivi_natation_assignments",
-  STRENGTH_RUNS: "suivi_natation_strength_runs",
-  NOTIFICATIONS: "suivi_natation_notifications",
-  ONE_RM: "suivi_natation_1rm",
-  SWIM_RECORDS: "suivi_natation_swim_records",
-  TIMESHEET_SHIFTS: "suivi_natation_timesheet_shifts",
-  TIMESHEET_LOCATIONS: "suivi_natation_timesheet_locations",
-};
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const defaultTimesheetLocations = ["Piscine", "Compétition"];
 
 // --- API Service ---
-
-const parseRawPayload = (raw: unknown) => {
-  if (!raw) return null;
-  if (typeof raw === "string") {
-    try {
-      return JSON.parse(raw);
-    } catch (error) {
-      return null;
-    }
-  }
-  if (typeof raw === "object") return raw as Record<string, unknown>;
-  return null;
-};
-
-const fetchUserGroupIds = async (userId?: number | null): Promise<number[]> => {
-  if (!userId || !canUseSupabase()) return [];
-  const { data, error } = await supabase
-    .from("group_members")
-    .select("group_id")
-    .eq("user_id", userId);
-  if (error || !data) return [];
-  return data.map((m: any) => m.group_id).filter((id: number) => id > 0);
-};
-
-/** Map DB row (dim_exercices) → frontend Exercise interface */
-const mapDbExerciseToApi = (row: any): Exercise => ({
-  id: safeInt(row.id),
-  numero_exercice: safeOptionalInt(row.numero_exercice),
-  nom_exercice: row.nom_exercice ?? "",
-  description: row.description ?? null,
-  illustration_gif: row.illustration_gif ?? null,
-  exercise_type: normalizeExerciseType(row.exercise_type),
-  warmup_reps: null,
-  warmup_duration: null,
-  Nb_series_endurance: safeOptionalInt(row.nb_series_endurance),
-  Nb_reps_endurance: safeOptionalInt(row.nb_reps_endurance),
-  pct_1rm_endurance: safeOptionalNumber(row.pourcentage_charge_1rm_endurance),
-  recup_endurance: safeOptionalInt(row.recup_series_endurance),
-  recup_exercices_endurance: safeOptionalInt(row.recup_exercices_endurance),
-  Nb_series_hypertrophie: safeOptionalInt(row.nb_series_hypertrophie),
-  Nb_reps_hypertrophie: safeOptionalInt(row.nb_reps_hypertrophie),
-  pct_1rm_hypertrophie: safeOptionalNumber(row.pourcentage_charge_1rm_hypertrophie),
-  recup_hypertrophie: safeOptionalInt(row.recup_series_hypertrophie),
-  recup_exercices_hypertrophie: safeOptionalInt(row.recup_exercices_hypertrophie),
-  Nb_series_force: safeOptionalInt(row.nb_series_force),
-  Nb_reps_force: safeOptionalInt(row.nb_reps_force),
-  pct_1rm_force: safeOptionalNumber(row.pourcentage_charge_1rm_force),
-  recup_force: safeOptionalInt(row.recup_series_force),
-  recup_exercices_force: safeOptionalInt(row.recup_exercices_force),
-});
-
-/** Map frontend Exercise → DB row (dim_exercices) for insert/update */
-const mapApiExerciseToDb = (exercise: any) => ({
-  numero_exercice: exercise.numero_exercice ?? null,
-  nom_exercice: exercise.nom_exercice ?? exercise.name ?? "",
-  description: exercise.description ?? null,
-  illustration_gif: exercise.illustration_gif ?? null,
-  exercise_type: exercise.exercise_type ?? "strength",
-  nb_series_endurance: exercise.Nb_series_endurance ?? null,
-  nb_reps_endurance: exercise.Nb_reps_endurance ?? null,
-  pourcentage_charge_1rm_endurance: exercise.pct_1rm_endurance ?? null,
-  recup_series_endurance: exercise.recup_endurance ?? null,
-  recup_exercices_endurance: exercise.recup_exercices_endurance ?? null,
-  nb_series_hypertrophie: exercise.Nb_series_hypertrophie ?? null,
-  nb_reps_hypertrophie: exercise.Nb_reps_hypertrophie ?? null,
-  pourcentage_charge_1rm_hypertrophie: exercise.pct_1rm_hypertrophie ?? null,
-  recup_series_hypertrophie: exercise.recup_hypertrophie ?? null,
-  recup_exercices_hypertrophie: exercise.recup_exercices_hypertrophie ?? null,
-  nb_series_force: exercise.Nb_series_force ?? null,
-  nb_reps_force: exercise.Nb_reps_force ?? null,
-  pourcentage_charge_1rm_force: exercise.pct_1rm_force ?? null,
-  recup_series_force: exercise.recup_force ?? null,
-  recup_exercices_force: exercise.recup_exercices_force ?? null,
-});
-
-const safeInt = (value: unknown, fallback = 0) => {
-  const num = Number(value);
-  return Number.isFinite(num) ? Math.round(num) : fallback;
-};
-
-const safeOptionalInt = (value: unknown) => {
-  const num = Number(value);
-  return Number.isFinite(num) ? Math.round(num) : null;
-};
-
-const loggedErrors = new Set<string>();
-
-export const parseApiError = (error: unknown): ApiErrorInfo => {
-  if (error instanceof Error) {
-    const info = error as ApiErrorInfo;
-    return {
-      message: info.message || "Erreur inconnue",
-      code: info.code,
-      status: info.status,
-    };
-  }
-  return { message: String(error || "Erreur inconnue") };
-};
-
-export const summarizeApiError = (error: unknown, fallbackMessage: string): ApiErrorInfo => {
-  const info = parseApiError(error);
-  const status = info.status;
-  const code = info.code;
-  let message = info.message || fallbackMessage;
-  if (code === "unknown_action") {
-    message = "Action inconnue côté serveur.";
-  } else if (code === "table_missing") {
-    message = "Base de données non initialisée (table manquante).";
-  } else if (status === 401) {
-    message = "Authentification expirée ou manquante.";
-  } else if (status === 403) {
-    message = "Accès refusé pour ce rôle.";
-  }
-  const logKey = `${code ?? "none"}:${status ?? "none"}:${message}`;
-  if (!loggedErrors.has(logKey)) {
-    console.error("[api] error:", info);
-    loggedErrors.add(logKey);
-  }
-  return { ...info, message };
-};
-
-const normalizeScaleToFive = (value: number | null | undefined) => {
-  if (value === null || value === undefined) return null;
-  const num = Number(value);
-  if (!Number.isFinite(num)) return null;
-  if (num <= 5) return Math.max(1, Math.round(num));
-  return Math.min(5, Math.max(1, Math.round(num / 2)));
-};
-
-const expandScaleToTen = (value: number | null | undefined) => {
-  if (value === null || value === undefined) return null;
-  const num = Number(value);
-  if (!Number.isFinite(num)) return null;
-  if (num <= 5) return Math.round(num * 2);
-  return Math.round(num);
-};
-
-const safeOptionalNumber = (value: unknown) => {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : null;
-};
-
-const estimateOneRm = (weight?: number | null, reps?: number | null) => {
-  if (!Number.isFinite(weight) || !Number.isFinite(reps)) return null;
-  if ((weight ?? 0) <= 0 || (reps ?? 0) <= 0) return null;
-  if (reps === 1) return Math.round(weight as number);
-  return Math.round((weight as number) * (1 + (reps as number) / 30));
-};
-
-const normalizeCycleType = (value: unknown) => {
-  const normalized = String(value ?? "").trim().toLowerCase();
-  if (normalized === "hypertrophie" || normalized === "force" || normalized === "endurance") {
-    return normalized;
-  }
-  return "endurance";
-};
-
-const normalizeStrengthItem = (
-  item: any,
-  index: number,
-  sessionCycle: string,
-): StrengthSessionItem => ({
-  exercise_id: safeInt(item.exercise_id),
-  order_index: safeOptionalInt(item.ordre ?? item.order_index) ?? index,
-  sets: safeOptionalInt(item.sets) ?? 0,
-  reps: safeOptionalInt(item.reps) ?? 0,
-  rest_seconds: safeOptionalInt(item.rest_series_s ?? item.rest_seconds) ?? 0,
-  percent_1rm: safeOptionalInt(item.pct_1rm ?? item.percent_1rm) ?? 0,
-  cycle_type: normalizeCycleType(item.cycle_type ?? sessionCycle),
-  notes: item.notes ?? "",
-  exercise_name: item.exercise_name ?? item.nom_exercice ?? undefined,
-  category: item.category ?? item.exercise_type ?? undefined,
-});
-
-const validateStrengthItems = (items: StrengthSessionItem[]) => {
-  for (let index = 0; index < items.length; index += 1) {
-    const item = items[index];
-    if (!Number.isFinite(item.sets) || item.sets < 0) {
-      throw new Error(`Séries invalides pour l'exercice #${index + 1}`);
-    }
-    if (!Number.isFinite(item.reps) || item.reps < 0) {
-      throw new Error(`Reps invalides pour l'exercice #${index + 1}`);
-    }
-    if (!Number.isFinite(item.rest_seconds) || item.rest_seconds < 0) {
-      throw new Error(`Repos invalide pour l'exercice #${index + 1}`);
-    }
-  }
-};
-
-const isExerciseType = (value: unknown): value is Exercise["exercise_type"] =>
-  value === "strength" || value === "warmup";
-
-const normalizeExerciseType = (value: unknown): Exercise["exercise_type"] =>
-  isExerciseType(value) ? value : "strength";
-
-const assertExerciseType = (value: unknown): Exercise["exercise_type"] => {
-  if (isExerciseType(value)) {
-    return value;
-  }
-  throw new Error("exercise_type must be 'strength' or 'warmup'");
-};
-
-const normalizeExercise = (exercise: any): Exercise => ({
-  id: safeInt(exercise.id),
-  numero_exercice: safeOptionalInt(exercise.numero_exercice ?? exercise.numero),
-  nom_exercice: exercise.nom_exercice ?? exercise.name ?? "",
-  description: exercise.description ?? null,
-  illustration_gif: exercise.illustration_gif ?? null,
-  exercise_type: normalizeExerciseType(
-    exercise.exercise_type ?? exercise.type ?? (exercise.is_warmup ? "warmup" : "strength"),
-  ),
-  warmup_reps: safeOptionalInt(exercise.warmup_reps),
-  warmup_duration: safeOptionalInt(exercise.warmup_duration),
-  Nb_series_endurance: safeOptionalInt(exercise.Nb_series_endurance),
-  Nb_reps_endurance: safeOptionalInt(exercise.Nb_reps_endurance),
-  pct_1rm_endurance: safeOptionalNumber(exercise.pct_1rm_endurance),
-  recup_endurance: safeOptionalInt(exercise.recup_endurance),
-  recup_exercices_endurance: safeOptionalInt(exercise.recup_exercices_endurance),
-  Nb_series_hypertrophie: safeOptionalInt(exercise.Nb_series_hypertrophie),
-  Nb_reps_hypertrophie: safeOptionalInt(exercise.Nb_reps_hypertrophie),
-  pct_1rm_hypertrophie: safeOptionalNumber(exercise.pct_1rm_hypertrophie),
-  recup_hypertrophie: safeOptionalInt(exercise.recup_hypertrophie),
-  recup_exercices_hypertrophie: safeOptionalInt(exercise.recup_exercices_hypertrophie),
-  Nb_series_force: safeOptionalInt(exercise.Nb_series_force),
-  Nb_reps_force: safeOptionalInt(exercise.Nb_reps_force),
-  pct_1rm_force: safeOptionalNumber(exercise.pct_1rm_force),
-  recup_force: safeOptionalInt(exercise.recup_force),
-  recup_exercices_force: safeOptionalInt(exercise.recup_exercices_force),
-});
-
-interface Pagination {
-  limit: number;
-  offset: number;
-  total: number;
-}
-
-interface NotificationListResult {
-  notifications: Notification[];
-  pagination: Pagination;
-}
-
-interface StrengthHistoryResult {
-  runs: any[];
-  pagination: Pagination;
-  exercise_summary: StrengthExerciseSummary[];
-}
-
-interface StrengthExerciseSummary {
-  exercise_id: number;
-  exercise_name: string;
-  total_sets: number;
-  total_reps: number;
-  total_volume: number;
-  max_weight: number | null;
-  last_performed_at: string | null;
-}
-
-interface StrengthHistoryAggregateEntry {
-  period: string;
-  tonnage: number;
-  volume: number;
-}
-
-interface StrengthHistoryAggregateResult {
-  periods: StrengthHistoryAggregateEntry[];
-  pagination: Pagination;
-}
-
-type SyncSessionInput = Omit<Session, "id" | "created_at"> & { athlete_id?: number | string | null };
-
-const mapToDbSession = (session: SyncSessionInput) => {
-  // UI is on a 1–5 scale; DB stores 1–10.
-  const payload: Record<string, unknown> = {
-    athlete_name: session.athlete_name,
-    session_date: session.date,
-    time_slot: session.slot,
-    distance: session.distance,
-    duration: session.duration,
-    rpe: expandScaleToTen(session.effort),
-    performance: expandScaleToTen(session.performance ?? session.feeling),
-    engagement: expandScaleToTen(session.engagement ?? session.feeling),
-    fatigue: expandScaleToTen(session.feeling),
-    comments: session.comments,
-  };
-  if (session.athlete_id !== null && session.athlete_id !== undefined && String(session.athlete_id) !== "") {
-    payload.athlete_id = session.athlete_id;
-  }
-  return payload;
-};
-
-const mapFromDbSession = (raw: any): Session | null => {
-  if (!raw) return null;
-  const athleteName = String(raw.athlete_name || "").trim();
-  const date = String(raw.session_date || raw.date || "").trim();
-  if (!athleteName || !date) return null;
-  const rpe = normalizeScaleToFive(safeOptionalInt(raw.rpe ?? raw.effort));
-  const performance = normalizeScaleToFive(safeOptionalInt(raw.performance ?? raw.feeling));
-  const engagement = normalizeScaleToFive(safeOptionalInt(raw.engagement ?? raw.feeling));
-  const fatigue = normalizeScaleToFive(safeOptionalInt(raw.fatigue ?? raw.feeling));
-  const effort = rpe ?? 3;
-  const feeling = normalizeScaleToFive(
-    safeOptionalInt(raw.performance ?? raw.engagement ?? raw.fatigue ?? raw.feeling),
-  ) ?? 3;
-  return {
-    id: safeInt(raw.id, Date.now()),
-    athlete_id: raw.athlete_id ? safeInt(raw.athlete_id) : undefined,
-    athlete_name: athleteName,
-    date,
-    slot: String(raw.time_slot || raw.slot || ""),
-    effort,
-    feeling,
-    rpe,
-    performance,
-    engagement,
-    fatigue,
-    distance: safeInt(raw.distance, 0),
-    duration: safeInt(raw.duration, 0),
-    comments: raw.comments || "",
-    created_at: raw.created_at || raw.updated_at || new Date().toISOString(),
-  };
-};
 
 export const api = {
   async getCapabilities(): Promise<ApiCapabilities> {
@@ -647,7 +134,7 @@ export const api = {
   
 
   // --- SWIM SESSIONS ---
-  async syncSession(session: SyncSessionInput): Promise<{ status: string }> {
+  async syncSession(session: SyncSessionInputWithId): Promise<{ status: string }> {
     if (canUseSupabase()) {
       const dbPayload = mapToDbSession(session);
       const { error } = await supabase.from("dim_sessions").insert(dbPayload);
