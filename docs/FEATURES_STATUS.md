@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-07*
+*Dernière mise à jour : 2026-02-07 (refactoring api.ts, transformers extraits)*
 
 ## Légende
 

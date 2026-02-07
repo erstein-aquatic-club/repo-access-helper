@@ -75,7 +75,14 @@ competition-V2/
 │   ├── pages/           # Pages React (19 pages)
 │   ├── components/      # Composants UI et métier
 │   ├── lib/
-│   │   ├── api.ts       # Client API Supabase
+│   │   ├── api.ts       # Client API Supabase (~2200 lignes)
+│   │   ├── api/         # Modules API extraits
+│   │   │   ├── types.ts        # Interfaces TypeScript
+│   │   │   ├── client.ts       # Supabase client, utilitaires
+│   │   │   ├── transformers.ts # Transformations données strength
+│   │   │   ├── helpers.ts      # Fonctions de mapping
+│   │   │   ├── localStorage.ts # Stockage local fallback
+│   │   │   └── index.ts        # Re-exports centralisés
 │   │   ├── auth.ts      # Gestion authentification
 │   │   ├── supabase.ts  # Client Supabase
 │   │   └── features.ts  # Feature flags
