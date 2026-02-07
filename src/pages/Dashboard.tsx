@@ -177,8 +177,8 @@ function pickAssignmentSlotKey(a: any, fallbackIdx: number): SlotKey {
     a?.slotKey;
 
   const norm = String(direct || "").toLowerCase();
-  if (norm.includes("mat") || norm === "am") return "AM";
-  if (norm.includes("soir") || norm === "pm") return "PM";
+  if (norm.includes("mat") || norm.includes("morning") || norm === "am") return "AM";
+  if (norm.includes("soir") || norm.includes("evening") || norm === "pm") return "PM";
 
   const hay = `${a?.title ?? ""} ${a?.description ?? ""}`.toLowerCase();
   if (hay.includes("matin") || hay.includes(" am ") || hay.includes("(am)")) return "AM";
