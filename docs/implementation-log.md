@@ -31,6 +31,8 @@ Ce document trace l'avancement des tâches et migrations.
 | **Refactor API client** | `3f6c7f2` | **Utilitaires extraits vers api/client.ts** |
 | **Tests E2E** | `f953073` | **Login, dashboard, records, strength (merged)** |
 | **Audit UI/UX** | `f953073` | **Touch targets, safe areas, responsive (merged)** |
+| **Typage strict** | `3569ecb` | **Suppression des `any` (merged)** |
+| **Refactor API helpers** | `d104a3b` | **Helpers extraits vers api/helpers.ts** |
 
 ---
 
@@ -56,13 +58,13 @@ Ce document trace l'avancement des tâches et migrations.
 |-------|--------|--------|-------------|
 | ~~Tests E2E critiques~~ | 4h | ✅ | Merged via parallel instance |
 | ~~Optimisation performances~~ | 3h | ✅ | Lazy loading, code splitting, cache |
-| Refactor api.ts | 8h | 🔧 | Step 2: api.ts 2859→2459 lines (-14%). Next: extract swim/strength |
+| Refactor api.ts | 8h | 🔧 | Step 3: api.ts 2859→2353 lines (-18%), helpers.ts créé |
 
 ### P3 — Basse priorité
 
 | Tâche | Effort | Status | Description |
 |-------|--------|--------|-------------|
-| Typage strict | 4h | 🔧 | Instance 3 en cours (85 `any` restants dans api.ts) |
+| ~~Typage strict~~ | 4h | ✅ | Merged via parallel instance |
 | Documentation API | 2h | 📋 | Endpoints Supabase |
 | PWA améliorée | 4h | 📋 | Offline mode, sync |
 
