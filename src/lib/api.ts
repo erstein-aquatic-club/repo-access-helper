@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { supabaseConfig } from "./config";
 import { supabase } from "./supabase";
+import { useAuth } from "./auth";
 
 // --- Types ---
 
@@ -2120,9 +2121,10 @@ export const api = {
                   : strengthSession?.title ?? "Séance musculation",
               description: (swimSession?.description ?? strengthSession?.description) ?? "",
               assigned_date: scheduledDate || new Date().toISOString(),
+              assigned_slot: assignment.scheduled_slot ?? null,
               status,
               items: strengthSession?.items ?? swimSession?.items,
-            } as Assignment & { cycle?: string };
+            } as Assignment & { cycle?: string; assigned_slot?: string | null };
             if (sessionType === "strength") {
               base.cycle = strengthSession?.cycle ?? "endurance";
             }
@@ -2157,14 +2159,19 @@ export const api = {
     target_group_id?: number | null;
     assigned_date?: string;
     scheduled_date?: string;
+    scheduled_slot?: "morning" | "evening";
   }) {
       const assignmentType = data.assignment_type ?? data.session_type;
       if (!assignmentType) return { status: "error" };
       const scheduledDate = data.scheduled_date ?? data.assigned_date ?? new Date().toISOString();
       if (canUseSupabase()) {
+        // Read the caller's app user ID to record who created the assignment
+        const callerUserId = useAuth.getState().userId;
         const insertPayload: Record<string, unknown> = {
           assignment_type: assignmentType,
           scheduled_date: scheduledDate,
+          scheduled_slot: data.scheduled_slot ?? null,
+          assigned_by: callerUserId ?? null,
           status: "assigned",
         };
         if (assignmentType === "swim") {
