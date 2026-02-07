@@ -75,15 +75,17 @@ export function TimesheetShiftList({ groups, onEdit, onDelete }: TimesheetShiftL
                         <div className="flex flex-wrap justify-end gap-2">
                           <button
                             type="button"
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-900"
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-900 cursor-pointer min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             onClick={() => onEdit(shift)}
+                            aria-label={`Modifier le shift ${formatShiftTime(shift.start_time)}`}
                           >
                             Modifier
                           </button>
                           <button
                             type="button"
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-900"
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-900 cursor-pointer min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             onClick={() => onDelete(shift.id)}
+                            aria-label={`Supprimer le shift ${formatShiftTime(shift.start_time)}`}
                           >
                             Suppr.
                           </button>
