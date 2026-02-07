@@ -42,7 +42,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background pb-20 supports-[padding:env(safe-area-inset-bottom)]:pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 md:pt-16">
       {/* Desktop Top Nav */}
-      <header className="hidden md:flex fixed top-0 w-full h-16 border-b bg-card/95 backdrop-blur z-50 items-center px-8 justify-between shadow-sm">
+      <header className="hidden md:flex fixed top-0 w-full h-16 border-b bg-card/95 backdrop-blur z-nav items-center px-8 justify-between shadow-sm">
         <div className="flex items-center gap-2">
             <img
               src={eacLogo}
@@ -57,7 +57,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {navItems.map((item) => (
             <Link key={item.href} href={item.href}>
               <a className={cn(
-                "flex items-center gap-2 text-sm font-bold uppercase transition-colors hover:text-primary",
+                "flex items-center gap-2 text-sm font-bold uppercase transition-colors hover:text-primary cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm",
                 location === item.href ? "text-primary border-b-2 border-primary" : "text-muted-foreground"
               )}>
                 <item.icon className="h-4 w-4" />
@@ -69,14 +69,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content */}
-      <main className="container max-w-md mx-auto p-4 md:max-w-3xl lg:max-w-4xl animate-in fade-in duration-300">
+      <main className="container max-w-lg mx-auto p-4 md:max-w-3xl lg:max-w-4xl">
         {children}
       </main>
 
       {/* Mobile Bottom Nav - Enhanced for accessibility */}
       <nav
+        aria-label="Navigation principale"
         className={cn(
-          "md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border/50 z-50 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.1)]",
+          "md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border/50 z-mobilenav shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.1)]",
           "supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]",
           isFocusMode && "hidden",
         )}
@@ -87,7 +88,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             return (
               <Link key={item.href} href={item.href}>
                 <a className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 py-2 flex-1 min-w-0 max-w-[72px] transition-colors relative active:scale-95",
+                  "flex flex-col items-center justify-center gap-0.5 py-2 flex-1 min-w-0 max-w-[72px] transition-colors relative active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg",
                   isActive 
                     ? "text-primary" 
                     : "text-muted-foreground active:text-foreground"
@@ -99,7 +100,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
                   </div>
                   {item.label === "Messagerie" && unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1/2 translate-x-4 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card animate-pulse" />
+                    <span className="absolute top-1.5 right-1/2 translate-x-4 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card animate-pulse motion-reduce:animate-none" aria-label={`${unreadCount} messages non lus`} />
                   )}
                   <span className={cn(
                     "text-[10px] font-semibold tracking-tight truncate w-full text-center px-0.5",

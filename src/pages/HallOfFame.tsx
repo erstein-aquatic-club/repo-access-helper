@@ -68,8 +68,9 @@ export default function HallOfFame() {
             <TabsTrigger value="strength"><Dumbbell className="mr-2 h-4 w-4"/> Muscu</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="swim" className="space-y-6 pt-4 animate-in slide-in-from-left-4">
-             <div className="grid gap-6 md:grid-cols-2">
+        <TabsContent value="swim" className="space-y-6 pt-4 animate-in slide-in-from-left-4 motion-reduce:animate-none">
+             {/* Podium colors (yellow, orange, rose, emerald, violet) are intentionally hardcoded for visual distinction */}
+             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <Card className="border-t-4 border-t-yellow-500 shadow-md">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -153,8 +154,8 @@ export default function HallOfFame() {
             </div>
         </TabsContent>
 
-        <TabsContent value="strength" className="space-y-6 pt-4 animate-in slide-in-from-right-4">
-            <div className="grid gap-6 md:grid-cols-2">
+        <TabsContent value="strength" className="space-y-6 pt-4 animate-in slide-in-from-right-4 motion-reduce:animate-none">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <Card className="border-t-4 border-t-emerald-500 shadow-md">
                   <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-base">

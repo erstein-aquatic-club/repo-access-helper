@@ -51,7 +51,7 @@ export function FlatScale({ label, value, onChange, tone, useScoreColor = false 
               type="button"
               onClick={() => onChange(score)}
               className={cn(
-                "flex-1 h-10 rounded-xl border text-sm font-black transition active:scale-[0.99]",
+                "flex-1 h-11 rounded-xl border text-sm font-black transition active:scale-[0.99] cursor-pointer",
                 active
                   ? useScoreColor
                     ? "text-white"

@@ -139,7 +139,7 @@ function InlineEditBar({
   );
 }
 
-const SkeletonRow = () => <div className="h-10 rounded-xl bg-muted animate-pulse" />;
+const SkeletonRow = () => <div className="h-10 rounded-xl bg-muted animate-pulse motion-reduce:animate-none" />;
 
 export default function Records() {
   const { user, userId, role } = useAuth();
@@ -431,7 +431,7 @@ export default function Records() {
     return (
       <div className="min-h-[100dvh]">
         <div className="mx-auto max-w-lg">
-          <div className="sticky top-0 z-20 backdrop-blur bg-background/80 border-b border-border">
+          <div className="sticky top-0 z-20 scroll-mt-16 backdrop-blur bg-background/80 border-b border-border">
             <div className="px-4 pt-4 pb-3">
               <div className="text-xl font-semibold tracking-tight">Records</div>
               <div className="mt-0.5 text-sm text-muted-foreground">Natation &amp; 1RM musculation</div>
@@ -453,7 +453,7 @@ export default function Records() {
   return (
     <div className="min-h-[100dvh]">
       <div className="mx-auto max-w-lg">
-        <div className="sticky top-0 z-20 backdrop-blur bg-background/80 border-b border-border">
+        <div className="sticky top-0 z-20 scroll-mt-16 backdrop-blur bg-background/80 border-b border-border">
           <div className="px-4 pt-4 pb-3">
             <div className="text-xl font-semibold tracking-tight">Records</div>
             <div className="mt-0.5 text-sm text-muted-foreground">Natation &amp; 1RM musculation</div>
@@ -465,6 +465,7 @@ export default function Records() {
             <TabsList className="w-full rounded-3xl bg-muted/60 border border-border shadow-sm p-1.5 flex">
               <TabsTrigger
                 value="swim"
+                aria-label="Records de natation"
                 className="flex-1 rounded-2xl px-4 py-2.5 text-sm font-semibold uppercase tracking-wide gap-2
                   data-[state=active]:bg-background data-[state=active]:text-foreground
                   data-[state=inactive]:text-muted-foreground"
@@ -474,6 +475,7 @@ export default function Records() {
               </TabsTrigger>
               <TabsTrigger
                 value="1rm"
+                aria-label="Records de musculation"
                 className="flex-1 rounded-2xl px-4 py-2.5 text-sm font-semibold uppercase tracking-wide gap-2
                   data-[state=active]:bg-background data-[state=active]:text-foreground
                   data-[state=inactive]:text-muted-foreground"
@@ -539,7 +541,7 @@ export default function Records() {
                   <button
                     type="button"
                     onClick={togglePoolPill}
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-muted/25 border border-border/60 px-3 py-2 text-sm font-semibold active:scale-[0.99] transition"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-muted/25 border border-border/60 px-3 py-2 text-sm font-semibold active:scale-[0.99] transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     aria-label="Changer le bassin"
                     title="Appuie pour basculer 25m / 50m"
                   >
@@ -563,7 +565,7 @@ export default function Records() {
                 </div>
               ) : null}
 
-              <Card className="w-full overflow-hidden rounded-2xl">
+              <Card className="w-full min-w-0 overflow-x-auto overflow-hidden rounded-2xl">
                 <CardContent className="p-0">
                   {swimLoading ? (
                     <div className="p-4 grid gap-3">
@@ -572,7 +574,7 @@ export default function Records() {
                       <SkeletonRow />
                     </div>
                   ) : swimIsError ? (
-                    <div className="p-4 text-sm text-muted-foreground">
+                    <div className="mx-4 my-4 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
                       Impossible de charger les records natation.
                     </div>
                   ) : filteredSwimRecords.length === 0 ? (
@@ -828,7 +830,7 @@ export default function Records() {
                 </div>
               </div>
 
-              <Card className="w-full overflow-hidden rounded-2xl">
+              <Card className="w-full min-w-0 overflow-x-auto overflow-hidden rounded-2xl">
                 <CardContent className="p-0">
                   {oneRmLoading || exercisesLoading ? (
                     <div className="p-4 grid gap-3">

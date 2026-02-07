@@ -191,17 +191,17 @@ const CoachHome = ({
     </div>
 
     <div className="grid gap-4 lg:grid-cols-2">
-      <Card className="sm:hidden bg-slate-950 text-white">
+      <Card className="sm:hidden bg-primary text-primary-foreground">
         <CardHeader className="space-y-1">
           <CardTitle className="text-base">Indicateurs clés</CardTitle>
-          <CardDescription className="text-slate-200">Synthèse rapide pour aujourd'hui.</CardDescription>
+          <CardDescription className="text-primary-foreground/70">Synthèse rapide pour aujourd'hui.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3">
+          <div className="flex items-center justify-between rounded-lg border border-primary-foreground/10 bg-primary-foreground/5 p-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-200">Fatigue 5/5</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-primary-foreground/70">Fatigue 5/5</p>
               <p className="text-2xl font-semibold">{kpiLoading ? "…" : fatigueAlerts.length}</p>
-              <p className="text-xs text-slate-200">
+              <p className="text-xs text-primary-foreground/70">
                 {kpiLoading
                   ? "Chargement..."
                   : fatigueAlerts.length
@@ -209,15 +209,15 @@ const CoachHome = ({
                     : "Aucune alerte"}
               </p>
             </div>
-            <HeartPulse className="h-5 w-5 text-slate-200" />
+            <HeartPulse className="h-5 w-5 text-primary-foreground/70" />
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3">
+          <div className="flex items-center justify-between rounded-lg border border-primary-foreground/10 bg-primary-foreground/5 p-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-200">Nageur le plus chargé</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-primary-foreground/70">Nageur le plus chargé</p>
               <p className="text-lg font-semibold">
                 {kpiLoading ? "…" : mostLoadedAthlete?.athleteName ?? "-"}
               </p>
-              <p className="text-xs text-slate-200">
+              <p className="text-xs text-primary-foreground/70">
                 {kpiLoading
                   ? "Calcul en cours"
                   : mostLoadedAthlete
@@ -225,7 +225,7 @@ const CoachHome = ({
                     : "Pas de données récentes"}
               </p>
             </div>
-            <Users className="h-5 w-5 text-slate-200" />
+            <Users className="h-5 w-5 text-primary-foreground/70" />
           </div>
         </CardContent>
       </Card>
@@ -246,13 +246,13 @@ const CoachHome = ({
                 onKpiPeriodChange(Number(value) as KpiLookbackPeriod);
               }}
             >
-              <ToggleGroupItem value="7" aria-label="Période 7 jours">
+              <ToggleGroupItem value="7" aria-label="Période 7 jours" aria-pressed={kpiPeriod === 7}>
                 7j
               </ToggleGroupItem>
-              <ToggleGroupItem value="30" aria-label="Période 30 jours">
+              <ToggleGroupItem value="30" aria-label="Période 30 jours" aria-pressed={kpiPeriod === 30}>
                 30j
               </ToggleGroupItem>
-              <ToggleGroupItem value="365" aria-label="Période 365 jours">
+              <ToggleGroupItem value="365" aria-label="Période 365 jours" aria-pressed={kpiPeriod === 365}>
                 365j
               </ToggleGroupItem>
             </ToggleGroup>
@@ -462,7 +462,7 @@ export default function Coach() {
 
   if (!coachAccess) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh] animate-in fade-in">
+      <div className="flex items-center justify-center min-h-[60vh] animate-in fade-in motion-reduce:animate-none">
         <Card className="w-full max-w-sm shadow-xl border-t-4 border-t-primary">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 uppercase italic">
@@ -570,7 +570,15 @@ export default function Coach() {
             </CardHeader>
             <CardContent>
               {athletesLoading ? (
-                <p className="text-sm text-muted-foreground">Chargement des nageurs...</p>
+                <div className="space-y-3 p-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="h-4 w-1/3 rounded-lg bg-muted animate-pulse motion-reduce:animate-none" />
+                      <div className="h-4 w-1/4 rounded-lg bg-muted animate-pulse motion-reduce:animate-none" />
+                      <div className="ml-auto h-8 w-16 rounded-lg bg-muted animate-pulse motion-reduce:animate-none" />
+                    </div>
+                  ))}
+                </div>
               ) : athletes.length ? (
                 <div className="w-full overflow-x-auto">
                   <Table>
