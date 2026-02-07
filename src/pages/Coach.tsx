@@ -570,7 +570,15 @@ export default function Coach() {
             </CardHeader>
             <CardContent>
               {athletesLoading ? (
-                <p className="text-sm text-muted-foreground">Chargement des nageurs...</p>
+                <div className="space-y-3 p-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="h-4 w-1/3 rounded-lg bg-muted animate-pulse" />
+                      <div className="h-4 w-1/4 rounded-lg bg-muted animate-pulse" />
+                      <div className="ml-auto h-8 w-16 rounded-lg bg-muted animate-pulse" />
+                    </div>
+                  ))}
+                </div>
               ) : athletes.length ? (
                 <div className="w-full overflow-x-auto">
                   <Table>

@@ -22,8 +22,8 @@ export function ScaleSelector5({
 }: ScaleSelector5Props) {
   const sizeClasses =
     size === "sm"
-      ? "h-8 w-8 text-xs"
-      : "h-10 w-10 text-sm";
+      ? "h-10 w-10 text-xs"
+      : "h-11 w-11 text-sm";
 
   return (
     <div className={cn("flex items-center gap-2", className)} role="group" aria-label={ariaLabel}>

@@ -307,8 +307,8 @@ export default function StrengthCatalog() {
     }
   }, [editingExercise]);
 
-  const { data: exercises } = useQuery({ queryKey: ["exercises"], queryFn: () => api.getExercises() });
-  const { data: sessions } = useQuery({ queryKey: ["strength_catalog"], queryFn: () => api.getStrengthSessions() });
+  const { data: exercises, isLoading: exercisesLoading } = useQuery({ queryKey: ["exercises"], queryFn: () => api.getExercises() });
+  const { data: sessions, isLoading: sessionsLoading } = useQuery({ queryKey: ["strength_catalog"], queryFn: () => api.getStrengthSessions() });
   const exerciseById = useMemo(
     () => new Map((exercises ?? []).map((exercise) => [exercise.id, exercise])),
     [exercises],
@@ -1015,6 +1015,21 @@ export default function StrengthCatalog() {
            </Button>
        </div>
        
+       {sessionsLoading ? (
+         <div className="grid gap-4 md:grid-cols-2">
+           {[1, 2, 3, 4].map((i) => (
+             <Card key={i}>
+               <CardHeader>
+                 <div className="h-5 w-3/4 rounded-lg bg-muted animate-pulse" />
+                 <div className="mt-2 h-4 w-1/2 rounded-lg bg-muted animate-pulse" />
+               </CardHeader>
+               <CardContent>
+                 <div className="h-9 w-32 rounded-lg bg-muted animate-pulse" />
+               </CardContent>
+             </Card>
+           ))}
+         </div>
+       ) : (
        <div className="grid gap-4 md:grid-cols-2">
            {sessions?.map(session => (
                <Card key={session.id}>
@@ -1056,6 +1071,7 @@ export default function StrengthCatalog() {
                </Card>
            ))}
        </div>
+       )}
 
        <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -1064,6 +1080,18 @@ export default function StrengthCatalog() {
               <Plus className="mr-2 h-4 w-4" /> Ajouter un exercice
             </Button>
           </div>
+          {exercisesLoading ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i}>
+                  <CardHeader>
+                    <div className="h-5 w-2/3 rounded-lg bg-muted animate-pulse" />
+                    <div className="mt-2 h-4 w-1/3 rounded-lg bg-muted animate-pulse" />
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {exercises?.map((exercise) => (
               <Card key={exercise.id}>
@@ -1105,6 +1133,7 @@ export default function StrengthCatalog() {
               </Card>
             ))}
           </div>
+          )}
        </div>
    </div>
   );
