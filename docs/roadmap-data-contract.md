@@ -1,6 +1,15 @@
 # Roadmap data contract (front ↔ Worker ↔ D1)
 
-Ce document couvre les besoins **long terme** : impacts data (tables D1), endpoints Worker à ajuster et mapping front ↔ Worker ↔ D1. Il sert de contrat de données pour implémenter la roadmap listée dans le README. La majorité des endpoints listés sont **déjà implémentés** ; la roadmap actuelle vise surtout des ajustements de logique et d’UX.
+> **DOCUMENT LEGACY** — Ce document fait référence à l'ancienne architecture Cloudflare Workers + D1 (SQLite).
+> Le projet a depuis migré vers **Supabase** (PostgreSQL, Auth, Edge Functions).
+> Les tables, endpoints et concepts décrits ici peuvent être obsolètes.
+>
+> Pour le plan de développement actuel, voir [`docs/ROADMAP.md`](./ROADMAP.md).
+> Pour l'état des fonctionnalités, voir [`docs/FEATURES_STATUS.md`](./FEATURES_STATUS.md).
+
+---
+
+Ce document couvre les besoins **long terme** : impacts data (tables D1), endpoints Worker à ajuster et mapping front ↔ Worker ↔ D1. Il sert de contrat de données pour implémenter la roadmap listée dans le README. La majorité des endpoints listés sont **déjà implémentés** ; la roadmap actuelle vise surtout des ajustements de logique et d'UX.
 
 > **Légende** :
 > - ✅ = déjà présent dans `schema.sql`.
