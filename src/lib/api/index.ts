@@ -6,6 +6,7 @@
  * Structure:
  * - types.ts - All TypeScript interfaces
  * - client.ts - Supabase client, utilities, and helpers
+ * - helpers.ts - Mapping functions and internal types
  * - (future) strength.ts - Exercises, strength sessions, runs
  * - (future) swim.ts - Swim records, swim catalog
  * - (future) records.ts - Hall of fame, club records
@@ -14,6 +15,20 @@
 
 // Re-export types
 export * from './types';
+
+// Re-export helpers
+export {
+  normalizeExercise,
+  mapToDbSession,
+  mapFromDbSession,
+  type Pagination,
+  type NotificationListResult,
+  type StrengthExerciseSummary,
+  type StrengthHistoryResult,
+  type StrengthHistoryAggregateEntry,
+  type StrengthHistoryAggregateResult,
+  type SyncSessionInputWithId,
+} from './helpers';
 
 // Re-export client utilities
 export {
@@ -39,6 +54,15 @@ export {
   parseRawPayload,
   fetchUserGroupIds,
 } from './client';
+
+// Re-export localStorage utilities
+export {
+  localStorageGet,
+  localStorageSave,
+  localStorageRemove,
+  resetLocalStorageCache,
+  storage,
+} from './localStorage';
 
 // Re-export main api object from legacy file
 export { api, useApiCapabilities } from '../api';
