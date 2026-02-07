@@ -55,5 +55,14 @@ export {
   fetchUserGroupIds,
 } from './client';
 
+// Re-export localStorage utilities
+export {
+  localStorageGet,
+  localStorageSave,
+  localStorageRemove,
+  resetLocalStorageCache,
+  storage,
+} from './localStorage';
+
 // Re-export main api object from legacy file
 export { api, useApiCapabilities } from '../api';
