@@ -78,132 +78,26 @@ import {
   fetchUserGroupIds,
 } from "./api/client";
 
+// --- Helpers (imported from api/helpers.ts) ---
+import {
+  normalizeExercise,
+  mapToDbSession,
+  mapFromDbSession,
+  type Pagination,
+  type NotificationListResult,
+  type StrengthExerciseSummary,
+  type StrengthHistoryResult,
+  type StrengthHistoryAggregateEntry,
+  type StrengthHistoryAggregateResult,
+  type SyncSessionInputWithId,
+} from "./api/helpers";
+
 // Re-export error utilities for backward compatibility
 export { parseApiError, summarizeApiError } from "./api/client";
 
 const defaultTimesheetLocations = ["Piscine", "Compétition"];
 
 // --- API Service ---
-
-const normalizeExercise = (exercise: any): Exercise => ({
-  id: safeInt(exercise.id),
-  numero_exercice: safeOptionalInt(exercise.numero_exercice ?? exercise.numero),
-  nom_exercice: exercise.nom_exercice ?? exercise.name ?? "",
-  description: exercise.description ?? null,
-  illustration_gif: exercise.illustration_gif ?? null,
-  exercise_type: normalizeExerciseType(
-    exercise.exercise_type ?? exercise.type ?? (exercise.is_warmup ? "warmup" : "strength"),
-  ),
-  warmup_reps: safeOptionalInt(exercise.warmup_reps),
-  warmup_duration: safeOptionalInt(exercise.warmup_duration),
-  Nb_series_endurance: safeOptionalInt(exercise.Nb_series_endurance),
-  Nb_reps_endurance: safeOptionalInt(exercise.Nb_reps_endurance),
-  pct_1rm_endurance: safeOptionalNumber(exercise.pct_1rm_endurance),
-  recup_endurance: safeOptionalInt(exercise.recup_endurance),
-  recup_exercices_endurance: safeOptionalInt(exercise.recup_exercices_endurance),
-  Nb_series_hypertrophie: safeOptionalInt(exercise.Nb_series_hypertrophie),
-  Nb_reps_hypertrophie: safeOptionalInt(exercise.Nb_reps_hypertrophie),
-  pct_1rm_hypertrophie: safeOptionalNumber(exercise.pct_1rm_hypertrophie),
-  recup_hypertrophie: safeOptionalInt(exercise.recup_hypertrophie),
-  recup_exercices_hypertrophie: safeOptionalInt(exercise.recup_exercices_hypertrophie),
-  Nb_series_force: safeOptionalInt(exercise.Nb_series_force),
-  Nb_reps_force: safeOptionalInt(exercise.Nb_reps_force),
-  pct_1rm_force: safeOptionalNumber(exercise.pct_1rm_force),
-  recup_force: safeOptionalInt(exercise.recup_force),
-  recup_exercices_force: safeOptionalInt(exercise.recup_exercices_force),
-});
-
-interface Pagination {
-  limit: number;
-  offset: number;
-  total: number;
-}
-
-interface NotificationListResult {
-  notifications: Notification[];
-  pagination: Pagination;
-}
-
-interface StrengthHistoryResult {
-  runs: any[];
-  pagination: Pagination;
-  exercise_summary: StrengthExerciseSummary[];
-}
-
-interface StrengthExerciseSummary {
-  exercise_id: number;
-  exercise_name: string;
-  total_sets: number;
-  total_reps: number;
-  total_volume: number;
-  max_weight: number | null;
-  last_performed_at: string | null;
-}
-
-interface StrengthHistoryAggregateEntry {
-  period: string;
-  tonnage: number;
-  volume: number;
-}
-
-interface StrengthHistoryAggregateResult {
-  periods: StrengthHistoryAggregateEntry[];
-  pagination: Pagination;
-}
-
-type SyncSessionInput = Omit<Session, "id" | "created_at"> & { athlete_id?: number | string | null };
-
-const mapToDbSession = (session: SyncSessionInput) => {
-  // UI is on a 1–5 scale; DB stores 1–10.
-  const payload: Record<string, unknown> = {
-    athlete_name: session.athlete_name,
-    session_date: session.date,
-    time_slot: session.slot,
-    distance: session.distance,
-    duration: session.duration,
-    rpe: expandScaleToTen(session.effort),
-    performance: expandScaleToTen(session.performance ?? session.feeling),
-    engagement: expandScaleToTen(session.engagement ?? session.feeling),
-    fatigue: expandScaleToTen(session.feeling),
-    comments: session.comments,
-  };
-  if (session.athlete_id !== null && session.athlete_id !== undefined && String(session.athlete_id) !== "") {
-    payload.athlete_id = session.athlete_id;
-  }
-  return payload;
-};
-
-const mapFromDbSession = (raw: any): Session | null => {
-  if (!raw) return null;
-  const athleteName = String(raw.athlete_name || "").trim();
-  const date = String(raw.session_date || raw.date || "").trim();
-  if (!athleteName || !date) return null;
-  const rpe = normalizeScaleToFive(safeOptionalInt(raw.rpe ?? raw.effort));
-  const performance = normalizeScaleToFive(safeOptionalInt(raw.performance ?? raw.feeling));
-  const engagement = normalizeScaleToFive(safeOptionalInt(raw.engagement ?? raw.feeling));
-  const fatigue = normalizeScaleToFive(safeOptionalInt(raw.fatigue ?? raw.feeling));
-  const effort = rpe ?? 3;
-  const feeling = normalizeScaleToFive(
-    safeOptionalInt(raw.performance ?? raw.engagement ?? raw.fatigue ?? raw.feeling),
-  ) ?? 3;
-  return {
-    id: safeInt(raw.id, Date.now()),
-    athlete_id: raw.athlete_id ? safeInt(raw.athlete_id) : undefined,
-    athlete_name: athleteName,
-    date,
-    slot: String(raw.time_slot || raw.slot || ""),
-    effort,
-    feeling,
-    rpe,
-    performance,
-    engagement,
-    fatigue,
-    distance: safeInt(raw.distance, 0),
-    duration: safeInt(raw.duration, 0),
-    comments: raw.comments || "",
-    created_at: raw.created_at || raw.updated_at || new Date().toISOString(),
-  };
-};
 
 export const api = {
   async getCapabilities(): Promise<ApiCapabilities> {
@@ -240,7 +134,7 @@ export const api = {
   
 
   // --- SWIM SESSIONS ---
-  async syncSession(session: SyncSessionInput): Promise<{ status: string }> {
+  async syncSession(session: SyncSessionInputWithId): Promise<{ status: string }> {
     if (canUseSupabase()) {
       const dbPayload = mapToDbSession(session);
       const { error } = await supabase.from("dim_sessions").insert(dbPayload);
