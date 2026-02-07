@@ -132,7 +132,7 @@ Voir [`docs/ROADMAP.md`](./ROADMAP.md) pour le détail complet.
 | Tâche | Priorité | Description |
 |-------|----------|-------------|
 | Couleurs hardcodées | Basse | ~50 occurrences slate/zinc hors `/ui/` |
-| Refactor api.ts | Basse | Découper en modules |
+| Refactor api.ts | Basse | ⚠️ En cours — 2859→2198 lignes, 6 modules extraits dans `api/` |
 | Tests E2E | Basse | Playwright |
 
 ---
@@ -297,6 +297,7 @@ Poursuite du refactoring de `api.ts` (2353 → <2200 lignes). Extraction des pat
 ## Commits récents
 
 ```
+88b69e7 Refactor: extract strength transformers to api/transformers.ts
 f2dbda1 Remove duplicate delay function from api.ts
 f953073 Merge main: E2E tests, UI/UX audit, migrations
 3f6c7f2 Refactor: extract client utilities to api/client.ts

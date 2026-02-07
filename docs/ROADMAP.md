@@ -253,6 +253,18 @@ Afficher les records du club organisés en tableaux lisibles par catégorie d'â
 
 Voir [`docs/patch-report.md`](./patch-report.md) pour le détail complet des items restants de l'audit UI/UX.
 
+### Avancement refactoring `api.ts`
+
+| Étape | Statut | Date | Notes |
+|-------|--------|------|-------|
+| Extraction types → `api/types.ts` | ✅ Fait | 2026-02-06 | 281 lignes, interfaces TS |
+| Extraction client → `api/client.ts` | ✅ Fait | 2026-02-06 | 252 lignes, utilitaires Supabase |
+| Extraction helpers → `api/helpers.ts` | ✅ Fait | 2026-02-06 | 151 lignes, fonctions de mapping |
+| Extraction localStorage → `api/localStorage.ts` | ✅ Fait | 2026-02-06 | 85 lignes |
+| Extraction transformers → `api/transformers.ts` | ✅ Fait | 2026-02-07 | 187 lignes, 8 fonctions strength |
+| Nettoyage code mort (`strengthRunStart`) | ✅ Fait | 2026-02-07 | Suppression dead code |
+| `api.ts` : 2859 → 2198 lignes | ⚠️ En cours | 2026-02-07 | -23%, objectif < 2000 |
+
 ### Résumé des items non terminés
 
 | Catégorie | Items restants | Priorité |

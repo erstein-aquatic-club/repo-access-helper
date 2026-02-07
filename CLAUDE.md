@@ -89,7 +89,7 @@ Chaque session de développement doit suivre ce protocole (détail complet dans 
 
 ## Points d'attention
 
-- `api.ts` est monolithique (~2900 lignes) — lire la section pertinente uniquement
+- `api.ts` est en cours de refactoring (~2200 lignes, en baisse depuis ~2900) — modules extraits dans `src/lib/api/`
 - Le routing est hash-based (`useHashLocation` de Wouter) — les URLs sont `/#/path`
 - L'inscription utilise `supabase.auth.signUp()` avec metadata (name, birthdate, group_id)
 - Un trigger PostgreSQL (`handle_new_auth_user`) crée automatiquement les entrées `users`, `user_profiles`, `group_members` à l'inscription
