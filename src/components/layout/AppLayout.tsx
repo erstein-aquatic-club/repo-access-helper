@@ -75,6 +75,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Bottom Nav - Enhanced for accessibility */}
       <nav
+        aria-label="Navigation principale"
         className={cn(
           "md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border/50 z-50 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.1)]",
           "supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]",
