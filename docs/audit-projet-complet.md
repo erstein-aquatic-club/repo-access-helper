@@ -1,5 +1,12 @@
 # Audit Complet du Projet — Suivi Natation V2
 
+> **DOCUMENT HISTORIQUE (2026-01-30)** — Cet audit fait référence à l'architecture Cloudflare Workers + D1.
+> Le projet a depuis migré vers **Supabase** (PostgreSQL, Auth, Edge Functions).
+> Certains points (secrets wrangler.toml, Worker monolithique, D1 SQLite) ne s'appliquent plus.
+> Le feature flag `coachStrength` est désormais activé (`true`).
+>
+> Pour l'état actuel : [`FEATURES_STATUS.md`](./FEATURES_STATUS.md) | [`ROADMAP.md`](./ROADMAP.md) | [`patch-report.md`](./patch-report.md)
+
 **Date :** 30 janvier 2026
 **Projet :** Suivi Natation (V2) — Erstein Aquatic Club
 **Stack :** React 19 + TypeScript + Vite 7 + Cloudflare Workers + D1 (SQLite)

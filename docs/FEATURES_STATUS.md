@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-06*
+*Dernière mise à jour : 2026-02-07*
 
 ## Légende
 
@@ -8,8 +8,9 @@
 |--------|---------------|
 | ✅ | Fonctionnel |
 | ⚠️ | Partiel / En cours |
-| ❌ | Désactivé |
+| ❌ | Non implémenté |
 | 🔧 | Dépend de la configuration |
+| 🗓️ | Planifié (roadmap) |
 
 ---
 
@@ -21,9 +22,11 @@ Fichier : `src/lib/features.ts`
 export const FEATURES = {
   strength: true,        // ✅ Musculation nageur
   hallOfFame: true,      // ✅ Hall of Fame
-  coachStrength: false,  // ❌ Builder musculation coach
+  coachStrength: true,   // ✅ Builder musculation coach
 } as const;
 ```
+
+Tous les feature flags sont activés.
 
 ---
 
@@ -34,65 +37,70 @@ export const FEATURES = {
 | Fonctionnalité | Statut | Fichiers | Notes |
 |----------------|--------|----------|-------|
 | Login email/password | ✅ | `Login.tsx`, `auth.ts` | Supabase Auth |
-| Gestion des rôles | ✅ | `auth.ts`, `dim_users` | nageur, coach, comité, admin |
-| Refresh token | ✅ | `auth.ts` | JWT automatique |
-| Création compte | ✅ | `Admin.tsx` | Via admin uniquement |
-| Désactivation compte | 🔧 | `api.ts:2820` | Retourne "skipped" si Supabase offline |
+| Gestion des rôles | ✅ | `auth.ts` | nageur, coach, comité, admin |
+| Refresh token | ✅ | `auth.ts` | JWT automatique Supabase |
+| Inscription self-service | ⚠️ | `Login.tsx` | Formulaire OK mais UX post-inscription confuse (voir ROADMAP §1) |
+| Confirmation email | ❌ | — | Pas de handler pour le callback email Supabase |
+| Mot de passe oublié | ❌ | — | Aucun flow de récupération |
+| Création compte (admin) | ✅ | `Admin.tsx` | Via panel admin |
+| Désactivation compte | 🔧 | `api.ts` | Retourne "skipped" si Supabase offline |
 
-### Natation - Nageur
-
-| Fonctionnalité | Statut | Fichiers | Notes |
-|----------------|--------|----------|-------|
-| Consultation séances | ✅ | `Dashboard.tsx` | |
-| Exécution séance | ✅ | `SwimSessionView.tsx` | |
-| Saisie ressenti | ✅ | `SwimSessionView.tsx` | Difficulté, fatigue, commentaire |
-| Historique | ✅ | `Progress.tsx` | |
-| KPIs progression | ✅ | `Progress.tsx` | |
-
-### Natation - Coach
+### Natation — Nageur
 
 | Fonctionnalité | Statut | Fichiers | Notes |
 |----------------|--------|----------|-------|
-| Création séance | ✅ | `SwimCatalog.tsx` | |
+| Dashboard calendrier | ✅ | `Dashboard.tsx` | Mois, 2 créneaux/jour |
+| Saisie ressenti | ✅ | `Dashboard.tsx` | Difficulté, fatigue, perf, engagement, distance, commentaire |
+| Présence/absence | ✅ | `Dashboard.tsx` | Toggle par créneau |
+| Consultation séances | ✅ | `SwimSessionView.tsx` | Liste + détail |
+| Historique/Progression | ✅ | `Progress.tsx` | KPIs, graphiques Recharts, filtrage période |
+
+### Natation — Coach
+
+| Fonctionnalité | Statut | Fichiers | Notes |
+|----------------|--------|----------|-------|
+| Création séance | ✅ | `SwimCatalog.tsx` | Blocs, exercices, intensité, matériel |
 | Édition séance | ✅ | `SwimCatalog.tsx` | |
 | Catalogue | ✅ | `SwimCatalog.tsx` | Archivage, suppression |
-| Assignation | ✅ | `CoachAssignScreen.tsx` | |
+| Assignation | ✅ | `CoachAssignScreen.tsx` | Nage + muscu |
 
-### Musculation - Nageur
+### Musculation — Nageur
 
 | Fonctionnalité | Statut | Fichiers | Notes |
 |----------------|--------|----------|-------|
-| Liste des séances | ✅ | `Strength.tsx` | Assignées + catalogue |
+| Liste séances assignées | ✅ | `Strength.tsx` | + catalogue |
 | Preview séance | ✅ | `Strength.tsx` | Mode "reader" |
-| Bouton lancer séance | ✅ | `Strength.tsx`, `BottomActionBar.tsx` | Fixé (z-index) |
-| Mode focus | ✅ | `WorkoutRunner.tsx` | Mobile-first |
-| Saisie charge/reps | ✅ | `WorkoutRunner.tsx` | |
-| Historique | ✅ | `Strength.tsx` | Tab "Historique" |
+| Mode focus (WorkoutRunner) | ✅ | `WorkoutRunner.tsx` | Mobile-first, chrono repos |
+| Saisie charge/reps | ✅ | `WorkoutRunner.tsx` | Auto-sauvegarde |
+| Historique | ✅ | `Strength.tsx` | Tab "Historique", 1RM, graphiques |
 | Fiche exercice avec GIF | 🔧 | `Strength.tsx` | Dépend des URLs dans `dim_exercices` |
 
-### Musculation - Coach
+### Musculation — Coach
 
 | Fonctionnalité | Statut | Fichiers | Notes |
 |----------------|--------|----------|-------|
-| Builder séance | ❌ | `StrengthCatalog.tsx` | `coachStrength: false` |
-| Catalogue exercices | ❌ | `StrengthCatalog.tsx` | Idem |
-| Assignation | ✅ | via API | Fonctionne si séances existent |
+| Builder séance | ✅ | `StrengthCatalog.tsx` | Activé (`coachStrength: true`) |
+| Catalogue exercices | ✅ | `StrengthCatalog.tsx` | Par cycle (endurance/hypertrophie/force) |
+| Assignation | ✅ | `CoachAssignScreen.tsx` | Via écran d'assignation partagé |
 
-### Records & Hall of Fame
+### Records & FFN
 
 | Fonctionnalité | Statut | Fichiers | Notes |
 |----------------|--------|----------|-------|
-| Records personnels | ✅ | `Records.tsx` | |
-| Sync FFN | ✅ | `ffn-sync` Edge Function | Regex parsing par section bassin |
-| Toggle 25m/50m | ✅ | `Records.tsx` | Fixé (useMemo + FFN sync regex) |
-| Hall of Fame | ✅ | `HallOfFame.tsx` | |
-| Records club | ✅ | `RecordsClub.tsx` | |
+| Records personnels (CRUD) | ✅ | `Records.tsx` | Saisie manuelle + toggle 25m/50m |
+| Sync FFN (records perso) | ✅ | Edge Function `ffn-sync` | Scrape Extranat, meilleur temps par épreuve |
+| Import toutes performances | 🗓️ | — | **ROADMAP §2** : historique complet, pas juste best times |
+| Records club (consultation) | ⚠️ | `RecordsClub.tsx` | UI avec filtres OK mais données vides (import manquant) |
+| Import records club (FFN) | ❌ | `RecordsAdmin.tsx` | Bouton UI existe, Edge Function `import-club-records` **n'existe pas** |
+| Gestion nageurs records | ✅ | `RecordsAdmin.tsx` | Ajout/édition/activation swimmers |
+| Hall of Fame | ✅ | `HallOfFame.tsx` | Top 5 nage + muscu |
+| Gestion coach imports perfs | 🗓️ | — | **ROADMAP §3** : dashboard coach pour piloter les imports |
 
 ### Messagerie
 
 | Fonctionnalité | Statut | Fichiers | Notes |
 |----------------|--------|----------|-------|
-| Liste threads | ✅ | `Notifications.tsx` | |
+| Liste threads | ✅ | `Notifications.tsx` | Par expéditeur/groupe |
 | Envoi message | ✅ | `CoachMessagesScreen.tsx` | Coach → nageur/groupe |
 | Réponse | ✅ | `Notifications.tsx` | Dans thread existant |
 | Indicateur non-lu | ✅ | `AppLayout.tsx` | Badge sur nav |
@@ -102,27 +110,32 @@ export const FEATURES = {
 
 | Fonctionnalité | Statut | Fichiers | Notes |
 |----------------|--------|----------|-------|
-| Création shift | ✅ | `Administratif.tsx` | |
+| Création shift | ✅ | `Administratif.tsx` | Date, heures, lieu, trajet |
 | Édition shift | ✅ | `Administratif.tsx` | |
-| Lieux de travail | ✅ | `Administratif.tsx` | |
-| Temps de trajet | ✅ | `Administratif.tsx` | |
-| Dashboard totaux | ✅ | `Administratif.tsx` | Semaine/mois |
-| Vue comité | ✅ | `Comite.tsx` | Tous les coachs |
+| Lieux de travail | ✅ | `Administratif.tsx` | Gestion CRUD lieux |
+| Dashboard totaux | ✅ | `Administratif.tsx` | Semaine/mois, graphiques |
+| Vue comité | ✅ | `Comite.tsx` | Tous les coachs, filtrage |
 
 ### Admin
 
 | Fonctionnalité | Statut | Fichiers | Notes |
 |----------------|--------|----------|-------|
-| Liste utilisateurs | ✅ | `Admin.tsx` | |
+| Liste utilisateurs | ✅ | `Admin.tsx` | Recherche, filtre rôle |
 | Création utilisateur | 🔧 | `Admin.tsx` | Retourne "skipped" si offline |
 | Modification rôle | 🔧 | `Admin.tsx` | Idem |
 | Désactivation | 🔧 | `Admin.tsx` | Idem |
 
+### Profil
+
+| Fonctionnalité | Statut | Fichiers | Notes |
+|----------------|--------|----------|-------|
+| Affichage infos | ✅ | `Profile.tsx` | Nom, anniversaire, groupe, objectifs, bio |
+| Édition profil | ✅ | `Profile.tsx` | Avatar, objectifs, groupe, FFN IUF |
+| Changement mot de passe | ✅ | `Profile.tsx` | Via Supabase Auth |
+
 ---
 
 ## Dépendances Supabase
-
-Ces fonctionnalités nécessitent une connexion Supabase active :
 
 | Fonctionnalité | Comportement si offline |
 |----------------|-------------------------|
@@ -130,13 +143,13 @@ Ces fonctionnalités nécessitent une connexion Supabase active :
 | Création utilisateur | `{ status: "skipped" }` |
 | Modification rôle | `{ status: "skipped" }` |
 | Sync FFN | Erreur Edge Function |
-| Historique muscu | Données locales uniquement |
+| Données générales | Fallback localStorage |
 
 ---
 
 ## Exercices sans GIF
 
-Les exercices suivants n'ont pas d'URL `illustration_gif` dans la table `dim_exercices` :
+Les exercices suivants n'ont pas d'URL `illustration_gif` dans `dim_exercices` :
 
 - 39: Sliding Leg Curl
 - 40: Back Extension 45°
@@ -156,8 +169,8 @@ Pour ajouter les GIFs manquants, mettre à jour la colonne `illustration_gif` da
 
 ---
 
-## Prochaines activations
+## Voir aussi
 
-| Feature Flag | Priorité | Effort estimé |
-|--------------|----------|---------------|
-| `coachStrength` | HAUTE | 2h (déjà implémenté, juste à activer) |
+- [`docs/ROADMAP.md`](./ROADMAP.md) — Plan de développement futur
+- [`README.md`](../README.md) — Vue d'ensemble du projet
+- [`docs/implementation-log.md`](./implementation-log.md) — Journal des implémentations

@@ -30,8 +30,8 @@ Application web de suivi des séances de natation et de musculation pour l'Erste
 
 | Côté | Fonctionnalités |
 |------|-----------------|
-| **Coach** | Catalogue d'exercices (⚠️ builder en cours) |
-| **Nageur** | Lancement séance, mode focus mobile, saisie charge/reps, historique |
+| **Coach** | Builder séances, catalogue exercices par cycle, assignation |
+| **Nageur** | Lancement séance, mode focus mobile, saisie charge/reps, historique, 1RM |
 
 ### 💬 Messagerie
 - Fils de discussion (threads)
@@ -52,15 +52,20 @@ Application web de suivi des séances de natation et de musculation pour l'Erste
 
 | Module | Statut | Notes |
 |--------|--------|-------|
-| Auth Supabase | ✅ OK | |
-| Natation nageur | ✅ OK | |
-| Natation coach | ✅ OK | |
-| Musculation nageur | ✅ OK | |
-| Musculation coach | ⚠️ Partiel | `coachStrength: false` dans features.ts |
-| Messagerie | ✅ OK | |
-| Pointage heures | ✅ OK | |
-| Records FFN | ✅ OK | Sync via Edge Function |
-| Hall of Fame | ✅ OK | |
+| Auth Supabase | ✅ OK | Login, rôles, refresh JWT |
+| Inscription | ⚠️ Partiel | Formulaire OK, UX post-inscription à refaire |
+| Natation nageur | ✅ OK | Dashboard, ressenti, progression |
+| Natation coach | ✅ OK | Catalogue, assignation |
+| Musculation nageur | ✅ OK | WorkoutRunner, historique, 1RM |
+| Musculation coach | ✅ OK | Builder activé (`coachStrength: true`) |
+| Messagerie | ✅ OK | Threads, individuel/groupe |
+| Pointage heures | ✅ OK | Shifts, dashboard, vue comité |
+| Records perso FFN | ✅ OK | Sync via Edge Function |
+| Records club | ⚠️ Partiel | UI prête, import FFN manquant |
+| Hall of Fame | ✅ OK | Top 5 nage + muscu |
+| Admin | ✅ OK | Gestion utilisateurs, rôles |
+
+Détail complet : [`docs/FEATURES_STATUS.md`](docs/FEATURES_STATUS.md)
 
 ## Structure du projet
 
@@ -153,20 +158,25 @@ supabase secrets set SERVICE_ROLE_KEY=<service-role-key>
 | Document | Description |
 |----------|-------------|
 | `docs/FEATURES_STATUS.md` | Matrice détaillée des fonctionnalités |
+| `docs/ROADMAP.md` | Plan de développement futur (chantiers à implémenter) |
 | `docs/audit-projet-complet.md` | Audit qualité code (score B+) |
 | `docs/implementation-log.md` | Journal des implémentations |
-| `docs/roadmap-data-contract.md` | Contrats de données |
+| `docs/patch-report.md` | Rapport d'audit UI/UX (items restants) |
+| `docs/roadmap-data-contract.md` | Contrats de données (legacy, réf. Cloudflare) |
 
 ## Roadmap
 
-### En cours
-- [ ] Activer le builder musculation coach (`coachStrength`)
-- [ ] Augmenter la couverture de tests (cible: 15%)
+### Prioritaire
+- [ ] Refonte du parcours d'inscription (UX post-inscription, callback email)
+- [ ] Import de toutes les performances FFN d'un nageur (pas juste les records)
+- [ ] Edge Function `import-club-records` (n'existe pas encore)
 
 ### Planifié
-- [ ] Refactoring `api.ts` en modules
-- [ ] Migration tokens vers cookies httpOnly
-- [ ] Tests E2E avec Playwright
+- [ ] Gestion coach des imports de performances
+- [ ] Records club alimentés par les imports FFN
+- [ ] Dette UI/UX restante (couleurs hardcodées, skeletons manquants)
+
+Détail complet : [`docs/ROADMAP.md`](docs/ROADMAP.md)
 
 ## Contribuer
 
@@ -177,4 +187,4 @@ supabase secrets set SERVICE_ROLE_KEY=<service-role-key>
 
 ---
 
-*Dernière mise à jour : 2026-02-05*
+*Dernière mise à jour : 2026-02-07*

@@ -4,6 +4,47 @@ Ce document trace l'avancement des tâches et migrations.
 
 ---
 
+## 2026-02-07 — Mise à jour documentation & Roadmap
+
+**Branche** : `claude/review-app-features-J0mww`
+
+### Complété
+
+| Tâche | Notes |
+|-------|-------|
+| Revue complète des fonctionnalités | Toutes les features actives sont 100% fonctionnelles |
+| Mise à jour `FEATURES_STATUS.md` | Correction `coachStrength: true`, ajout statuts planifiés |
+| Création `ROADMAP.md` | 4 chantiers futurs documentés en détail |
+| Mise à jour `README.md` | Roadmap, statut features, liens docs |
+| Création `CLAUDE.md` | Contexte pour reprises futures par Claude |
+| Nettoyage `roadmap-data-contract.md` | Marqué comme legacy (réf. Cloudflare obsolètes) |
+| Mise à jour `MEMORY.md` | Contexte persistant pour sessions futures |
+
+### Diagnostic des fonctionnalités
+
+**100% fonctionnelles :** Auth, Dashboard nageur, Progression, Catalogue nage coach, Assignation, Musculation nageur (WorkoutRunner, historique, 1RM), Musculation coach (builder, catalogue), Records perso, Hall of Fame, Messagerie, Pointage heures, Vue comité, Admin, Profil.
+
+**Partiellement fonctionnelles :**
+- Inscription self-service (UX post-inscription confuse, callback email non géré)
+- Records club (UI prête mais données vides, import inexistant)
+
+**Non implémentées :**
+- Edge Function `import-club-records` (bouton UI existe, backend manquant)
+- Import historique complet performances FFN
+- Gestion coach des imports
+- Flow mot de passe oublié
+
+### Chantiers futurs identifiés
+
+1. Refonte parcours d'inscription (priorité haute)
+2. Import toutes performances FFN (priorité haute)
+3. Gestion coach des imports (priorité moyenne)
+4. Records club alimentés (priorité moyenne, dépend de §2 et §3)
+
+Voir [`docs/ROADMAP.md`](./ROADMAP.md) pour le détail complet.
+
+---
+
 ## 2026-02-06 — FFN Sync Fix & Plan
 
 **Branche** : `claude/cloudflare-to-supabase-migration-Ia5Pa`
@@ -37,29 +78,29 @@ Ce document trace l'avancement des tâches et migrations.
 - [x] Fix bouton "Lancer la séance"
 - [x] Fix FFN sync pool_length (doublons bassin)
 
-### P1 — Haute priorité
+### P1 — Haute priorité (FAIT ✅)
 
-| Tâche | Effort | Description |
-|-------|--------|-------------|
-| **Audit UI/UX** | 4-6h | Responsive, mobile-first, ergonomie, parcours utilisateur |
-| Activer `coachStrength` | 2h | Décommenter flag + tests |
-| GIF exercices manquants | 1h | Ajouter URLs dans `dim_exercices` (13 exercices) |
+- [x] Audit UI/UX (responsive, mobile-first, ergonomie) — voir `patch-report.md`
+- [x] Activer `coachStrength: true`
+- [x] GIF exercices (13 manquants à ajouter dans Supabase)
 
-### P2 — Moyenne priorité
+### P2 — Prochains chantiers (voir `ROADMAP.md`)
 
-| Tâche | Effort | Description |
-|-------|--------|-------------|
-| Tests E2E critiques | 4h | Login, création séance, exécution séance |
-| Refactor api.ts | 8h | Découper en modules (auth, swim, strength, records) |
-| Optimisation performances | 3h | Lazy loading, code splitting, cache |
+| Tâche | Priorité | Description |
+|-------|----------|-------------|
+| Refonte inscription | Haute | UX post-inscription, callback email |
+| Import performances FFN | Haute | Historique complet, pas juste records |
+| Import records club | Haute | Edge Function à créer |
+| Gestion coach imports | Moyenne | Dashboard coach pour piloter les imports |
+| Records club | Moyenne | Données une fois imports fonctionnels |
 
-### P3 — Basse priorité
+### P3 — Dette technique
 
-| Tâche | Effort | Description |
-|-------|--------|-------------|
-| Typage strict | 4h | Remplacer `any` par types |
-| Documentation API | 2h | Endpoints Supabase |
-| PWA améliorée | 4h | Offline mode, sync |
+| Tâche | Priorité | Description |
+|-------|----------|-------------|
+| Couleurs hardcodées | Basse | ~50 occurrences slate/zinc hors `/ui/` |
+| Refactor api.ts | Basse | Découper en modules |
+| Tests E2E | Basse | Playwright |
 
 ---
 
