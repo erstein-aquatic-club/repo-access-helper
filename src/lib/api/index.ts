@@ -1,23 +1,44 @@
 /**
  * API Module - Centralized export
  *
- * This module re-exports from the main api.ts for now.
- * Future refactoring will split into:
- * - types.ts (done)
- * - client.ts - Supabase client and utilities
- * - sessions.ts - Session sync
- * - strength.ts - Exercises, strength sessions, runs
- * - swim.ts - Swim records, swim catalog
- * - records.ts - Hall of fame, club records
- * - assignments.ts - Assignments
- * - notifications.ts - Notifications
- * - timesheet.ts - Timesheet
- * - users.ts - Profile, athletes, users, groups
+ * This module provides a modular structure for the API layer.
+ *
+ * Structure:
+ * - types.ts - All TypeScript interfaces
+ * - client.ts - Supabase client, utilities, and helpers
+ * - (future) strength.ts - Exercises, strength sessions, runs
+ * - (future) swim.ts - Swim records, swim catalog
+ * - (future) records.ts - Hall of fame, club records
+ * - (future) users.ts - Profile, athletes, users, groups
  */
 
-// Re-export types from dedicated file
+// Re-export types
 export * from './types';
 
-// Re-export everything else from main api.ts
-// This maintains backward compatibility
-export { api, parseApiError, summarizeApiError, useApiCapabilities } from '../api';
+// Re-export client utilities
+export {
+  isNetworkAvailable,
+  canUseSupabase,
+  supabase,
+  STORAGE_KEYS,
+  safeInt,
+  safeOptionalInt,
+  safeOptionalNumber,
+  normalizeScaleToFive,
+  expandScaleToTen,
+  estimateOneRm,
+  parseApiError,
+  summarizeApiError,
+  normalizeCycleType,
+  normalizeExerciseType,
+  normalizeStrengthItem,
+  validateStrengthItems,
+  mapDbExerciseToApi,
+  mapApiExerciseToDb,
+  delay,
+  parseRawPayload,
+  fetchUserGroupIds,
+} from './client';
+
+// Re-export main api object from legacy file
+export { api, useApiCapabilities } from '../api';
