@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, summarizeApiError, type ClubRecordSwimmer } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,16 +12,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 
 const SEX_OPTIONS = [
-  { value: "M", label: "Garçon" },
+  { value: "M", label: "Gar\u00e7on" },
   { value: "F", label: "Fille" },
 ];
 
 const formatSource = (source: ClubRecordSwimmer["source_type"]) =>
   source === "user" ? "Compte" : "Ancien";
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("fr-FR") + " " + date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+};
+
+const statusBadgeVariant = (status: string) => {
+  switch (status) {
+    case "success":
+      return "default" as const;
+    case "running":
+      return "secondary" as const;
+    case "error":
+      return "destructive" as const;
+    default:
+      return "outline" as const;
+  }
+};
+
+const statusLabel = (status: string) => {
+  switch (status) {
+    case "success":
+      return "OK";
+    case "running":
+      return "En cours";
+    case "error":
+      return "Erreur";
+    case "pending":
+      return "En attente";
+    default:
+      return status;
+  }
+};
+
 export default function RecordsAdmin() {
   const role = useAuth((state) => state.role);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [newSwimmer, setNewSwimmer] = useState({
     display_name: "",
     iuf: "",
@@ -33,6 +69,13 @@ export default function RecordsAdmin() {
   const [error, setError] = useState<string | null>(null);
 
   const canAccess = role === "coach" || role === "admin";
+
+  // Import logs query
+  const { data: importLogs = [], refetch: refetchLogs } = useQuery({
+    queryKey: ["import-logs"],
+    queryFn: () => api.getImportLogs({ limit: 20 }),
+    enabled: canAccess,
+  });
 
   const load = useCallback(async () => {
     if (!canAccess) return;
@@ -64,7 +107,7 @@ export default function RecordsAdmin() {
         is_active: true,
       }),
     onSuccess: () => {
-      toast({ title: "Nageur ajouté" });
+      toast({ title: "Nageur ajout\u00e9" });
       setNewSwimmer({ display_name: "", iuf: "", sex: "", birthdate: "" });
       void load();
     },
@@ -78,10 +121,10 @@ export default function RecordsAdmin() {
       api.updateClubRecordSwimmer(id, payload),
     onSuccess: () => {
       void load();
-      toast({ title: "Sauvegardé" });
+      toast({ title: "Sauvegard\u00e9" });
     },
     onError: () => {
-      toast({ title: "Mise à jour impossible", variant: "destructive" });
+      toast({ title: "Mise \u00e0 jour impossible", variant: "destructive" });
     },
   });
 
@@ -90,10 +133,10 @@ export default function RecordsAdmin() {
       api.updateClubRecordSwimmerForUser(userId, payload),
     onSuccess: () => {
       void load();
-      toast({ title: "Sauvegardé" });
+      toast({ title: "Sauvegard\u00e9" });
     },
     onError: () => {
-      toast({ title: "Mise à jour impossible", variant: "destructive" });
+      toast({ title: "Mise \u00e0 jour impossible", variant: "destructive" });
     },
   });
 
@@ -111,15 +154,38 @@ export default function RecordsAdmin() {
     mutationFn: () => api.importClubRecords(),
     onSuccess: (summary) => {
       toast({
-        title: "Import terminé",
+        title: "Import termin\u00e9",
         description: summary
-          ? `Performances importées: ${summary.imported ?? 0}. Erreurs: ${summary.errors ?? 0}.`
+          ? `Performances import\u00e9es: ${summary.imported ?? 0}. Erreurs: ${summary.errors ?? 0}.`
           : "",
       });
       void load();
+      void refetchLogs();
+      void queryClient.invalidateQueries({ queryKey: ["club-records"] });
     },
     onError: () => {
       toast({ title: "Import impossible", variant: "destructive" });
+      void refetchLogs();
+    },
+  });
+
+  // Per-swimmer import mutation
+  const importSingle = useMutation({
+    mutationFn: ({ iuf, name }: { iuf: string; name?: string }) =>
+      api.importSingleSwimmer(iuf, name),
+    onSuccess: (result, variables) => {
+      toast({
+        title: `Import de ${variables.name ?? variables.iuf}`,
+        description: `${result.total_found} performances trouv\u00e9es, ${result.new_imported} nouvelles import\u00e9es.`,
+      });
+      void refetchLogs();
+    },
+    onError: (_err, variables) => {
+      toast({
+        title: `Erreur import ${variables.name ?? variables.iuf}`,
+        variant: "destructive",
+      });
+      void refetchLogs();
     },
   });
 
@@ -134,7 +200,7 @@ export default function RecordsAdmin() {
     return (
       <div className="space-y-4">
         <h1 className="text-3xl font-display font-bold uppercase italic text-primary">Administration des records</h1>
-        <p className="text-sm text-muted-foreground">Accès réservé aux coachs.</p>
+        <p className="text-sm text-muted-foreground">Acc\u00e8s r\u00e9serv\u00e9 aux coachs.</p>
       </div>
     );
   }
@@ -145,11 +211,11 @@ export default function RecordsAdmin() {
         <div>
           <h1 className="text-3xl font-display font-bold uppercase italic text-primary">Administration des records</h1>
           <p className="text-sm text-muted-foreground">
-            Gérez les nageurs pris en compte pour les records et lancez l'import FFN.
+            G\u00e9rez les nageurs pris en compte pour les records et lancez l'import FFN.
           </p>
         </div>
         <Button onClick={() => importRecords.mutate()} disabled={importRecords.isPending}>
-          {importRecords.isPending ? "Import en cours..." : "Mettre à jour les records"}
+          {importRecords.isPending ? "Import en cours..." : "Mettre \u00e0 jour les records"}
         </Button>
       </div>
 
@@ -201,7 +267,7 @@ export default function RecordsAdmin() {
       <Card>
         <CardHeader>
           <CardTitle>Liste des nageurs suivis</CardTitle>
-          <CardDescription>Mettre à jour l'IUF, le sexe ou l'activation pour l'import FFN.</CardDescription>
+          <CardDescription>Mettre \u00e0 jour l'IUF, le sexe ou l'activation pour l'import FFN.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading && (
@@ -230,6 +296,7 @@ export default function RecordsAdmin() {
                   <TableHead>Sexe</TableHead>
                   <TableHead>Naissance</TableHead>
                   <TableHead>Actif</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -289,9 +356,75 @@ export default function RecordsAdmin() {
                         }
                       />
                     </TableCell>
+                    <TableCell>
+                      {swimmer.iuf ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={importSingle.isPending}
+                          onClick={() =>
+                            importSingle.mutate({
+                              iuf: swimmer.iuf!,
+                              name: swimmer.display_name,
+                            })
+                          }
+                        >
+                          Importer
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Pas d'IUF</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 );
                 })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Historique des imports</CardTitle>
+          <CardDescription>Les 20 derniers imports de performances FFN.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {importLogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun import effectu\u00e9.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nageur</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Trouv\u00e9es</TableHead>
+                  <TableHead>Import\u00e9es</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Erreur</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {importLogs.map((log: any) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="font-medium">
+                      {log.swimmer_name ?? log.swimmer_iuf}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusBadgeVariant(log.status)}>
+                        {statusLabel(log.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{log.performances_found ?? "-"}</TableCell>
+                    <TableCell>{log.performances_imported ?? "-"}</TableCell>
+                    <TableCell className="text-xs">
+                      {formatDateTime(log.started_at)}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate text-xs text-destructive">
+                      {log.error_message ?? ""}
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}

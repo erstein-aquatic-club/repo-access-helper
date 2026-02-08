@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-07 (refactoring api.ts, transformers extraits)*
+*Dernière mise à jour : 2026-02-08 (§3 gestion coach imports + §4 records club alimentés)*
 
 ## Légende
 
@@ -39,8 +39,8 @@ Tous les feature flags sont activés.
 | Login email/password | ✅ | `Login.tsx`, `auth.ts` | Supabase Auth |
 | Gestion des rôles | ✅ | `auth.ts` | nageur, coach, comité, admin |
 | Refresh token | ✅ | `auth.ts` | JWT automatique Supabase |
-| Inscription self-service | ⚠️ | `Login.tsx` | Formulaire OK mais UX post-inscription confuse (voir ROADMAP §1) |
-| Confirmation email | ❌ | — | Pas de handler pour le callback email Supabase |
+| Inscription self-service | ✅ | `Login.tsx`, `auth.ts`, `App.tsx`, `Admin.tsx` | Option B : validation coach/admin, écran post-inscription, gate approbation |
+| Approbation inscriptions | ✅ | `Admin.tsx`, `api.ts` | Section "Inscriptions en attente" pour coach/admin |
 | Mot de passe oublié | ❌ | — | Aucun flow de récupération |
 | Création compte (admin) | ✅ | `Admin.tsx` | Via panel admin |
 | Désactivation compte | 🔧 | `api.ts` | Retourne "skipped" si Supabase offline |
@@ -89,12 +89,12 @@ Tous les feature flags sont activés.
 |----------------|--------|----------|-------|
 | Records personnels (CRUD) | ✅ | `Records.tsx` | Saisie manuelle + toggle 25m/50m |
 | Sync FFN (records perso) | ✅ | Edge Function `ffn-sync` | Scrape Extranat, meilleur temps par épreuve |
-| Import toutes performances | 🗓️ | — | **ROADMAP §2** : historique complet, pas juste best times |
-| Records club (consultation) | ⚠️ | `RecordsClub.tsx` | UI avec filtres OK mais données vides (import manquant) |
-| Import records club (FFN) | ❌ | `RecordsAdmin.tsx` | Bouton UI existe, Edge Function `import-club-records` **n'existe pas** |
+| Import toutes performances | ✅ | Edge Function `ffn-performances` | Import historique complet depuis FFN |
+| Records club (consultation) | ✅ | `RecordsClub.tsx` | UI avec filtres + indicateur dernière MAJ, alimentée par import |
+| Import records club (FFN) | ✅ | `RecordsAdmin.tsx`, Edge Function `import-club-records` | Import bulk + recalcul records club |
 | Gestion nageurs records | ✅ | `RecordsAdmin.tsx` | Ajout/édition/activation swimmers |
 | Hall of Fame | ✅ | `HallOfFame.tsx` | Top 5 nage + muscu |
-| Gestion coach imports perfs | 🗓️ | — | **ROADMAP §3** : dashboard coach pour piloter les imports |
+| Gestion coach imports perfs | ✅ | `RecordsAdmin.tsx` | Import individuel par nageur + historique des imports |
 
 ### Messagerie
 

@@ -49,7 +49,8 @@ Application web de suivi d'entraînement (natation + musculation) pour l'Erstein
 |----------|--------|--------|
 | `ffn-sync` | Fonctionnelle | `supabase/functions/ffn-sync/` |
 | `admin-user` | Fonctionnelle | `supabase/functions/admin-user/` |
-| `import-club-records` | N'EXISTE PAS | Appelé dans `api.ts:921` mais jamais créé |
+| `ffn-performances` | Fonctionnelle | `supabase/functions/ffn-performances/` |
+| `import-club-records` | Fonctionnelle | `supabase/functions/import-club-records/` |
 
 ## Documentation
 
@@ -64,12 +65,12 @@ Lire ces fichiers dans cet ordre pour reprendre le contexte :
 
 ## Chantiers futurs (ROADMAP)
 
-| # | Chantier | Priorité | Dépendances |
-|---|----------|----------|-------------|
-| 1 | Refonte parcours d'inscription | Haute | Aucune |
-| 2 | Import toutes performances FFN | Haute | Aucune |
-| 3 | Gestion coach des imports | Moyenne | Dépend de §2 |
-| 4 | Records club alimentés | Moyenne | Dépend de §2 et §3 |
+| # | Chantier | Priorité | Statut |
+|---|----------|----------|--------|
+| 1 | Refonte parcours d'inscription | Haute | Fait |
+| 2 | Import toutes performances FFN | Haute | Fait |
+| 3 | Gestion coach des imports | Moyenne | Fait |
+| 4 | Records club alimentés | Moyenne | Fait |
 
 Détail complet dans `docs/ROADMAP.md`.
 

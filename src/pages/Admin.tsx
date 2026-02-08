@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Redirect } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck, UserMinus, UserPlus, Search } from "lucide-react";
+import { ShieldCheck, UserMinus, UserPlus, Search, CheckCircle, XCircle, Clock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api, summarizeApiError, type UserSummary } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -102,6 +102,42 @@ export default function Admin() {
     },
   });
 
+  const { data: pendingApprovals = [] } = useQuery({
+    queryKey: ["pending-approvals"],
+    queryFn: () => api.getPendingApprovals(),
+    enabled: isAdmin,
+  });
+
+  const approveUser = useMutation({
+    mutationFn: (userId: number) => api.approveUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Inscription validée" });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: "Erreur validation",
+        description: parseErrorMessage(error, "Impossible de valider l'inscription."),
+      });
+    },
+  });
+
+  const rejectUser = useMutation({
+    mutationFn: (userId: number) => api.rejectUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Inscription rejetée" });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: "Erreur rejet",
+        description: parseErrorMessage(error, "Impossible de rejeter l'inscription."),
+      });
+    },
+  });
+
   const existingAdminId = useMemo(() => {
     const existingAdmin = users.find((user) => user.role === "admin");
     return existingAdmin?.id ?? null;
@@ -143,6 +179,65 @@ export default function Admin() {
           <span>Accès admin</span>
         </div>
       </div>
+
+      {pendingApprovals.length > 0 ? (
+        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-600" />
+              Inscriptions en attente
+              <Badge variant="secondary" className="ml-2">{pendingApprovals.length}</Badge>
+            </CardTitle>
+            <CardDescription>
+              Ces utilisateurs ont créé un compte et attendent votre validation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {pendingApprovals.map((pending) => (
+                <div
+                  key={pending.user_id}
+                  className="flex flex-col gap-3 rounded-lg border bg-background p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="space-y-1">
+                    <p className="font-medium">{pending.display_name}</p>
+                    <p className="text-sm text-muted-foreground">{pending.email || "Pas d'email"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Inscrit le {new Date(pending.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => approveUser.mutate(pending.user_id)}
+                      disabled={approveUser.isPending || rejectUser.isPending}
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Approuver
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        const confirmed = window.confirm(
+                          `Rejeter l'inscription de "${pending.display_name}" ? Le compte sera désactivé.`,
+                        );
+                        if (!confirmed) return;
+                        rejectUser.mutate(pending.user_id);
+                      }}
+                      disabled={approveUser.isPending || rejectUser.isPending}
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Rejeter
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

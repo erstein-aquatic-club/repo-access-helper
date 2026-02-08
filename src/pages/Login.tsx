@@ -30,6 +30,7 @@ export default function Login() {
   const [registerGroupId, setRegisterGroupId] = useState("");
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [signupComplete, setSignupComplete] = useState(false);
   const { loginFromSession, loadUser } = useAuth();
   const [, setLocation] = useLocation();
   const passwordInputRef = useRef<HTMLInputElement>(null);
@@ -186,10 +187,33 @@ export default function Login() {
           setRegisterPassword("");
           setRegisterBirthdate("");
           setRegisterGroupId("");
+          setSignupComplete(false);
         }
       }}
       >
         <DialogContent className="sm:max-w-md">
+          {signupComplete ? (
+            <div className="text-center space-y-4 py-4">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                <span className="text-3xl text-green-600">&#10003;</span>
+              </div>
+              <h2 className="text-xl font-semibold">Compte créé avec succès !</h2>
+              <p className="text-sm text-muted-foreground">
+                Un coach ou un administrateur doit valider votre inscription avant votre première connexion.
+              </p>
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={() => {
+                  setSignupComplete(false);
+                  setShowRegister(false);
+                }}
+              >
+                Retour à la connexion
+              </Button>
+            </div>
+          ) : (
+          <>
           <DialogHeader>
             <DialogTitle>Créer un compte</DialogTitle>
             <DialogDescription>
@@ -237,21 +261,14 @@ export default function Login() {
                 if (signUpError) {
                   throw new Error(signUpError.message);
                 }
-                if (!data.session) {
-                  // Email confirmation may be required
-                  setRegisterError(
-                    "Compte créé. Vérifiez votre email pour confirmer votre inscription.",
-                  );
+                if (data.user) {
+                  // Sign out immediately — the user must be approved before logging in
+                  await supabase.auth.signOut();
+                  setSignupComplete(true);
                   setIsRegistering(false);
                   return;
                 }
-                loginFromSession(data.session);
-                const hydrated = await loadUser();
-                if (!hydrated) {
-                  throw new Error("Impossible de récupérer le profil utilisateur.");
-                }
-                setShowRegister(false);
-                setLocation("/", { replace: true });
+                setRegisterError("Création impossible.");
               } catch (err) {
                 const message = err instanceof Error ? err.message : "Création impossible.";
                 setRegisterError(message);
@@ -326,6 +343,8 @@ export default function Login() {
               {isRegistering ? "Création..." : "Créer le compte"}
             </Button>
           </form>
+          </>
+          )}
         </DialogContent>
       </Dialog>
 

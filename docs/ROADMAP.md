@@ -1,6 +1,6 @@
 # Roadmap de Développement
 
-*Dernière mise à jour : 2026-02-07*
+*Dernière mise à jour : 2026-02-08*
 
 Ce document décrit les fonctionnalités à implémenter. Il sert de référence pour reprendre le développement dans une future conversation.
 
@@ -10,10 +10,10 @@ Ce document décrit les fonctionnalités à implémenter. Il sert de référence
 
 | # | Chantier | Priorité | Complexité | Statut |
 |---|----------|----------|------------|--------|
-| 1 | Refonte parcours d'inscription | Haute | Moyenne | A faire |
-| 2 | Import de toutes les performances FFN d'un nageur | Haute | Haute | A faire |
-| 3 | Gestion coach des imports de performances | Moyenne | Moyenne | A faire |
-| 4 | Records club par catégorie d'âge / sexe / nage | Moyenne | Faible | A faire |
+| 1 | Refonte parcours d'inscription | Haute | Moyenne | Fait |
+| 2 | Import de toutes les performances FFN d'un nageur | Haute | Haute | Fait |
+| 3 | Gestion coach des imports de performances | Moyenne | Moyenne | Fait |
+| 4 | Records club par catégorie d'âge / sexe / nage | Moyenne | Faible | Fait |
 | 5 | Dette technique UI/UX restante (patch-report) | Basse | Faible | En cours |
 
 ---
@@ -199,6 +199,16 @@ Le coach doit pouvoir, depuis sa vue Coach, piloter l'import des performances de
 
 > Ce chantier dépend du chantier §2 (import performances). L'Edge Function `import-club-records` réutilisera la logique de scraping de `ffn-performances`.
 
+### Avancement
+
+| Étape | Statut | Date | Notes |
+|-------|--------|------|-------|
+| Migration SQL (import_logs) | ✅ Fait | 2026-02-08 | Migration 00011 |
+| Module ffn-event-map.ts | ✅ Fait | 2026-02-08 | Mapping FFN -> codes normalisés |
+| Edge Function import-club-records | ✅ Fait | 2026-02-08 | Import bulk + recalcul records |
+| API client (api.ts) | ✅ Fait | 2026-02-08 | getImportLogs, importSingleSwimmer |
+| UI RecordsAdmin (import individuel + logs) | ✅ Fait | 2026-02-08 | Bouton par nageur + historique |
+
 ---
 
 ## 4. Records club par catégorie d'âge, sexe et nage
@@ -246,6 +256,14 @@ Afficher les records du club organisés en tableaux lisibles par catégorie d'â
 ### Dépendance
 
 > Ce chantier est essentiellement un chantier de **données**. L'UI existe déjà. Il devient fonctionnel une fois les chantiers §2 et §3 terminés.
+
+### Avancement
+
+| Étape | Statut | Date | Notes |
+|-------|--------|------|-------|
+| Alimenter les données | ✅ Fait | 2026-02-08 | Via import-club-records Edge Function |
+| Recalcul best times par catégorie | ✅ Fait | 2026-02-08 | Par event_code + pool + sex + age |
+| UI RecordsClub | ✅ Fait | 2026-02-08 | Ajout indicateur dernière mise à jour |
 
 ---
 
@@ -315,8 +333,8 @@ Voir [`docs/patch-report.md`](./patch-report.md) pour le détail complet des ite
 |----------|--------|-------------|
 | `ffn-sync` | ✅ | Sync records perso depuis FFN Extranat |
 | `admin-user` | ✅ | Gestion utilisateurs (création Supabase Auth) |
-| `import-club-records` | ❌ | **N'existe pas** — appelé dans le code mais jamais créé |
-| `ffn-performances` | 🗓️ | **A créer** — import historique complet performances |
+| `import-club-records` | ✅ | Import bulk FFN + recalcul records club |
+| `ffn-performances` | ✅ | Import historique complet performances d'un nageur |
 
 ### Tables Supabase pertinentes
 
@@ -326,8 +344,8 @@ Voir [`docs/patch-report.md`](./patch-report.md) pour le détail complet des ite
 | `club_records` | ✅ | Records club (vide, en attente d'import) |
 | `club_performances` | ✅ | Performances club (vide, en attente d'import) |
 | `club_record_swimmers` | ✅ | Liste nageurs pour import club |
-| `swimmer_performances` | 🗓️ | **A créer** — historique complet performances nageur |
-| `import_logs` | 🗓️ | **A créer** (optionnel) — traçabilité des imports |
+| `swimmer_performances` | ✅ | Historique complet performances nageur |
+| `import_logs` | ✅ | Traçabilité des imports |
 
 ---
 
