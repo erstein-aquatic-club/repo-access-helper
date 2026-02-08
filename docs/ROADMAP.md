@@ -14,7 +14,7 @@ Ce document décrit les fonctionnalités à implémenter. Il sert de référence
 | 2 | Import de toutes les performances FFN d'un nageur | Haute | Haute | Fait |
 | 3 | Gestion coach des imports de performances | Moyenne | Moyenne | Fait |
 | 4 | Records club par catégorie d'âge / sexe / nage | Moyenne | Faible | Fait |
-| 5 | Dette technique UI/UX restante (patch-report) | Basse | Faible | En cours |
+| 5 | Dette technique UI/UX restante (patch-report) | Basse | Faible | Fait |
 
 ---
 
