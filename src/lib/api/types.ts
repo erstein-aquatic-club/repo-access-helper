@@ -279,3 +279,19 @@ export interface StrengthSetPayload {
   athleteId?: number | string | null;
   athleteName?: string | null;
 }
+
+export interface SwimmerPerformance {
+  id: number;
+  user_id?: number | null;
+  swimmer_iuf: string;
+  event_code: string;
+  pool_length: number;
+  time_seconds: number;
+  time_display?: string | null;
+  competition_name?: string | null;
+  competition_date?: string | null;
+  competition_location?: string | null;
+  ffn_points?: number | null;
+  source: string;
+  imported_at?: string | null;
+}

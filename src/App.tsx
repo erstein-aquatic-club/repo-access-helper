@@ -8,6 +8,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/lib/auth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FEATURES } from "@/lib/features";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 // Lazy load all pages for code splitting
 const Login = lazy(() => import("@/pages/Login"));
@@ -65,6 +67,7 @@ const useHashLocation = (): [string, (to: string, options?: { replace?: boolean 
 
 function AppRouter() {
   const { user } = useAuth();
+  const isApproved = useAuth((s) => s.isApproved);
 
   if (!user) {
     return (
@@ -74,6 +77,25 @@ function AppRouter() {
           <Route path="/:rest*" component={() => <Redirect to="/" />} />
         </Switch>
       </Suspense>
+    );
+  }
+
+  if (user && isApproved === false) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center space-y-4">
+            <div className="text-4xl">&#9203;</div>
+            <h2 className="text-xl font-semibold">En attente de validation</h2>
+            <p className="text-sm text-muted-foreground">
+              Votre compte a été créé mais doit être validé par un coach ou un administrateur.
+            </p>
+            <Button variant="outline" onClick={() => useAuth.getState().logout()}>
+              Se déconnecter
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 

@@ -1,0 +1,55 @@
+export const FFN_TO_EVENT_CODE: Record<string, string> = {
+  "50 NL": "50_FREE",
+  "100 NL": "100_FREE",
+  "200 NL": "200_FREE",
+  "400 NL": "400_FREE",
+  "800 NL": "800_FREE",
+  "1500 NL": "1500_FREE",
+  "50 Dos": "50_BACK",
+  "100 Dos": "100_BACK",
+  "200 Dos": "200_BACK",
+  "50 Brasse": "50_BREAST",
+  "100 Brasse": "100_BREAST",
+  "200 Brasse": "200_BREAST",
+  "50 Papillon": "50_FLY",
+  "100 Papillon": "100_FLY",
+  "200 Papillon": "200_FLY",
+  "200 4 Nages": "200_IM",
+  "400 4 Nages": "400_IM",
+  // Common FFN variants
+  "50 Nage Libre": "50_FREE",
+  "100 Nage Libre": "100_FREE",
+  "200 Nage Libre": "200_FREE",
+  "400 Nage Libre": "400_FREE",
+  "800 Nage Libre": "800_FREE",
+  "1500 Nage Libre": "1500_FREE",
+  "50 Pap": "50_FLY",
+  "100 Pap": "100_FLY",
+  "200 Pap": "200_FLY",
+  "200 4N": "200_IM",
+  "400 4N": "400_IM",
+};
+
+export const EVENT_LABELS: Record<string, string> = {
+  "50_FREE": "50 m NL",
+  "100_FREE": "100 m NL",
+  "200_FREE": "200 m NL",
+  "400_FREE": "400 m NL",
+  "800_FREE": "800 m NL",
+  "1500_FREE": "1500 m NL",
+  "50_BACK": "50 m Dos",
+  "100_BACK": "100 m Dos",
+  "200_BACK": "200 m Dos",
+  "50_BREAST": "50 m Brasse",
+  "100_BREAST": "100 m Brasse",
+  "200_BREAST": "200 m Brasse",
+  "50_FLY": "50 m Pap",
+  "100_FLY": "100 m Pap",
+  "200_FLY": "200 m Pap",
+  "200_IM": "200 m 4N",
+  "400_IM": "400 m 4N",
+};
+
+export function normalizeEventCode(ffnEventName: string): string | null {
+  return FFN_TO_EVENT_CODE[ffnEventName] ?? null;
+}

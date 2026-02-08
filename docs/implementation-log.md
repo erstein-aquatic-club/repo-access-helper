@@ -22,11 +22,170 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 
 | Chantier ROADMAP | Statut | Dernière activité |
 |------------------|--------|-------------------|
-| §1 Refonte inscription | ❌ A faire | — |
-| §2 Import performances FFN | ❌ A faire | — |
-| §3 Gestion coach imports | ❌ A faire | — |
-| §4 Records club | ❌ A faire | — |
+| §1 Refonte inscription | ✅ Fait | 2026-02-08 |
+| §2 Import performances FFN | ✅ Fait | 2026-02-08 |
+| §3 Gestion coach imports | ✅ Fait | 2026-02-08 |
+| §4 Records club | ✅ Fait | 2026-02-08 |
 | §5 Dette UI/UX | ⚠️ En cours | 2026-02-07 (audit 78%) |
+
+---
+
+## 2026-02-08 — Refonte parcours d'inscription (§1)
+
+**Branche** : `claude/continue-implementation-ajI8U`
+**Chantier ROADMAP** : §1 — Refonte parcours d'inscription
+
+### Contexte
+
+L'inscription fonctionnait mais l'UX post-inscription était confuse : message d'erreur dans le dialogue, pas de handler pour la confirmation email Supabase, liens de confirmation non gérés. Option B choisie (validation coach/admin) car plus simple et adaptée à un club local.
+
+### Changements réalisés
+
+1. **Migration `00009_add_user_approval.sql`** — Colonnes `is_approved`, `approved_by`, `approved_at` sur `user_profiles`. Trigger `handle_new_auth_user` modifié pour `is_approved = false` sur les nouvelles inscriptions.
+2. **Auth store** — `isApproved` ajouté au store Zustand, fetch depuis `user_profiles` dans `loadUser()`
+3. **Login.tsx** — Écran post-inscription "Compte créé, en attente de validation" au lieu d'auto-login
+4. **App.tsx** — Gate d'approbation : écran "En attente de validation" avec bouton déconnexion
+5. **Admin.tsx** — Section "Inscriptions en attente" avec boutons Approuver/Rejeter
+6. **API** — Méthodes `getPendingApprovals()`, `approveUser()`, `rejectUser()`
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `supabase/migrations/00009_add_user_approval.sql` | Créé — colonnes approval + trigger modifié |
+| `src/lib/auth.ts` | Ajout isApproved au store + loadUser + logout |
+| `src/pages/Login.tsx` | Écran post-inscription signupComplete |
+| `src/App.tsx` | Gate approbation (Card centré) |
+| `src/pages/Admin.tsx` | Section inscriptions en attente + mutations |
+| `src/lib/api.ts` | 3 nouvelles méthodes (getPendingApprovals, approveUser, rejectUser) |
+
+### Tests
+
+- [x] `npm run build` — OK
+- [x] `npx tsc --noEmit` — erreurs pré-existantes uniquement
+- [ ] Test manuel — inscription self-service, gate, approbation admin
+
+### Décisions prises
+
+- Option B (validation admin) plutôt qu'Option A (confirmation email) : hash-routing incompatible avec callbacks Supabase, contexte club local
+- `is_approved DEFAULT true` pour ne pas affecter les users existants
+- Gate dans App.tsx au niveau du routeur pour bloquer tout accès avant approbation
+
+### Limites / dette
+
+- Pas de flow "mot de passe oublié" (hors scope §1)
+- La configuration Supabase "Disable email confirmations" doit être faite manuellement dans le dashboard
+
+---
+
+## 2026-02-08 — Import historique complet performances FFN (§2)
+
+**Branche** : `claude/continue-implementation-ajI8U`
+**Chantier ROADMAP** : §2 — Import de toutes les performances FFN d'un nageur
+
+### Contexte
+
+La Edge Function `ffn-sync` n'importait que les records personnels (meilleur temps par épreuve). Besoin d'importer l'historique complet des performances de compétition pour alimenter les graphiques de progression et les records club.
+
+### Changements réalisés
+
+1. **Migration `00010_swimmer_performances.sql`** — Table `swimmer_performances` avec contrainte UNIQUE pour déduplication, index, RLS
+2. **Module partagé `_shared/ffn-parser.ts`** — Extraction des parseurs FFN : `clean()`, `parseTime()`, `parseDate()`, `formatTimeDisplay()`, `parseHtmlFull()` (toutes perfs), `parseHtmlBests()` (meilleurs temps)
+3. **Refactoring `ffn-sync`** — Import depuis `_shared/ffn-parser.ts`, suppression des fonctions dupliquées
+4. **Edge Function `ffn-performances`** — Import complet via `parseHtmlFull()`, upsert par chunks de 100
+5. **Interface `SwimmerPerformance`** dans `api/types.ts`
+6. **API** — `importSwimmerPerformances()` et `getSwimmerPerformances()` avec filtres
+7. **Records.tsx** — Nouvel onglet "Historique" avec import FFN, liste chronologique, filtres (épreuve, bassin), graphique Recharts de progression
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `supabase/migrations/00010_swimmer_performances.sql` | Créé — table + index + RLS |
+| `supabase/functions/_shared/ffn-parser.ts` | Créé — module partagé parseurs FFN |
+| `supabase/functions/ffn-sync/index.ts` | Refactoré — import depuis _shared |
+| `supabase/functions/ffn-performances/index.ts` | Créé — Edge Function import complet |
+| `src/lib/api/types.ts` | Ajout SwimmerPerformance interface |
+| `src/lib/api.ts` | 2 nouvelles méthodes |
+| `src/pages/Records.tsx` | Onglet Historique (+277 lignes) |
+
+### Tests
+
+- [x] `npm run build` — OK
+- [x] `npx tsc --noEmit` — erreurs pré-existantes uniquement
+- [ ] Test manuel — import FFN + affichage historique + graphique progression
+
+### Décisions prises
+
+- `event_code` stocké en format FFN brut ("50 NL") dans `swimmer_performances`, normalisation vers "50_FREE" uniquement dans `import-club-records` pour les records club
+- Module partagé `_shared/ffn-parser.ts` pour éviter duplication entre `ffn-sync`, `ffn-performances` et `import-club-records`
+- Upsert par chunks de 100 pour éviter les timeouts sur gros imports
+
+### Limites / dette
+
+- Le parseur HTML FFN dépend de la structure du site FFN Extranat (risque de casse si le site change)
+- Pas de pagination dans l'affichage des performances (toutes chargées d'un coup)
+- Le graphique Recharts affiche toutes les performances sans limite
+
+---
+
+## 2026-02-08 — Gestion coach des imports + Records club alimentés (§3 + §4)
+
+**Chantier ROADMAP** : §3 — Gestion coach des imports de performances, §4 — Records club par catégorie d'âge / sexe / nage
+
+### Contexte
+
+Les chantiers §1 (approbation utilisateur) et §2 (import performances FFN) avaient été implémentés précédemment, créant les bases (table `swimmer_performances`, Edge Function `ffn-performances`, parser FFN partagé). Cependant :
+- Le bouton "Mettre à jour les records" dans `RecordsAdmin.tsx` appelait `import-club-records` qui n'existait pas
+- Le coach ne pouvait pas importer les performances d'un nageur individuel
+- Aucun historique des imports n'était disponible
+- Les tables `club_records` et `club_performances` restaient vides
+- La page Records du Club (`RecordsClub.tsx`) n'affichait aucune donnée
+
+### Changements réalisés
+
+1. **Migration `00011_import_logs.sql`** — Table `import_logs` pour traçabilité des imports (triggered_by, swimmer_iuf, status, counts, timestamps)
+2. **Module partagé `ffn-event-map.ts`** — Mapping des noms d'épreuves FFN (français) vers les codes normalisés utilisés dans `RecordsClub.tsx` (ex: "50 NL" -> "50_FREE")
+3. **Edge Function `import-club-records`** — Fonction complète qui :
+   - Vérifie le rôle JWT (coach ou admin)
+   - Importe les performances FFN pour chaque nageur actif avec IUF
+   - Crée des entrées de log pour chaque import
+   - Recalcule les records club (best time par event_code, pool_length, sex, age)
+   - Insère dans `club_performances` puis upsert dans `club_records`
+4. **Méthodes API** — `getImportLogs()` et `importSingleSwimmer()` ajoutées à `api.ts`
+5. **RecordsAdmin enrichi** — Colonne "Actions" avec bouton "Importer" par nageur, section "Historique des imports" avec table de logs, invalidation du cache club-records après import
+6. **RecordsClub amélioré** — Indicateur "Dernière mise à jour" basé sur le dernier import réussi
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `supabase/migrations/00011_import_logs.sql` | Créé — table import_logs avec RLS |
+| `supabase/functions/_shared/ffn-event-map.ts` | Créé — mapping FFN -> codes normalisés |
+| `supabase/functions/import-club-records/index.ts` | Créé — Edge Function bulk import + recalcul records |
+| `src/lib/api.ts` | Ajout méthodes getImportLogs(), importSingleSwimmer() |
+| `src/pages/RecordsAdmin.tsx` | Ajout useQuery, useQueryClient, import logs, per-swimmer import, historique |
+| `src/pages/RecordsClub.tsx` | Ajout indicateur dernière mise à jour |
+
+### Tests
+
+- [x] `npm run build` — compilation OK
+- [x] `npm test` — 29 tests passent (14 échouent — erreurs pré-existantes `import.meta.env` en environnement test, non liées à ce patch)
+- [ ] Test manuel — Edge Function à tester avec Supabase déployé
+
+### Décisions prises
+
+- L'âge est "clampé" entre 8 et 17 ans pour correspondre aux catégories de `RecordsClub.tsx`
+- Les performances FFN sont upsertées avec `ON CONFLICT DO NOTHING` (idempotent)
+- Le recalcul des records se fait en mémoire puis upsert, pas de SQL complexe
+- L'import individuel réutilise la Edge Function `ffn-performances` existante
+
+### Limites / dette
+
+- Le recalcul des records parcourt toutes les performances en mémoire — pourrait être lourd avec beaucoup de nageurs
+- Pas de pagination dans l'historique des imports (limité à 20 entrées)
+- L'import individuel ne crée pas d'entrée dans `import_logs` (seul l'import bulk le fait)
+- Les Edge Functions ne sont pas testées unitairement
 
 ---
 

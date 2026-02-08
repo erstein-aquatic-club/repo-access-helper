@@ -30,6 +30,7 @@ export type {
   SyncSessionInput,
   StrengthRunPayload,
   StrengthSetPayload,
+  SwimmerPerformance,
 } from "./api/types";
 
 import type {
@@ -54,6 +55,7 @@ import type {
   TimesheetLocation,
   ApiCapabilities,
   ApiErrorInfo,
+  SwimmerPerformance,
 } from "./api/types";
 
 // --- Utilities (imported from api/client.ts) ---
@@ -139,7 +141,38 @@ export const api = {
     if (error) throw new Error(error.message);
     return (data ?? { inserted: 0, updated: 0, skipped: 0 }) as { inserted: number; updated: number; skipped: number };
   },
-  
+
+  async importSwimmerPerformances(params: { iuf: string; userId?: number }): Promise<{ total_found: number; new_imported: number; already_existed: number }> {
+    if (!canUseSupabase()) throw new Error("Supabase not configured");
+    const { data, error } = await supabase.functions.invoke("ffn-performances", {
+      body: { swimmer_iuf: params.iuf, user_id: params.userId ?? null },
+    });
+    if (error) throw new Error(error.message);
+    return (data ?? { total_found: 0, new_imported: 0, already_existed: 0 }) as { total_found: number; new_imported: number; already_existed: number };
+  },
+
+  async getSwimmerPerformances(filters: {
+    userId?: number;
+    iuf?: string;
+    eventCode?: string;
+    poolLength?: number;
+    fromDate?: string;
+    toDate?: string;
+    limit?: number;
+  }): Promise<SwimmerPerformance[]> {
+    if (!canUseSupabase()) return [];
+    let query = supabase.from("swimmer_performances").select("*").order("competition_date", { ascending: false });
+    if (filters.userId) query = query.eq("user_id", filters.userId);
+    if (filters.iuf) query = query.eq("swimmer_iuf", filters.iuf);
+    if (filters.eventCode) query = query.eq("event_code", filters.eventCode);
+    if (filters.poolLength) query = query.eq("pool_length", filters.poolLength);
+    if (filters.fromDate) query = query.gte("competition_date", filters.fromDate);
+    if (filters.toDate) query = query.lte("competition_date", filters.toDate);
+    if (filters.limit) query = query.limit(filters.limit);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  },
 
   // --- SWIM SESSIONS ---
   async syncSession(session: SyncSessionInputWithId): Promise<{ status: string }> {
@@ -418,6 +451,25 @@ export const api = {
     const { data, error } = await supabase.functions.invoke("import-club-records");
     if (error) throw new Error(error.message);
     return data?.summary ?? data;
+  },
+
+  async getImportLogs(filters?: { swimmerIuf?: string; limit?: number }): Promise<any[]> {
+    if (!canUseSupabase()) return [];
+    let query = supabase.from("import_logs").select("*").order("started_at", { ascending: false });
+    if (filters?.swimmerIuf) query = query.eq("swimmer_iuf", filters.swimmerIuf);
+    if (filters?.limit) query = query.limit(filters.limit);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  },
+
+  async importSingleSwimmer(swimmerIuf: string, swimmerName?: string): Promise<{ total_found: number; new_imported: number; already_existed: number }> {
+    if (!canUseSupabase()) throw new Error("Supabase not configured");
+    const { data, error } = await supabase.functions.invoke("ffn-performances", {
+      body: { swimmer_iuf: swimmerIuf },
+    });
+    if (error) throw new Error(error.message);
+    return (data ?? { total_found: 0, new_imported: 0, already_existed: 0 }) as { total_found: number; new_imported: number; already_existed: number };
   },
 
   // --- STRENGTH ---
@@ -2162,6 +2214,33 @@ export const api = {
       });
       if (error) throw new Error(error.message);
       return { status: "disabled" };
+  },
+
+  async getPendingApprovals(): Promise<Array<{ user_id: number; display_name: string; email: string | null; created_at: string }>> {
+    if (!canUseSupabase()) return [];
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .select("user_id, display_name, email, created_at")
+      .eq("is_approved", false);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  },
+
+  async approveUser(userId: number): Promise<void> {
+    if (!canUseSupabase()) return;
+    const { error } = await supabase
+      .from("user_profiles")
+      .update({ is_approved: true, approved_at: new Date().toISOString() })
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+  },
+
+  async rejectUser(userId: number): Promise<void> {
+    if (!canUseSupabase()) return;
+    const { data, error } = await supabase.functions.invoke("admin-user", {
+      body: { action: "disable_user", target_user_id: userId },
+    });
+    if (error) throw new Error(error.message);
   },
 
   async authPasswordUpdate(payload: { userId?: number | null; password: string }) {

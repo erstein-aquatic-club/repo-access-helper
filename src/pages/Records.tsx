@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/auth";
-import { api, type Exercise } from "@/lib/api";
+import { api, type Exercise, type SwimmerPerformance } from "@/lib/api";
 import type { SwimRecordWithPool } from "@/lib/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { shouldShowRecords } from "@/pages/Profile";
-import { Check, Dumbbell, Edit2, RefreshCw, Trophy, Waves, X } from "lucide-react";
+import { Check, Clock, Dumbbell, Edit2, Download, RefreshCw, Trophy, Waves, X } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 type OneRmRecord = {
   exercise_id: number;
@@ -21,7 +22,7 @@ type OneRmRecord = {
   date?: string | null;
 };
 
-type SwimMode = "training" | "comp";
+type SwimMode = "training" | "comp" | "history";
 type SwimEditorOpenFor = "add" | number | null;
 
 const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean).join(" ");
@@ -166,6 +167,10 @@ export default function Records() {
   const [editingExerciseId, setEditingExerciseId] = useState<number | null>(null);
   const [editingOneRmValue, setEditingOneRmValue] = useState<string>("");
 
+  // History tab state
+  const [histPoolLen, setHistPoolLen] = useState<25 | 50>(25);
+  const [histEventFilter, setHistEventFilter] = useState<string>("all");
+
   const showRecords = shouldShowRecords(role);
 
 
@@ -213,6 +218,80 @@ export default function Records() {
     queryFn: () => api.getSwimRecords({ athleteId: userId ?? undefined, athleteName: user ?? undefined }),
     enabled: !!user && showRecords,
   });
+
+  // Profile query (for IUF)
+  const profileQuery = useQuery({
+    queryKey: ["profile", userId],
+    queryFn: () => api.getProfile({ userId: userId ?? undefined }),
+    enabled: !!userId && showRecords,
+  });
+  const userIuf = String(profileQuery.data?.ffn_iuf ?? "").trim();
+
+  // Swimmer performances query (history tab)
+  const performancesQuery = useQuery<SwimmerPerformance[]>({
+    queryKey: ["swimmer-performances", userId, userIuf, histPoolLen],
+    queryFn: () =>
+      api.getSwimmerPerformances({
+        userId: userId ?? undefined,
+        iuf: userIuf || undefined,
+        poolLength: histPoolLen,
+      }),
+    enabled: !!userIuf && showRecords && swimMode === "history",
+  });
+
+  const { data: performances, isLoading: perfLoading, isError: perfIsError } = performancesQuery;
+
+  // Import performances mutation
+  const importPerformances = useMutation({
+    mutationFn: () => {
+      if (!userIuf) throw new Error("IUF FFN manquant. Ajoutez-le dans votre profil.");
+      return api.importSwimmerPerformances({ iuf: userIuf, userId: userId ?? undefined });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["swimmer-performances"] });
+      toast({
+        title: "Import terminé",
+        description: `${data.total_found} trouvée(s), ${data.new_imported} importée(s), ${data.already_existed} déjà existante(s)`,
+      });
+    },
+    onError: (e: Error) => {
+      toast({
+        title: "Import impossible",
+        description: String(e?.message || e),
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Unique event codes from performances (for filter select)
+  const perfEventCodes = useMemo(() => {
+    if (!performances) return [];
+    const codes = new Set(performances.map((p) => p.event_code));
+    return [...codes].sort();
+  }, [performances]);
+
+  // Filtered performances for selected event
+  const filteredPerformances = useMemo(() => {
+    if (!performances) return [];
+    let list = performances;
+    if (histEventFilter !== "all") {
+      list = list.filter((p) => p.event_code === histEventFilter);
+    }
+    return list;
+  }, [performances, histEventFilter]);
+
+  // Chart data for selected event (ascending date order)
+  const chartData = useMemo(() => {
+    if (histEventFilter === "all" || !filteredPerformances.length) return [];
+    return [...filteredPerformances]
+      .filter((p) => p.competition_date)
+      .sort((a, b) => (a.competition_date ?? "").localeCompare(b.competition_date ?? ""))
+      .map((p) => ({
+        date: formatDateShort(p.competition_date),
+        time: p.time_seconds,
+        display: p.time_display ?? formatTimeSeconds(p.time_seconds),
+      }));
+  }, [filteredPerformances, histEventFilter]);
 
   const { data: oneRMs, isLoading: oneRmLoading, isError: oneRmIsError } = oneRmQuery;
   const { data: exercises, isLoading: exercisesLoading, isError: exercisesIsError } = exercisesQuery;
@@ -519,11 +598,28 @@ export default function Records() {
                     <Waves className="h-4 w-4 max-[360px]:hidden" />
                     Compétition
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setModeSafe("history")}
+                    className={cx(
+                      "flex-1 rounded-2xl px-3 py-2 text-sm max-[360px]:text-xs font-semibold transition inline-flex items-center justify-center gap-2 whitespace-nowrap",
+                      swimMode === "history"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    aria-pressed={swimMode === "history"}
+                  >
+                    <Clock className="h-4 w-4 max-[360px]:hidden" />
+                    Historique
+                  </button>
                 </div>
               </div>
             ) : null}
 
             <TabsContent value="swim" className="mt-0">
+              {swimMode !== "history" ? (
+              <>
               <div className="mt-5 mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-9 w-9 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
@@ -815,6 +911,181 @@ export default function Records() {
                       </div>
                     </div>
                   </form>
+                </div>
+              ) : null}
+              </>
+              ) : null}
+
+              {/* ===== HISTORY TAB CONTENT ===== */}
+              {swimMode === "history" ? (
+                <div className="mt-4 space-y-4">
+                  {/* Import button + pool toggle */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-9 w-9 rounded-2xl bg-muted/50 border border-border flex items-center justify-center">
+                        <Clock className="h-5 w-5" />
+                      </div>
+                      <div className="text-sm font-semibold">Historique FFN</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setHistPoolLen((p) => (p === 25 ? 50 : 25))}
+                        className="inline-flex items-center gap-2 whitespace-nowrap rounded-2xl bg-muted/25 border border-border/60 px-3 py-2 text-sm font-semibold active:scale-[0.99] transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        aria-label="Changer le bassin"
+                      >
+                        <span className="inline-flex items-center justify-center h-6 w-6 rounded-xl bg-background/60 border border-border">
+                          <Waves className="h-4 w-4" />
+                        </span>
+                        <span className="tabular-nums">{histPoolLen}m</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Import button */}
+                  <Button
+                    type="button"
+                    onClick={() => importPerformances.mutate()}
+                    disabled={importPerformances.isPending || !userIuf}
+                    className="w-full rounded-2xl gap-2"
+                  >
+                    {importPerformances.isPending ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    {importPerformances.isPending ? "Import en cours..." : "Importer mes performances FFN"}
+                  </Button>
+                  {!userIuf ? (
+                    <div className="text-xs text-muted-foreground">
+                      Ajoutez votre IUF FFN dans votre profil pour importer vos performances.
+                    </div>
+                  ) : null}
+
+                  {/* Event filter */}
+                  {perfEventCodes.length > 0 ? (
+                    <Select
+                      value={histEventFilter}
+                      onValueChange={(v) => setHistEventFilter(v)}
+                    >
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Filtrer par épreuve" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toutes les épreuves</SelectItem>
+                        {perfEventCodes.map((code) => (
+                          <SelectItem key={code} value={code}>{code}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+
+                  {/* Chart (only when a specific event is selected) */}
+                  {histEventFilter !== "all" && chartData.length > 1 ? (
+                    <Card className="rounded-2xl">
+                      <CardContent className="pt-4 pb-2 px-2">
+                        <div className="text-xs text-muted-foreground mb-2 px-2">
+                          Progression : {histEventFilter} ({histPoolLen}m)
+                        </div>
+                        <ResponsiveContainer width="100%" height={220}>
+                          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                            <XAxis dataKey="date" tick={{ fontSize: 10 }} className="text-muted-foreground" />
+                            <YAxis
+                              domain={["auto", "auto"]}
+                              tick={{ fontSize: 10 }}
+                              className="text-muted-foreground"
+                              reversed
+                              tickFormatter={(v: number) => {
+                                const min = Math.floor(v / 60);
+                                const sec = Math.floor(v % 60);
+                                const cs = Math.round((v % 1) * 100);
+                                return min > 0 ? `${min}:${String(sec).padStart(2, "0")}` : `${sec}.${String(cs).padStart(2, "0")}`;
+                              }}
+                            />
+                            <Tooltip
+                              formatter={(value: number) => {
+                                const min = Math.floor(value / 60);
+                                const sec = Math.floor(value % 60);
+                                const cs = Math.round((value % 1) * 100);
+                                const display = min > 0
+                                  ? `${min}:${String(sec).padStart(2, "0")}.${String(cs).padStart(2, "0")}`
+                                  : `${sec}.${String(cs).padStart(2, "0")}`;
+                                return [display, "Temps"];
+                              }}
+                              labelStyle={{ fontSize: 11 }}
+                              contentStyle={{ borderRadius: 12, fontSize: 12 }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="time"
+                              stroke="hsl(var(--primary))"
+                              strokeWidth={2}
+                              dot={{ r: 3 }}
+                              activeDot={{ r: 5 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  ) : null}
+
+                  {/* Performance list */}
+                  <Card className="w-full min-w-0 overflow-hidden rounded-2xl">
+                    <CardContent className="p-0">
+                      {perfLoading ? (
+                        <div className="p-4 grid gap-3">
+                          <SkeletonRow />
+                          <SkeletonRow />
+                          <SkeletonRow />
+                        </div>
+                      ) : perfIsError ? (
+                        <div className="mx-4 my-4 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+                          Impossible de charger les performances.
+                        </div>
+                      ) : filteredPerformances.length === 0 ? (
+                        <div className="px-4 py-6 text-sm text-muted-foreground">
+                          {userIuf
+                            ? "Aucune performance trouvée. Cliquez sur \"Importer\" pour récupérer vos données FFN."
+                            : "Ajoutez votre IUF FFN dans votre profil pour commencer."}
+                        </div>
+                      ) : (
+                        <div className="w-full">
+                          <div className="px-3 sm:px-4 py-2 text-[11px] text-muted-foreground border-b border-border">
+                            <div className="grid items-center gap-2 grid-cols-[minmax(0,1fr)_4.75rem_3.75rem_4.75rem]">
+                              <div className="truncate justify-self-start">Épreuve</div>
+                              <div className="whitespace-nowrap justify-self-end">Temps</div>
+                              <div className="whitespace-nowrap justify-self-end">Pts</div>
+                              <div className="whitespace-nowrap justify-self-end">Date</div>
+                            </div>
+                          </div>
+                          <div className="divide-y divide-border">
+                            {filteredPerformances.map((perf) => (
+                              <div key={perf.id} className="px-3 sm:px-4 py-3">
+                                <div className="grid items-center gap-2 grid-cols-[minmax(0,1fr)_4.75rem_3.75rem_4.75rem]">
+                                  <div className="min-w-0 justify-self-start">
+                                    <div className="text-sm font-semibold truncate">{perf.event_code}</div>
+                                  </div>
+                                  <div className="justify-self-end text-sm font-semibold tabular-nums whitespace-nowrap overflow-hidden font-mono">
+                                    {perf.time_display ?? formatTimeSeconds(perf.time_seconds)}
+                                  </div>
+                                  <div className="justify-self-end text-sm tabular-nums text-muted-foreground whitespace-nowrap overflow-hidden">
+                                    {perf.ffn_points != null ? String(perf.ffn_points) : "—"}
+                                  </div>
+                                  <div className="justify-self-end text-sm tabular-nums text-muted-foreground whitespace-nowrap overflow-hidden">
+                                    {formatDateShort(perf.competition_date)}
+                                  </div>
+                                </div>
+                                {perf.competition_name ? (
+                                  <div className="mt-1 text-xs text-muted-foreground truncate">{perf.competition_name}</div>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
               ) : null}
 

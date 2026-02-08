@@ -95,6 +95,7 @@ interface AuthState {
   user: string | null;
   userId: number | null;
   role: string | null;
+  isApproved: boolean | null;
   selectedAthleteId: number | null;
   selectedAthleteName: string | null;
   accessToken: string | null;
@@ -120,6 +121,7 @@ export const useAuth = create<AuthState>((set) => ({
   user: null,
   userId: null,
   role: null,
+  isApproved: null,
   selectedAthleteId: readStoredSelectedAthleteId(),
   selectedAthleteName: readStoredSelectedAthleteName(),
   accessToken: null,
@@ -134,6 +136,7 @@ export const useAuth = create<AuthState>((set) => ({
       user: displayName,
       userId,
       role,
+      isApproved: null,
       accessToken: session.access_token,
       refreshToken: session.refresh_token,
     });
@@ -151,6 +154,7 @@ export const useAuth = create<AuthState>((set) => ({
       user: null,
       userId: null,
       role: null,
+      isApproved: null,
       accessToken: null,
       refreshToken: null,
       selectedAthleteId: null,
@@ -180,7 +184,7 @@ export const useAuth = create<AuthState>((set) => ({
   loadUser: async () => {
     const { data, error } = await supabase.auth.getSession();
     if (error || !data.session) {
-      set({ user: null, userId: null, role: null, accessToken: null, refreshToken: null });
+      set({ user: null, userId: null, role: null, isApproved: null, accessToken: null, refreshToken: null });
       return null;
     }
     const session = data.session;
@@ -188,6 +192,7 @@ export const useAuth = create<AuthState>((set) => ({
     const displayName = extractDisplayName(supabaseUser);
     const userId = extractAppUserId(supabaseUser);
     let role = extractAppUserRole(supabaseUser);
+    let isApproved: boolean | null = null;
 
     // Fetch the authoritative role from public.users to handle stale JWT claims.
     // The JWT claim (app_user_role) can be outdated if the role was changed
@@ -205,12 +210,27 @@ export const useAuth = create<AuthState>((set) => ({
       } catch {
         // Fall back to JWT claim if DB query fails
       }
+
+      // Fetch approval status from user_profiles
+      try {
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("is_approved")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (profile) {
+          isApproved = profile.is_approved ?? null;
+        }
+      } catch {
+        // Fall back to null if DB query fails
+      }
     }
 
     set({
       user: displayName,
       userId,
       role,
+      isApproved,
       accessToken: session.access_token,
       refreshToken: session.refresh_token,
     });
@@ -234,6 +254,7 @@ supabase.auth.onAuthStateChange((_event, session) => {
       user: null,
       userId: null,
       role: null,
+      isApproved: null,
       accessToken: null,
       refreshToken: null,
     });

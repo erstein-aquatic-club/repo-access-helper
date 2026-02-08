@@ -84,6 +84,13 @@ const getStrokeFromEventCode = (eventCode: string) => eventCode.replace(/^\d+_/,
 const getEventLabel = (record: ClubRecord, eventMap: Map<string, string>) =>
   record.event_label || eventMap.get(record.event_code) || record.event_code;
 
+const formatLastUpdate = (value?: string | null) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("fr-FR") + " \u00e0 " + date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+};
+
 export default function RecordsClub() {
   const [pool, setPool] = useState("25");
   const [sex, setSex] = useState("M");
@@ -91,6 +98,12 @@ export default function RecordsClub() {
   const [strokeFilter, setStrokeFilter] = useState("ALL");
 
   const ageValue = ageFilter === "ALL" ? null : Number(ageFilter);
+
+  // Last import log for "last updated" indicator
+  const { data: lastImportLogs } = useQuery({
+    queryKey: ["last-import"],
+    queryFn: () => api.getImportLogs({ limit: 1 }),
+  });
 
   const { data: records = [], isLoading, error, refetch } = useQuery({
     queryKey: ["club-records", pool, sex, ageFilter],
@@ -123,8 +136,13 @@ export default function RecordsClub() {
       <div className="space-y-2">
         <h1 className="text-3xl font-display font-bold uppercase italic text-primary">Records du club</h1>
         <p className="text-sm text-muted-foreground">
-          Retrouvez les meilleures performances par épreuve, sexe, bassin et catégorie d’âge.
+          Retrouvez les meilleures performances par épreuve, sexe, bassin et catégorie d'âge.
         </p>
+        {lastImportLogs && lastImportLogs.length > 0 && lastImportLogs[0].status === "success" && (
+          <p className="text-xs text-muted-foreground">
+            Dernière mise à jour : {formatLastUpdate(lastImportLogs[0].completed_at ?? lastImportLogs[0].started_at) ?? "-"}
+          </p>
+        )}
       </div>
 
       <Card>
