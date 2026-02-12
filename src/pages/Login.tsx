@@ -28,6 +28,7 @@ export default function Login() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerBirthdate, setRegisterBirthdate] = useState("");
   const [registerGroupId, setRegisterGroupId] = useState("");
+  const [registerSex, setRegisterSex] = useState("");
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
@@ -219,6 +220,7 @@ export default function Login() {
           setRegisterPassword("");
           setRegisterBirthdate("");
           setRegisterGroupId("");
+          setRegisterSex("");
           setSignupComplete(false);
         }
       }}
@@ -268,6 +270,10 @@ export default function Login() {
                 setRegisterError("Sélectionnez un groupe.");
                 return;
               }
+              if (!registerSex) {
+                setRegisterError("Sélectionnez votre sexe.");
+                return;
+              }
               if (!registerBirthdate) {
                 setRegisterError("Ajoutez votre date de naissance.");
                 return;
@@ -287,6 +293,7 @@ export default function Login() {
                       display_name: registerName.trim(),
                       birthdate: registerBirthdate,
                       group_id: Number(registerGroupId),
+                      sex: registerSex,
                     },
                   },
                 });
@@ -338,6 +345,18 @@ export default function Login() {
                 value={registerBirthdate}
                 onChange={(event) => setRegisterBirthdate(event.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="register-sex">Sexe</Label>
+              <Select value={registerSex} onValueChange={setRegisterSex}>
+                <SelectTrigger id="register-sex">
+                  <SelectValue placeholder="Sélectionnez" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="M">Garçon</SelectItem>
+                  <SelectItem value="F">Fille</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="register-group">Groupe</Label>

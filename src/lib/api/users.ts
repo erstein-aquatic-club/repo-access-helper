@@ -101,6 +101,12 @@ export async function getAthletes(): Promise<AthleteSummary[]> {
     .from("groups")
     .select("id, name");
   if (groupsError) throw new Error(groupsError.message);
+  // Fetch user_profiles for ffn_iuf lookup
+  const { data: profiles } = await supabase
+    .from("user_profiles")
+    .select("user_id, ffn_iuf");
+  const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
+
   if (!groups?.length) {
     const { data: users, error: usersError } = await supabase
       .from("users")
@@ -109,7 +115,7 @@ export async function getAthletes(): Promise<AthleteSummary[]> {
       .eq("is_active", true);
     if (usersError) throw new Error(usersError.message);
     return (users ?? [])
-      .map((u: any) => ({ id: u.id, display_name: u.display_name }))
+      .map((u: any) => ({ id: u.id, display_name: u.display_name, ffn_iuf: profileMap.get(u.id)?.ffn_iuf ?? null }))
       .filter((a: AthleteSummary) => a.display_name)
       .sort((a, b) => a.display_name.localeCompare(b.display_name, "fr"));
   }
@@ -127,6 +133,7 @@ export async function getAthletes(): Promise<AthleteSummary[]> {
       id: userId,
       display_name: (m.users as any)?.display_name ?? "",
       group_label: groupMap.get(m.group_id) ?? null,
+      ffn_iuf: profileMap.get(userId)?.ffn_iuf ?? null,
     });
   });
   return Array.from(athleteMap.values())

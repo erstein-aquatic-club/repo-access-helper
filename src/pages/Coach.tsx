@@ -2,10 +2,11 @@ import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Dumbbell, HeartPulse, MessageSquare, Trophy, Users, Waves } from "lucide-react";
+import { Bell, Download, Dumbbell, HeartPulse, MessageSquare, Trophy, Users, Waves } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import StrengthCatalog from "./coach/StrengthCatalog";
 import SwimCatalog from "./coach/SwimCatalog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -47,7 +48,7 @@ const CoachQuickActions = ({ onNavigate }: CoachQuickActionsProps) => (
 type CoachHomeProps = {
   onNavigate: (section: CoachSection) => void;
   onOpenRecordsAdmin: () => void;
-  athletes: Array<{ id: number | null; display_name: string }>;
+  athletes: Array<{ id: number | null; display_name: string; group_label?: string | null; ffn_iuf?: string | null }>;
   athletesLoading: boolean;
   upcomingBirthdays?: Array<{ id: number; display_name: string; next_birthday: string; days_until: number }>;
   birthdaysLoading: boolean;
@@ -464,6 +465,23 @@ export default function Coach() {
     navigate("/progress");
   };
 
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const importSingle = useMutation({
+    mutationFn: async (params: { iuf: string; name: string }) => {
+      const result = await api.importSingleSwimmer(params.iuf, params.name);
+      await api.recalculateClubRecords();
+      return result;
+    },
+    onSuccess: (data) => {
+      toast({ title: "Import terminé", description: `${data.total_found} trouvées, ${data.new_imported} nouvelles.` });
+      void queryClient.invalidateQueries({ queryKey: ["club-records"] });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erreur import", description: err.message, variant: "destructive" });
+    },
+  });
+
   if (!coachAccess) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] animate-in fade-in motion-reduce:animate-none">
@@ -590,7 +608,8 @@ export default function Coach() {
                       <TableRow>
                         <TableHead>Nageur</TableHead>
                         <TableHead>Groupe</TableHead>
-                        <TableHead className="text-right">Fiche</TableHead>
+                        <TableHead>IUF</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -604,10 +623,30 @@ export default function Coach() {
                               <span className="text-xs text-muted-foreground">Sans groupe</span>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {athlete.ffn_iuf ? (
+                              <span className="text-xs font-mono text-muted-foreground">{athlete.ffn_iuf}</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right">
-                            <Button size="sm" variant="outline" onClick={() => handleOpenAthlete(athlete)}>
-                              Voir la fiche
-                            </Button>
+                            <div className="flex items-center justify-end gap-1">
+                              {athlete.ffn_iuf ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={importSingle.isPending}
+                                  onClick={() => importSingle.mutate({ iuf: athlete.ffn_iuf!, name: athlete.display_name })}
+                                  title="Importer performances FFN"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              ) : null}
+                              <Button size="sm" variant="outline" onClick={() => handleOpenAthlete(athlete)}>
+                                Voir la fiche
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

@@ -302,6 +302,7 @@ export async function startStrengthRun(data: {
       .insert({
         assignment_id: data.assignment_id ?? null,
         athlete_id: data.athlete_id ?? null,
+        session_id: data.session_id ?? null,
         status: "in_progress",
         progress_pct: data.progress_pct ?? 0,
         started_at: new Date().toISOString(),

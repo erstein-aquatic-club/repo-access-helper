@@ -421,12 +421,12 @@ export async function recalculateClubRecords(): Promise<any> {
   return data?.summary ?? data;
 }
 
-/** Sync club_record_swimmers with registered users (auto-create missing entries) */
+/** Sync club_record_swimmers with registered users (auto-create missing + update existing) */
 export async function syncClubRecordSwimmersFromUsers(): Promise<void> {
   if (!canUseSupabase()) return;
   const { data: users, error: usersErr } = await supabase
     .from("users")
-    .select("id, display_name, role")
+    .select("id, display_name, role, birthdate")
     .eq("role", "athlete")
     .eq("is_active", true);
   if (usersErr) throw new Error(usersErr.message);
@@ -434,9 +434,9 @@ export async function syncClubRecordSwimmersFromUsers(): Promise<void> {
 
   const { data: existing } = await supabase
     .from("club_record_swimmers")
-    .select("user_id")
+    .select("id, user_id, iuf, sex, birthdate")
     .eq("source_type", "user");
-  const existingUserIds = new Set((existing ?? []).map((s: any) => s.user_id));
+  const existingByUserId = new Map((existing ?? []).map((s: any) => [s.user_id, s]));
 
   const { data: profiles } = await supabase
     .from("user_profiles")
@@ -444,17 +444,33 @@ export async function syncClubRecordSwimmersFromUsers(): Promise<void> {
   const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
 
   for (const user of users) {
-    if (existingUserIds.has(user.id)) continue;
     const profile = profileMap.get(user.id);
-    await supabase.from("club_record_swimmers").insert({
-      source_type: "user",
-      user_id: user.id,
-      display_name: user.display_name,
-      iuf: profile?.ffn_iuf ?? null,
-      sex: profile?.sex ?? null,
-      birthdate: profile?.birthdate ?? null,
-      is_active: true,
-    });
+    const iuf = profile?.ffn_iuf ?? null;
+    const sex = profile?.sex ?? null;
+    const birthdate = profile?.birthdate ?? user.birthdate ?? null;
+
+    const existingEntry = existingByUserId.get(user.id);
+    if (!existingEntry) {
+      // Insert new entry
+      await supabase.from("club_record_swimmers").insert({
+        source_type: "user",
+        user_id: user.id,
+        display_name: user.display_name,
+        iuf,
+        sex,
+        birthdate,
+        is_active: true,
+      });
+    } else {
+      // Update existing entry if profile data has changed
+      const updates: Record<string, any> = {};
+      if (iuf && iuf !== existingEntry.iuf) updates.iuf = iuf;
+      if (sex && sex !== existingEntry.sex) updates.sex = sex;
+      if (birthdate && birthdate !== existingEntry.birthdate) updates.birthdate = birthdate;
+      if (Object.keys(updates).length > 0) {
+        await supabase.from("club_record_swimmers").update(updates).eq("id", existingEntry.id);
+      }
+    }
   }
 }
 

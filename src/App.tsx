@@ -129,7 +129,8 @@ function PageLoader() {
 const useHashLocation = (): [string, (to: string, options?: { replace?: boolean }) => void] => {
   const getHashPath = () => {
     const hash = window.location.hash || "#/";
-    return hash.replace(/^#/, "") || "/";
+    const full = hash.replace(/^#/, "") || "/";
+    return full.split("?")[0] || "/";
   };
 
   const [path, setPath] = React.useState(getHashPath);
