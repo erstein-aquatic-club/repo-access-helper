@@ -152,6 +152,7 @@ export interface AthleteSummary {
   id: number | null;
   display_name: string;
   group_label?: string | null;
+  ffn_iuf?: string | null;
 }
 
 export interface GroupSummary {
