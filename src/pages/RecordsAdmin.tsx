@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, Settings } from "lucide-react";
+import { Eye, RefreshCw, Settings } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const SEX_OPTIONS = [
   { value: "M", label: "Garçon" },
@@ -244,6 +245,22 @@ export default function RecordsAdmin() {
     });
   }, [swimmers]);
 
+  const incompleteCount = useMemo(
+    () => swimmers.filter((s) => s.is_active && (!s.iuf || !s.sex || !s.birthdate)).length,
+    [swimmers],
+  );
+
+  const recalculate = useMutation({
+    mutationFn: () => api.recalculateClubRecords(),
+    onSuccess: () => {
+      toast({ title: "Records recalculés" });
+      void queryClient.invalidateQueries({ queryKey: ["club-records"] });
+    },
+    onError: () => {
+      toast({ title: "Erreur de recalcul", variant: "destructive" });
+    },
+  });
+
   if (!canAccess) {
     return (
       <div className="space-y-4">
@@ -270,6 +287,15 @@ export default function RecordsAdmin() {
           >
             <Eye className="h-4 w-4 mr-1" />
             Voir les records
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => recalculate.mutate()}
+            disabled={recalculate.isPending}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-1", recalculate.isPending && "animate-spin")} />
+            Recalculer
           </Button>
           <Button onClick={() => importRecords.mutate()} disabled={importRecords.isPending}>
             {importRecords.isPending ? "Import en cours..." : "Mettre à jour les records"}
@@ -328,6 +354,12 @@ export default function RecordsAdmin() {
           <CardDescription>Mettre à jour l'IUF, le sexe ou l'activation pour l'import FFN.</CardDescription>
         </CardHeader>
         <CardContent>
+          {!isLoading && incompleteCount > 0 && (
+            <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+              <strong>{incompleteCount} nageur{incompleteCount > 1 ? "s" : ""} incomplet{incompleteCount > 1 ? "s" : ""}</strong>{" "}
+              — les champs IUF, Sexe et Date de naissance sont tous requis pour le calcul des records.
+            </div>
+          )}
           {isLoading && (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
@@ -378,7 +410,7 @@ export default function RecordsAdmin() {
                           onBlur={(event) =>
                             updateSwimmerEntry(swimmer, { iuf: event.target.value.trim() || null })
                           }
-                          className="w-24"
+                          className={cn("w-24", swimmer.is_active && !swimmer.iuf && "ring-2 ring-destructive/50")}
                         />
                       </TableCell>
                       <TableCell>
@@ -388,7 +420,7 @@ export default function RecordsAdmin() {
                             updateSwimmerEntry(swimmer, { sex: value || null })
                           }
                         >
-                          <SelectTrigger className="w-28">
+                          <SelectTrigger className={cn("w-28", swimmer.is_active && !swimmer.sex && "ring-2 ring-destructive/50")}>
                             <SelectValue placeholder="Sexe" />
                           </SelectTrigger>
                           <SelectContent>
@@ -408,7 +440,7 @@ export default function RecordsAdmin() {
                           onBlur={(event) =>
                             updateSwimmerEntry(swimmer, { birthdate: event.target.value || null })
                           }
-                          className="w-36"
+                          className={cn("w-36", swimmer.is_active && !swimmer.birthdate && "ring-2 ring-destructive/50")}
                         />
                       </TableCell>
                       <TableCell>
