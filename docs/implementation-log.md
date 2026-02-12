@@ -30,6 +30,43 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §6 Fix timers PWA iOS | ✅ Fait | 2026-02-09 |
 | §7 Records admin + FFN full history + stroke KPI | ✅ Fait | 2026-02-12 |
 | §8 4 bugfixes (IUF Coach, RecordsClub, Reprendre, 1RM 404) | ✅ Fait | 2026-02-12 |
+| §9 RecordsAdmin UX: incomplete swimmer warnings | ✅ Fait | 2026-02-12 |
+
+---
+
+## 2026-02-12 — RecordsAdmin UX: incomplete swimmer warnings + recalculate button (§9)
+
+**Branche** : `claude/continue-implementation-ajI8U`
+**Chantier ROADMAP** : §9 — RecordsAdmin UX improvements
+
+### Contexte
+User reports missing performances for both former swimmers and account holders. Root cause: `recalculateClubRecords()` requires `iuf + sex + birthdate` on each `club_record_swimmers` entry, but existing users who signed up before migration 00014 have `sex = NULL`. RecordsAdmin gave no feedback about which swimmers were incomplete.
+
+### Changements réalisés
+1. **Warning banner** in RecordsAdmin showing count of active swimmers missing required fields (iuf/sex/birthdate)
+2. **Red ring highlights** on empty IUF, Sex, and Birthdate fields for active swimmers
+3. **Standalone "Recalculer" button** — recalculates club records from existing data without re-fetching from FFN (no rate limit, faster)
+4. **display_name sync** in `syncClubRecordSwimmersFromUsers()` — now also updates name if changed
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/pages/RecordsAdmin.tsx` | Warning banner, red rings, Recalculer button |
+| `src/lib/api/records.ts` | Add display_name to sync select + update |
+
+### Tests
+- [x] `npx tsc --noEmit` — 0 erreurs
+- [x] `npm run build` — succès
+
+### Décisions prises
+- Red ring uses `ring-2 ring-destructive/50` for visibility without being too aggressive
+- Recalculate button uses `RefreshCw` icon with spin animation during operation
+- Warning banner only shown when at least 1 active swimmer is incomplete
+
+### Limites / dette
+- Existing users need admin to manually set sex in RecordsAdmin (migration 00014 only affects new signups)
+- Edge functions must be deployed to Supabase Cloud separately
 
 ---
 

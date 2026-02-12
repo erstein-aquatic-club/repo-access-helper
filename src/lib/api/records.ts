@@ -448,7 +448,7 @@ export async function syncClubRecordSwimmersFromUsers(): Promise<void> {
 
   const { data: existing } = await supabase
     .from("club_record_swimmers")
-    .select("id, user_id, iuf, sex, birthdate")
+    .select("id, user_id, iuf, sex, birthdate, display_name")
     .eq("source_type", "user");
   const existingByUserId = new Map((existing ?? []).map((s: any) => [s.user_id, s]));
 
@@ -481,6 +481,7 @@ export async function syncClubRecordSwimmersFromUsers(): Promise<void> {
       if (iuf && iuf !== existingEntry.iuf) updates.iuf = iuf;
       if (sex && sex !== existingEntry.sex) updates.sex = sex;
       if (birthdate && birthdate !== existingEntry.birthdate) updates.birthdate = birthdate;
+      if (user.display_name && user.display_name !== existingEntry.display_name) updates.display_name = user.display_name;
       if (Object.keys(updates).length > 0) {
         await supabase.from("club_record_swimmers").update(updates).eq("id", existingEntry.id);
       }
