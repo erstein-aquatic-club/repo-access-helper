@@ -29,6 +29,54 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §5 Dette UI/UX | ✅ Fait | 2026-02-08 |
 | §6 Fix timers PWA iOS | ✅ Fait | 2026-02-09 |
 | §7 Records admin + FFN full history + stroke KPI | ✅ Fait | 2026-02-12 |
+| §8 4 bugfixes (IUF Coach, RecordsClub, Reprendre, 1RM 404) | ✅ Fait | 2026-02-12 |
+
+---
+
+## 2026-02-12 — 4 bugfixes: IUF Coach, empty RecordsClub, Reprendre grayed, 1RM 404 (§8)
+
+**Branche** : `claude/continue-implementation-ajI8U`
+**Chantier ROADMAP** : §8 — Bugfixes
+
+### Contexte
+
+4 bugs reported after §7: Coach view can't see/use swimmer IUF for FFN imports, RecordsClub view always empty, Reprendre (resume) button for strength workouts always grayed out, Info 1RM button leads to 404.
+
+### Changements réalisés
+
+1. **IUF in Coach view** — Added `ffn_iuf` to `AthleteSummary` type, joined `user_profiles` in `getAthletes()` to fetch IUF, added IUF column + per-swimmer FFN import button in Coach athletes table
+2. **RecordsClub empty** — Root cause: `user_profiles` had no `sex` column, so `syncClubRecordSwimmersFromUsers()` always set `sex: null`, and `recalculateClubRecords()` skipped entries with null sex. Added `sex` column to `user_profiles`, sex selector in signup form, updated auth trigger, fixed sync to also update existing entries
+3. **Reprendre button** — Root cause: `session_id` not persisted to DB. Added `session_id` column to `strength_session_runs`, included it in `startStrengthRun()` insert
+4. **Info 1RM 404** — Root cause: `useHashLocation` returned `/records?tab=1rm` including query params, which Wouter couldn't match against `/records`. Fixed by stripping query params in `getHashPath()`
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/App.tsx` | Strip query params in `getHashPath()` |
+| `src/lib/api/types.ts` | Add `ffn_iuf` to `AthleteSummary` |
+| `src/lib/api/users.ts` | Join `user_profiles` in `getAthletes()` for `ffn_iuf` |
+| `src/lib/api/strength.ts` | Persist `session_id` in `startStrengthRun()` |
+| `src/lib/api/records.ts` | Fix `syncClubRecordSwimmersFromUsers()` to update existing entries |
+| `src/pages/Coach.tsx` | IUF column + import button in athletes table |
+| `src/pages/Login.tsx` | Sex selector in signup form |
+| `supabase/migrations/00014_fixes.sql` | `sex` on `user_profiles`, `session_id` on `strength_session_runs`, updated trigger |
+
+### Tests
+
+- [x] `npx tsc --noEmit` — 0 erreur
+- [x] `npm run build` — succès
+
+### Décisions prises
+
+- Sex is collected at signup and stored in `user_profiles.sex`, then propagated to `club_record_swimmers` via sync
+- For existing users without sex, admin can set it from RecordsAdmin (already had sex editor per swimmer)
+- `getAthletes()` fetches `user_profiles` separately rather than using nested join, for compatibility with both group/no-group paths
+
+### Limites / dette
+
+- Existing users must have sex set manually in RecordsAdmin or profile before their records can be calculated
+- `getHashPath()` now strips all query params globally; any future hash-based query param routing must read `window.location.hash` directly
 
 ---
 
