@@ -186,7 +186,8 @@ export function WorkoutRunner({
   useEffect(() => {
     if (!isActive) return;
     const tick = () => {
-      setElapsedTime(Math.floor((Date.now() - elapsedStartRef.current) / 1000) + elapsedPausedRef.current);
+      const elapsed = Math.floor((Date.now() - elapsedStartRef.current) / 1000) + elapsedPausedRef.current;
+      setElapsedTime(elapsed);
     };
     tick();
     const interval = setInterval(tick, 1000);
@@ -207,34 +208,27 @@ export function WorkoutRunner({
   }, [isGifOpen]);
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    if (isResting && !isRestPaused && restTimer > 0) {
-      interval = setInterval(() => setRestTimer((t) => t - 1), 1000);
-    } else if (restTimer === 0 && isResting) {
-      notifyRestEnd();
-      toast({ title: "Temps de récupération terminé" });
-      setIsResting(false);
-      setIsRestPaused(false);
-    }
-    // On iOS PWA, setInterval is throttled in background — correct on foreground return
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && isResting && !isRestPaused && restEndRef.current > 0) {
-        const remaining = Math.max(0, Math.ceil((restEndRef.current - Date.now()) / 1000));
-        setRestTimer(remaining);
-        if (remaining <= 0) {
-          notifyRestEnd();
-          toast({ title: "Temps de récupération terminé" });
-          setIsResting(false);
-          setIsRestPaused(false);
-        }
+    if (!isResting || isRestPaused) return;
+    const tick = () => {
+      if (restEndRef.current <= 0) return;
+      const remaining = Math.max(0, Math.ceil((restEndRef.current - Date.now()) / 1000));
+      setRestTimer(remaining);
+      if (remaining <= 0) {
+        notifyRestEnd();
+        toast({ title: "Temps de récupération terminé" });
+        setIsResting(false);
+        setIsRestPaused(false);
       }
     };
+    tick();
+    const interval = setInterval(tick, 1000);
+    const handleVisibility = () => { if (document.visibilityState === 'visible') tick(); };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
-      if (interval) clearInterval(interval);
+      clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [isResting, isRestPaused, restTimer]);
+  }, [isResting, isRestPaused]);
 
   const workoutPlan = session.items || [];
   const currentExerciseIndex = currentStep - 1;

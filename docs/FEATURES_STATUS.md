@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-08 (§3 gestion coach imports + §4 records club alimentés)*
+*Dernière mise à jour : 2026-02-14 (§14 Fix timers iOS background — timestamps absolus)*
 
 ## Légende
 
@@ -70,7 +70,7 @@ Tous les feature flags sont activés.
 |----------------|--------|----------|-------|
 | Liste séances assignées | ✅ | `Strength.tsx` | + catalogue |
 | Preview séance | ✅ | `Strength.tsx` | Mode "reader" |
-| Mode focus (WorkoutRunner) | ✅ | `WorkoutRunner.tsx` | Mobile-first, chrono repos |
+| Mode focus (WorkoutRunner) | ✅ | `WorkoutRunner.tsx` | Mobile-first, chrono repos, timers absolus (fix iOS background) |
 | Saisie charge/reps | ✅ | `WorkoutRunner.tsx` | Auto-sauvegarde |
 | Historique | ✅ | `Strength.tsx` | Tab "Historique", 1RM, graphiques |
 | Fiche exercice avec GIF | 🔧 | `Strength.tsx` | Dépend des URLs dans `dim_exercices` |

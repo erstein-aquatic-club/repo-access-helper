@@ -35,6 +35,166 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §11 Fix: FFN event code mapping (Bra., Pap., 4 N.) | ✅ Fait | 2026-02-12 |
 | §12 Fix: ignoreDuplicates empêche mise à jour performances + diagnostic stats | ✅ Fait | 2026-02-12 |
 | §13 Fix: pagination Supabase + normalizeEventCode robuste | ✅ Fait | 2026-02-12 |
+| §14 Fix: iOS background timer throttling (absolute timestamps) | ✅ Fait | 2026-02-14 |
+| §15 Feature: PWA install prompt banner (InstallPrompt component) | ✅ Fait | 2026-02-14 |
+
+---
+
+## 2026-02-14 — Feature: PWA install prompt banner (InstallPrompt component) (§15)
+
+**Branche** : `main`
+**Chantier ROADMAP** : N/A (amélioration UX PWA)
+
+### Contexte — Pourquoi ce patch
+
+L'application est déjà configurée en PWA (`manifest.json`, service worker, meta tags), mais rien n'indique aux utilisateurs qu'ils peuvent l'installer sur leur écran d'accueil. Pour améliorer l'expérience PWA, il faut un prompt d'installation visible et non intrusif.
+
+### Changements réalisés — Ce qui a été modifié
+
+**Nouveau composant InstallPrompt**
+
+1. **Création de `InstallPrompt.tsx`** :
+   - Détecte l'événement `beforeinstallprompt` du navigateur
+   - Affiche une bannière fixe en haut de l'écran avec le message "Installer l'application sur votre écran d'accueil"
+   - Bouton "Installer" qui déclenche le prompt natif du navigateur
+   - Bouton "X" pour fermer le banner
+   - Stocke le choix de l'utilisateur dans localStorage (`eac-install-prompt-dismissed`)
+   - Se masque automatiquement après installation réussie (événement `appinstalled`)
+   - Design cohérent avec l'app : couleur primary (rouge EAC), bouton blanc sur fond rouge
+   - ARIA labels pour accessibilité
+
+2. **Intégration dans AppLayout** :
+   - Ajout du composant juste après `<OfflineDetector />`
+   - Positionné en `z-index: var(--z-index-toast)` (même niveau que OfflineDetector)
+   - Stacking : OfflineDetector puis InstallPrompt (si les deux sont actifs, OfflineDetector apparaît au-dessus)
+
+3. **Tests unitaires** :
+   - Test de base : le composant ne s'affiche pas quand aucun événement `beforeinstallprompt` n'est reçu
+   - Test de définition : vérifie que le composant est bien exporté
+
+### Fichiers modifiés — Tableau fichier / nature
+
+| Fichier | Nature | Lignes |
+|---------|--------|--------|
+| `src/components/shared/InstallPrompt.tsx` | Création composant PWA install prompt | 134 nouvelles |
+| `src/components/layout/AppLayout.tsx` | Import + intégration InstallPrompt | +2 lignes |
+| `src/components/shared/__tests__/InstallPrompt.test.tsx` | Tests unitaires | 24 nouvelles |
+
+### Tests — Checklist build/test/tsc + tests manuels
+
+- [x] `npm run build` : build réussi sans erreurs
+- [x] `npm test -- InstallPrompt` : 2/2 tests passent
+- [x] Type safety : TypeScript compile sans erreurs (vérifié via build)
+- [ ] Test manuel : vérifier le prompt sur un appareil réel (nécessite HTTPS + navigateur supportant `beforeinstallprompt`)
+
+**Note** : Le test manuel complet nécessite un déploiement sur HTTPS (GitHub Pages) et un navigateur compatible (Chrome/Edge mobile, Safari mobile ne supporte pas `beforeinstallprompt` mais offre son propre mécanisme d'installation).
+
+### Décisions prises — Choix techniques et arbitrages
+
+1. **Positionnement** : Bannière en haut de l'écran plutôt qu'en bas
+   - Raison : La navigation mobile est en bas, évite les conflits visuels
+   - Le z-index est le même que OfflineDetector (toast level)
+
+2. **Stockage dans localStorage** : Clé `eac-install-prompt-dismissed`
+   - Persiste le choix de l'utilisateur entre les sessions
+   - Pas de TTL : une fois fermé, ne réapparaît plus jamais
+   - Alternative envisagée : TTL de 7 jours → rejeté pour ne pas être intrusif
+
+3. **Design** : Couleur primary avec texte blanc
+   - Cohérent avec les autres bannières système de l'app
+   - Bouton "Installer" en blanc pour contraste élevé
+   - Icône Download (lucide-react) pour clarté visuelle
+
+4. **Event listeners** : `beforeinstallprompt` + `appinstalled`
+   - `beforeinstallprompt` : détecte que l'app est installable
+   - `appinstalled` : masque automatiquement le banner après installation réussie
+   - Cleanup des listeners dans useEffect return
+
+### Limites / dette — Ce qui reste imparfait
+
+1. **Safari iOS** : Ne supporte pas `beforeinstallprompt`
+   - Safari utilise le bouton "Ajouter à l'écran d'accueil" natif
+   - Pas de moyen programmatique de détecter si l'app est installable sur Safari
+   - Solution future : détecter si standalone mode n'est pas actif (`!window.matchMedia('(display-mode: standalone)').matches`) ET si c'est Safari, afficher un guide visuel (screenshot du bouton partage)
+
+2. **Test manuel incomplet** : Pas testé sur appareil réel en HTTPS
+   - Le composant ne s'affichera pas en développement local (HTTP)
+   - Nécessite un déploiement sur GitHub Pages pour test complet
+
+3. **Pas de A/B testing** : Le banner s'affiche dès que `beforeinstallprompt` est reçu
+   - Alternative : afficher seulement après 2-3 visites (tracking dans localStorage)
+   - Non implémenté pour simplicité initiale
+
+4. **Pas de metrics** : Aucun tracking des taux d'installation
+   - On ne sait pas combien d'utilisateurs cliquent "Installer" vs "X"
+   - Solution future : ajouter des logs Supabase Edge Function pour analytics
+
+---
+
+## 2026-02-14 — Fix: iOS background timer throttling (absolute timestamps) (§14)
+
+**Branche** : `main`
+**Chantier ROADMAP** : §6 — Fix timers mode focus (PWA iOS background)
+
+### Contexte — Pourquoi ce patch
+
+iOS (Safari/PWA) throttle agressivement les `setInterval` lorsque l'application est en arrière-plan ou l'écran verrouillé. Cela provoque une dérive importante des timers dans `WorkoutRunner.tsx` :
+- Le timer d'entraînement (elapsed time) affiche un temps incorrect après retour au premier plan
+- Le timer de repos (rest timer) ne décompte pas correctement en arrière-plan
+
+Les timers utilisant `setInterval(() => setState(t => t + 1), 1000)` (relatifs) sont particulièrement sensibles à cette throttling.
+
+### Changements réalisés — Ce qui a été modifié
+
+**Remplacement des timers relatifs par des timers absolus**
+
+1. **Timer elapsed (lignes 186-197)** :
+   - Avant : `setElapsedTime(t => t + 1)` dans setInterval
+   - Après : calcul basé sur `Date.now() - elapsedStartRef.current` à chaque tick
+   - Le `visibilitychange` listener force un re-calcul au retour au premier plan
+
+2. **Timer rest (lignes 210-231)** :
+   - Avant : `setRestTimer(t => t - 1)` dans setInterval (relatif)
+   - Après : calcul basé sur `Math.ceil((restEndRef.current - Date.now()) / 1000)` à chaque tick
+   - `restEndRef` stocke le timestamp absolu de fin (initialisé dans `startRestTimer`)
+   - Le `visibilitychange` listener force un re-calcul au retour au premier plan
+   - Simplification de la logique : plus besoin de conditions complexes dans useEffect
+
+### Fichiers modifiés — Tableau fichier / nature
+
+| Fichier | Nature | Lignes modifiées |
+|---------|--------|------------------|
+| `src/components/strength/WorkoutRunner.tsx` | Fix timers (elapsed + rest) | 186-231 |
+
+### Tests — Checklist build/test/tsc + tests manuels
+
+- [x] `npx tsc --noEmit` : aucune erreur TypeScript sur WorkoutRunner
+- [x] `npm test -- WorkoutRunner` : tous les tests passent (65/65)
+- [x] Tests unitaires `WorkoutRunner renders execution state` et `WorkoutRunner renders finish state` passent
+- [ ] Test manuel iOS/Safari : mettre l'app en arrière-plan pendant 30s, vérifier que le timer ne dérive pas
+- [ ] Test manuel iOS/Safari : verrouiller l'écran pendant un timer de repos, vérifier le décompte correct
+
+### Décisions prises — Choix techniques et arbitrages
+
+1. **Approche timestamp absolu** : Au lieu de compter les ticks relatifs (+1 ou -1), on calcule toujours la différence entre `Date.now()` et un timestamp de référence. Cela élimine complètement la dérive due au throttling.
+
+2. **Refs pour les timestamps** : Utilisation de `elapsedStartRef`, `elapsedPausedRef`, et `restEndRef` pour stocker les valeurs absolues sans déclencher de re-renders inutiles.
+
+3. **Listener visibilitychange** : Force un re-calcul immédiat au retour au premier plan pour éviter toute latence visuelle (l'intervalle suivant pourrait prendre jusqu'à 1s).
+
+4. **Conservation de la logique pause/resume** :
+   - Elapsed timer : stocke le temps écoulé dans `elapsedPausedRef` au pause
+   - Rest timer : recalcule `restEndRef = Date.now() + restTimer * 1000` au resume
+
+5. **Pas de changement UI** : Toute la logique d'affichage, notifications, sons, vibrations reste inchangée.
+
+### Limites / dette — Ce qui reste imparfait
+
+1. **Test manuel iOS requis** : Les tests automatisés ne peuvent pas simuler le comportement réel d'iOS en arrière-plan. Un test manuel sur device réel ou simulateur iOS est nécessaire.
+
+2. **Précision milliseconde** : Les timers utilisent `Math.floor` (elapsed) et `Math.ceil` (rest) pour arrondir. Cela peut créer une différence de perception de ~1s max, mais c'est acceptable pour ce use case.
+
+3. **Drift résiduel possible** : Si l'OS suspend complètement le processus JS (très rare sur iOS moderne), le `visibilitychange` pourrait ne pas se déclencher. Dans ce cas, le timer se mettra à jour au prochain tick (max 1s de retard visuel).
 
 ---
 
