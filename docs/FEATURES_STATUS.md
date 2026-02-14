@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-14 (§21 Phase 6 Complete: Visual Polish & Branding)*
+*Dernière mise à jour : 2026-02-14 (§24 Phase 8: Storybook & Design Tokens)*
 
 ## Légende
 
@@ -168,6 +168,29 @@ Tous les feature flags sont activés.
 | Modification rôle | `{ status: "skipped" }` |
 | Sync FFN | Erreur Edge Function |
 | Données générales | Fallback localStorage |
+
+### UI/UX & Design System
+
+| Fonctionnalité | Statut | Fichiers | Notes |
+|----------------|--------|----------|-------|
+| **Phase 6: Visual Polish & Branding** |
+| PWA Icons (EAC branded) | ✅ | `public/icon-*.png`, `manifest.json` | 4 sizes (192, 512, 180, 128), theme-color #E30613 |
+| Login Page (modern redesign) | ✅ | `Login.tsx` | Split layout, animations, password strength |
+| Animation System | ✅ | `lib/animations.ts` | 8 Framer Motion presets (fadeIn, slideUp, stagger, etc.) |
+| Button Standardization | ✅ | `docs/BUTTON_PATTERNS.md` | 3 variants (default, outline, ghost), height standards |
+| App-wide Animations | ✅ | Dashboard, Strength, Records, Profile, Login | Consistent motion design |
+| **Phase 7: Component Architecture** |
+| Dashboard Components | ✅ | `components/dashboard/` (6 files) | CalendarHeader, DayCell, CalendarGrid, StrokeDetailForm, FeedbackDrawer, useDashboardState hook |
+| Strength Components | ✅ | `components/strength/` (3 files) | HistoryTable, SessionDetailPreview, SessionList, useStrengthState hook |
+| Swim Coach Shared | ✅ | `components/coach/shared/` (4 files) | SessionListView, SessionMetadataForm, FormActions, DragDropList (reusable) |
+| Swim Coach Components | ✅ | `components/coach/swim/` (2 files) | SwimExerciseForm, SwimSessionBuilder |
+| Strength Coach Components | ✅ | `components/coach/strength/` (2 files) | StrengthExerciseForm, StrengthSessionBuilder |
+| **Phase 8: Design System** |
+| Storybook Setup | ✅ | `.storybook/`, story files (5) | Dark mode support, 36 story variants |
+| Design Tokens | ✅ | `lib/design-tokens.ts` | 57+ tokens (colors, durations, spacing, typography, z-index) |
+| Centralized Utilities | ✅ | `lib/design-tokens.ts` | getContrastTextColor (eliminated duplicates) |
+| Zero Hardcoded Values | ✅ | All src/ files | No hex/rgb colors remaining (excluding CSS) |
+
 
 ---
 

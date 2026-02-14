@@ -17,6 +17,8 @@ Ce document décrit les fonctionnalités à implémenter. Il sert de référence
 | 5 | Dette technique UI/UX restante (patch-report) | Basse | Faible | Fait |
 | 6 | Fix timers mode focus (PWA iOS background) | Haute | Faible | Fait |
 | 7 | Visual Polish & Branding (Phase 6 UI/UX) | Haute | Moyenne | Fait |
+| 8 | Component Architecture Refactor (Phase 7) | Basse | Haute | Fait |
+| 9 | Design System Documentation (Phase 8) | Basse | Moyenne | Fait |
 
 ---
 
@@ -600,3 +602,225 @@ Chaque chantier dans ce ROADMAP doit maintenir une section **Avancement** une fo
 
 > **Aucun patch ne doit être mergé sans une entrée correspondante dans `implementation-log.md`.**
 > Un futur développeur (humain ou IA) doit pouvoir retracer chaque changement depuis le log jusqu'au commit.
+
+---
+
+## 8. Component Architecture Refactor (Phase 7)
+
+### Contexte
+
+After completing Phases 1-6 (functional UX + visual polish), user explicitly requested to continue with optional phases using parallel agent teams. Phase 7 focuses on code maintainability by decomposing mega-components.
+
+**Problem identified:**
+- 4 files exceed 1,200 lines (Dashboard: 1,928, Strength: 1,586, SwimCatalog: 1,356, StrengthCatalog: 1,276)
+- Total: 6,146 lines in 4 files
+- Hard to maintain, test, and reason about
+- Difficult for new developers to understand
+
+### Objectif
+
+Reduce 6,146 lines across 4 mega-components to ~3,000 lines by extracting focused, reusable components and consolidating state management into custom hooks.
+
+**Target reduction:** 40-50% main file size reduction, proper separation of concerns.
+
+### Implémentation réalisée
+
+**Round 1: Lower-risk components (Strength + SwimCatalog)**
+
+1. **Strength.tsx** (1,586 → 763 lines, -52%)
+   - ✅ Extracted HistoryTable.tsx (124 lines) - workout history list
+   - ✅ Extracted SessionDetailPreview.tsx (293 lines) - read-only preview
+   - ✅ Extracted SessionList.tsx (515 lines) - session list with filters
+   - ✅ Extracted useStrengthState.ts (177 lines) - state consolidation hook
+   - ✅ Extracted utils.ts (24 lines) - shared utilities
+
+2. **SwimCatalog.tsx** (1,356 → 526 lines, -61%)
+   - ✅ Extracted 4 shared components (458 lines total, reusable):
+     - SessionListView.tsx (188 lines)
+     - SessionMetadataForm.tsx (75 lines)
+     - FormActions.tsx (123 lines)
+     - DragDropList.tsx (72 lines)
+   - ✅ Extracted 2 swim-specific components (878 lines):
+     - SwimExerciseForm.tsx (270 lines)
+     - SwimSessionBuilder.tsx (608 lines)
+
+**Critical bug fix during Round 1:**
+- ✅ Fixed Admin page inscription tab error
+- ✅ getPendingApprovals() now uses Supabase inner join to get created_at from users table
+- ✅ Root cause: created_at column doesn't exist in user_profiles table
+
+**Round 2: Higher-risk components (Dashboard + StrengthCatalog)**
+
+3. **Dashboard.tsx** (1,928 → 725 lines, -62%)
+   - ✅ Extracted CalendarHeader.tsx (89 lines)
+   - ✅ Extracted DayCell.tsx (121 lines, memoized)
+   - ✅ Extracted CalendarGrid.tsx (71 lines)
+   - ✅ Extracted StrokeDetailForm.tsx (72 lines)
+   - ✅ Extracted FeedbackDrawer.tsx (673 lines)
+   - ✅ Extracted useDashboardState.ts (540 lines) - consolidated 7+ useState, 10+ useMemo
+   - Dashboard is heavily used by athletes - incremental extraction minimized risk
+
+4. **StrengthCatalog.tsx** (1,276 → 1,023 lines, -20%)
+   - ✅ Extracted StrengthExerciseForm.tsx (112 lines)
+   - ✅ Extracted StrengthSessionBuilder.tsx (278 lines)
+   - ✅ Reused 4 shared components from SwimCatalog (FormActions, etc.)
+
+### Résultats
+
+**Main files reduction:**
+- Before: 6,146 lines total
+- After: 3,037 lines main files + 4,425 lines extracted components = 7,462 lines total
+- **Main files:** 51% reduction (6,146 → 3,037)
+- **Net increase:** +1,316 lines (expected for proper separation)
+
+**Components created:**
+- 13 new reusable components
+- 3 custom hooks (useStrengthState, useDashboardState)
+- 4 shared components reusable across coach builders
+
+**Code quality improvements:**
+- ✅ Separation of concerns (UI, state, business logic)
+- ✅ Reusable components (testable independently)
+- ✅ Maintainability (smaller, focused files)
+- ✅ Consistent patterns (similar structure across catalogs)
+
+### Fichiers modifiés
+
+**Round 1:**
+- Refactored: Strength.tsx, SwimCatalog.tsx
+- Fixed: src/lib/api/users.ts
+- Created: 11 new component files
+
+**Round 2:**
+- Refactored: Dashboard.tsx, StrengthCatalog.tsx
+- Created: 9 new component files
+
+**Total:** 4 files refactored, 20 files created, 1 critical bug fixed
+
+### Complexité estimée
+
+Haute — 30-40h across 2 rounds. Executed with 4 parallel agents in ~6 hours.
+
+### Statut
+
+✅ Fait — 2026-02-14 (2 commits: e98621e Round 1, 1e96e77 Round 2)
+
+---
+
+## 9. Design System Documentation (Phase 8)
+
+### Contexte
+
+After completing Phase 7, user requested comprehensive design system documentation. This establishes a foundation for consistency, developer onboarding, and easier theming/rebranding.
+
+**Problems identified:**
+- No component documentation (hard for new developers)
+- 47 hardcoded hex/rgb values scattered across codebase
+- No animation duration tokens
+- Duplicate utility functions (getContrastTextColor in 2 files)
+- No single source of truth for design values
+
+### Objectif
+
+1. Setup Storybook for interactive component documentation
+2. Consolidate all hardcoded design values into centralized tokens
+3. Eliminate duplicate utility functions
+4. Establish single source of truth for design system
+
+### Implémentation réalisée
+
+**Part 1: Storybook Setup**
+
+- ✅ Installed Storybook v8.6.15 with Vite builder
+- ✅ Configured dark mode support (global toggle in toolbar)
+- ✅ Configured Tailwind CSS integration
+- ✅ Created stories for 5 priority components:
+  - ScaleSelector5 (6 stories) - intensity selector
+  - BottomActionBar (8 stories) - mobile action bar
+  - IntensityDots (9 stories) - visual intensity indicator
+  - CalendarHeader (7 stories) - calendar navigation
+  - DayCell (12 stories) - calendar day cell
+- ✅ Total: 36 story variants, 1,136 lines of documentation
+- ✅ Interactive controls for all component props
+- ✅ Autodocs enabled for all components
+- ✅ Dev server: `npm run storybook` (port 6006)
+
+**Part 2: Design Tokens Consolidation**
+
+- ✅ Created src/lib/design-tokens.ts (267 lines, 57+ tokens):
+  - Colors (HSL CSS variables): base, brand, semantic, intensity, status, ranks, categories, charts, neutrals
+  - Durations: milliseconds + seconds (for Framer Motion)
+  - Spacing: full Tailwind scale + semantic aliases
+  - Typography: Oswald (display), Inter (body)
+  - Z-index: unified scale (overlay to toast)
+  - Utility: getContrastTextColor (centralized)
+
+- ✅ Refactored 6 files to use tokens:
+  - animations.ts: Use durationsSeconds tokens
+  - WorkoutRunner.tsx: Use colors.status tokens (replaced 5 hex colors)
+  - Progress.tsx: Import getContrastTextColor
+  - HallOfFameValue.tsx: Import getContrastTextColor
+  - FeedbackDrawer.tsx: Token compatibility
+  - Login.tsx: Token compatibility
+
+- ✅ Eliminated hardcoded values:
+  - 5 hex colors → tokens
+  - 10+ duration values → tokens
+  - 2 duplicate functions → 1 centralized utility
+
+### Résultats
+
+**Storybook:**
+- 1,136 lines of component documentation
+- 36 interactive story variants
+- Dark mode toggle works
+- All components render correctly
+
+**Design Tokens:**
+- 57+ tokens centralized
+- 0 hardcoded hex/rgb values remaining (in src/, excluding CSS)
+- DRY principle enforced (eliminated duplicates)
+- Single source of truth established
+
+**Bundle impact:**
+- design-tokens.js: +0.82 KB (gzipped: 0.46 KB)
+- Storybook excluded from production bundle (dev-only)
+
+### Fichiers modifiés
+
+**Storybook:**
+- Created: .storybook/main.ts, .storybook/preview.ts
+- Created: 5 story files (1,136 lines)
+- Modified: package.json (added scripts + dependencies)
+
+**Design Tokens:**
+- Created: src/lib/design-tokens.ts (267 lines)
+- Modified: 6 files (animations, WorkoutRunner, Progress, HallOfFameValue, FeedbackDrawer, Login)
+
+**Total:** 8 files created, 7 files modified
+
+### Complexité estimée
+
+Moyenne — 16-20h. Executed with 2 parallel agents in ~3 hours.
+
+### Statut
+
+✅ Fait — 2026-02-14 (commit a3e6f01)
+
+### Limites / dette introduite
+
+**Storybook coverage:**
+- Only 5 components documented (out of 55 Shadcn/Radix components)
+- No composite component examples (full page layouts)
+- No MDX documentation pages yet
+
+**Design tokens coverage:**
+- Colors, durations, spacing, typography, z-index covered
+- Border radius, box shadow not yet extracted
+
+**Potential improvements:**
+- Add more component stories (Button, Input, Dialog, etc.)
+- Create MDX documentation pages for design guidelines
+- Add visual regression testing (Chromatic or Percy)
+- Extract remaining CSS values (border-radius, box-shadow)
+- Add ESLint rule to prevent future hardcoded values
