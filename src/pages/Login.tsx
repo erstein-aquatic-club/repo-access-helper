@@ -7,13 +7,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PasswordStrength } from "@/components/shared/PasswordStrength";
+import { fadeIn, slideUp, staggerChildren } from "@/lib/animations";
 import eacLogo from "@assets/logo-eac.png";
 import {
   getLandingRouteForRole,
@@ -57,6 +60,9 @@ export default function Login() {
   const [signupComplete, setSignupComplete] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const { loginFromSession, loadUser } = useAuth();
   const [, setLocation] = useLocation();
   const registerNameInputRef = useRef<HTMLInputElement>(null);
@@ -87,25 +93,25 @@ export default function Login() {
   const { data: groups = [], isLoading: groupsLoading, isError: groupsError } = useQuery({
     queryKey: ["register-groups"],
     queryFn: () => api.getGroups(),
-    enabled: showRegister,
+    enabled: activeTab === "signup",
     retry: 2,
   });
 
   // Set default group when groups load
   useEffect(() => {
-    if (!showRegister) return;
+    if (activeTab !== "signup") return;
     const currentGroupId = signupForm.watch("groupId");
     if (!currentGroupId && groups.length > 0) {
       signupForm.setValue("groupId", String(groups[0].id));
     }
-  }, [groups, showRegister, signupForm]);
+  }, [groups, activeTab, signupForm]);
 
-  // Focus name input when register dialog opens
+  // Focus name input when signup tab opens
   useEffect(() => {
-    if (shouldFocusSignup(showRegister)) {
+    if (shouldFocusSignup(activeTab === "signup")) {
       registerNameInputRef.current?.focus();
     }
-  }, [showRegister]);
+  }, [activeTab]);
 
   const formatAuthError = (message: string) => {
     if (message.includes("Invalid login")) {
@@ -185,238 +191,379 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
+      {/* Hero Section */}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={fadeIn}
+        className="hidden lg:flex flex-col items-center justify-center p-12 bg-gradient-to-br from-primary via-primary/90 to-primary/80 relative overflow-hidden"
+      >
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(255,255,255,0.08),transparent_40%)]" />
 
-      <Card className="w-full max-w-sm relative z-10 shadow-2xl border-t-8 border-t-primary animate-in fade-in zoom-in duration-500 motion-reduce:animate-none">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-6 h-24 w-24 rounded-full bg-foreground flex items-center justify-center border-4 border-primary shadow-lg">
-            <img src={eacLogo} alt="EAC Logo" loading="lazy" className="h-full w-full object-cover rounded-full opacity-90" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="relative z-10 text-center space-y-8"
+        >
+          <img src={eacLogo} alt="EAC Logo" className="h-32 w-32 mx-auto drop-shadow-2xl" />
+          <div className="space-y-4">
+            <h1 className="text-5xl md:text-6xl font-display font-bold text-white tracking-tight">
+              SUIVI NATATION
+            </h1>
+            <p className="text-lg md:text-xl text-white/90 max-w-md mx-auto">
+              Plateforme d'entraînement pour l'Erstein Aquatic Club
+            </p>
           </div>
-          <CardTitle className="text-3xl font-display italic uppercase tracking-tighter">
-            SUIVI<span className="text-primary">NATATION</span>
-          </CardTitle>
-          <CardDescription className="uppercase tracking-widest text-xs font-bold">Erstein Aquatic Club</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="login-email" className="sr-only">Email</Label>
-              <Input
-                id="login-email"
-                aria-label="Email"
-                placeholder="Email"
-                type="email"
-                {...loginForm.register("email")}
-                onChange={(e) => {
-                  loginForm.register("email").onChange(e);
-                  if (showRegister) setShowRegister(false);
-                }}
-                className="text-center text-lg h-12 border-2 focus-visible:ring-primary"
-                autoFocus
-              />
-              {loginForm.formState.errors.email && (
-                <p className="text-xs text-destructive text-center" role="alert" aria-live="assertive">{loginForm.formState.errors.email.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground text-center">Saisissez votre email et votre mot de passe.</p>
+        </motion.div>
+      </motion.div>
 
-              <Label htmlFor="login-password" className="sr-only">Mot de passe</Label>
-              <Input
-                id="login-password"
-                aria-label="Mot de passe"
-                placeholder="Mot de passe"
-                type="password"
-                {...loginForm.register("password")}
-                className="text-center text-lg h-12 border-2 focus-visible:ring-primary"
-              />
-              {loginForm.formState.errors.password && (
-                <p className="text-xs text-destructive text-center" role="alert" aria-live="assertive">{loginForm.formState.errors.password.message}</p>
-              )}
-              {error && (
-                <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive text-center" role="alert" aria-live="assertive">
-                  {error}
-                </div>
-              )}
-            </div>
-            <Button
-              type="submit"
-              className="w-full h-12 text-lg font-bold uppercase tracking-wider shadow-md hover:scale-[1.02] transition-transform"
-              disabled={loginForm.formState.isSubmitting}
-            >
-              {loginForm.formState.isSubmitting ? "Connexion..." : "CONNEXION"}
-            </Button>
-            <div className="flex flex-col items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowRegister(true);
-                  const email = loginForm.getValues("email").trim();
-                  signupForm.setValue("email", email);
-                }}
-                className="text-xs text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              >
-                Créer un compte
-              </button>
-              <button
-                type="button"
-                className="text-xs text-muted-foreground hover:text-primary underline"
-                onClick={() => {
-                  setShowForgotPassword(true);
-                  const email = loginForm.getValues("email").trim();
-                  resetPasswordForm.setValue("email", email);
-                }}
-              >
-                Mot de passe oublié ?
-              </button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      {/* Form Section */}
+      <div className="flex flex-col items-center justify-center p-4 sm:p-8 lg:p-12">
+        {/* Mobile logo */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="lg:hidden mb-8"
+        >
+          <img src={eacLogo} alt="EAC Logo" className="h-20 w-20 mx-auto" />
+          <h1 className="text-2xl font-display font-bold text-center mt-4">
+            SUIVI <span className="text-primary">NATATION</span>
+          </h1>
+        </motion.div>
 
-      {/* Register Dialog */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={staggerChildren}
+          className="w-full max-w-md"
+        >
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "signup")} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="login" className="text-sm font-medium">
+                Connexion
+              </TabsTrigger>
+              <TabsTrigger value="signup" className="text-sm font-medium">
+                Inscription
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Login Tab */}
+            <AnimatePresence mode="wait">
+              {activeTab === "login" && (
+                <TabsContent value="login" className="space-y-6">
+                  <motion.form
+                    key="login-form"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2 }}
+                    onSubmit={loginForm.handleSubmit(handleLogin)}
+                    className="space-y-4"
+                  >
+                    <motion.div variants={slideUp} className="space-y-2">
+                      <Label htmlFor="login-email">Email</Label>
+                      <Input
+                        id="login-email"
+                        type="email"
+                        placeholder="prenom.nom@email.com"
+                        {...loginForm.register("email")}
+                        className="min-h-12"
+                        autoFocus
+                      />
+                      {loginForm.formState.errors.email && (
+                        <p className="text-xs text-destructive" role="alert" aria-live="assertive">
+                          {loginForm.formState.errors.email.message}
+                        </p>
+                      )}
+                    </motion.div>
+
+                    <motion.div variants={slideUp} className="space-y-2">
+                      <Label htmlFor="login-password">Mot de passe</Label>
+                      <div className="relative">
+                        <Input
+                          id="login-password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Votre mot de passe"
+                          {...loginForm.register("password")}
+                          className="min-h-12 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      {loginForm.formState.errors.password && (
+                        <p className="text-xs text-destructive" role="alert" aria-live="assertive">
+                          {loginForm.formState.errors.password.message}
+                        </p>
+                      )}
+                    </motion.div>
+
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
+                        role="alert"
+                        aria-live="assertive"
+                      >
+                        {error}
+                      </motion.div>
+                    )}
+
+                    <motion.div variants={slideUp}>
+                      <Button
+                        type="submit"
+                        className="w-full min-h-12 text-base font-semibold"
+                        disabled={loginForm.formState.isSubmitting}
+                      >
+                        {loginForm.formState.isSubmitting ? "Connexion..." : "SE CONNECTER"}
+                      </Button>
+                    </motion.div>
+
+                    <motion.div variants={slideUp} className="text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowForgotPassword(true);
+                          const email = loginForm.getValues("email").trim();
+                          resetPasswordForm.setValue("email", email);
+                        }}
+                        className="text-sm text-muted-foreground hover:text-primary underline"
+                      >
+                        Mot de passe oublié ?
+                      </button>
+                    </motion.div>
+                  </motion.form>
+                </TabsContent>
+              )}
+            </AnimatePresence>
+
+            {/* Signup Tab */}
+            <AnimatePresence mode="wait">
+              {activeTab === "signup" && (
+                <TabsContent value="signup" className="space-y-6">
+                  <motion.form
+                    key="signup-form"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2 }}
+                    onSubmit={signupForm.handleSubmit(handleSignup)}
+                    className="space-y-4"
+                  >
+                    <motion.div variants={slideUp} className="space-y-2">
+                      <Label htmlFor="signup-name">Nom d'affichage</Label>
+                      <Input
+                        id="signup-name"
+                        {...signupForm.register("name")}
+                        placeholder="Votre nom"
+                        className="min-h-12"
+                        ref={registerNameInputRef}
+                      />
+                      {signupForm.formState.errors.name && (
+                        <p className="text-xs text-destructive" role="alert" aria-live="assertive">
+                          {signupForm.formState.errors.name.message}
+                        </p>
+                      )}
+                    </motion.div>
+
+                    <motion.div variants={slideUp} className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        {...signupForm.register("email")}
+                        placeholder="prenom.nom@email.com"
+                        className="min-h-12"
+                      />
+                      {signupForm.formState.errors.email && (
+                        <p className="text-xs text-destructive" role="alert" aria-live="assertive">
+                          {signupForm.formState.errors.email.message}
+                        </p>
+                      )}
+                    </motion.div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <motion.div variants={slideUp} className="space-y-2">
+                        <Label htmlFor="signup-birthdate">Date de naissance</Label>
+                        <Input
+                          id="signup-birthdate"
+                          type="date"
+                          {...signupForm.register("birthdate")}
+                          className="min-h-12"
+                        />
+                        {signupForm.formState.errors.birthdate && (
+                          <p className="text-xs text-destructive" role="alert" aria-live="assertive">
+                            {signupForm.formState.errors.birthdate.message}
+                          </p>
+                        )}
+                      </motion.div>
+
+                      <motion.div variants={slideUp} className="space-y-2">
+                        <Label htmlFor="signup-sex">Sexe</Label>
+                        <Select
+                          value={signupForm.watch("sex")}
+                          onValueChange={(value) => signupForm.setValue("sex", value as "M" | "F")}
+                        >
+                          <SelectTrigger id="signup-sex" className="min-h-12">
+                            <SelectValue placeholder="Sélectionnez" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="M">Garçon</SelectItem>
+                            <SelectItem value="F">Fille</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {signupForm.formState.errors.sex && (
+                          <p className="text-xs text-destructive" role="alert" aria-live="assertive">
+                            {signupForm.formState.errors.sex.message}
+                          </p>
+                        )}
+                      </motion.div>
+                    </div>
+
+                    <motion.div variants={slideUp} className="space-y-2">
+                      <Label htmlFor="signup-group">Groupe</Label>
+                      <Select
+                        value={signupForm.watch("groupId")}
+                        onValueChange={(value) => signupForm.setValue("groupId", value)}
+                        disabled={groupsLoading || groups.length === 0}
+                      >
+                        <SelectTrigger id="signup-group" className="min-h-12">
+                          <SelectValue
+                            placeholder={
+                              groupsLoading
+                                ? "Chargement..."
+                                : groupsError
+                                ? "Erreur de chargement"
+                                : "Sélectionnez un groupe"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {groups.map((group) => (
+                            <SelectItem key={group.id} value={String(group.id)}>
+                              {group.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {signupForm.formState.errors.groupId && (
+                        <p className="text-xs text-destructive" role="alert" aria-live="assertive">
+                          {signupForm.formState.errors.groupId.message}
+                        </p>
+                      )}
+                    </motion.div>
+
+                    <motion.div variants={slideUp} className="space-y-2">
+                      <Label htmlFor="signup-password">Mot de passe</Label>
+                      <div className="relative">
+                        <Input
+                          id="signup-password"
+                          type={showSignupPassword ? "text" : "password"}
+                          {...signupForm.register("password")}
+                          placeholder="Choisissez un mot de passe"
+                          className="min-h-12 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSignupPassword(!showSignupPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={showSignupPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                        >
+                          {showSignupPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      {signupForm.formState.errors.password && (
+                        <p className="text-xs text-destructive" role="alert" aria-live="assertive">
+                          {signupForm.formState.errors.password.message}
+                        </p>
+                      )}
+                      <PasswordStrength password={signupForm.watch("password")} />
+                    </motion.div>
+
+                    {signupForm.formState.errors.root && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
+                        role="alert"
+                        aria-live="assertive"
+                      >
+                        {signupForm.formState.errors.root.message}
+                      </motion.div>
+                    )}
+
+                    <motion.div variants={slideUp}>
+                      <Button
+                        type="submit"
+                        className="w-full min-h-12 text-base font-semibold"
+                        disabled={signupForm.formState.isSubmitting}
+                      >
+                        {signupForm.formState.isSubmitting ? "Création..." : "CRÉER LE COMPTE"}
+                      </Button>
+                    </motion.div>
+                  </motion.form>
+                </TabsContent>
+              )}
+            </AnimatePresence>
+          </Tabs>
+        </motion.div>
+
+        {/* Footer */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-12 text-xs text-muted-foreground text-center"
+        >
+          <p className="uppercase tracking-widest font-bold">EAC Performance Tracking</p>
+        </motion.div>
+      </div>
+
+      {/* Success Dialog */}
       <Dialog
-        open={showRegister}
+        open={signupComplete}
         onOpenChange={(open) => {
-          setShowRegister(open);
+          setSignupComplete(open);
           if (!open) {
+            setActiveTab("login");
             signupForm.reset();
-            setSignupComplete(false);
           }
         }}
       >
         <DialogContent className="sm:max-w-md">
-          {signupComplete ? (
-            <div className="text-center space-y-4 py-4">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <span className="text-3xl text-primary">&#10003;</span>
-              </div>
-              <h2 className="text-xl font-semibold">Compte créé avec succès !</h2>
-              <p className="text-sm text-muted-foreground">
-                Un coach ou un administrateur doit valider votre inscription avant votre première connexion.
-              </p>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => {
-                  setSignupComplete(false);
-                  setShowRegister(false);
-                }}
-              >
-                Retour à la connexion
-              </Button>
-            </div>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle>Créer un compte</DialogTitle>
-                <DialogDescription>Complétez les informations pour créer votre profil.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="register-name">Nom d'affichage</Label>
-                  <Input
-                    id="register-name"
-                    {...signupForm.register("name")}
-                    placeholder="Votre nom"
-                    ref={registerNameInputRef}
-                  />
-                  {signupForm.formState.errors.name && (
-                    <p className="text-xs text-destructive" role="alert" aria-live="assertive">{signupForm.formState.errors.name.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="register-email">Email</Label>
-                  <Input
-                    id="register-email"
-                    type="email"
-                    {...signupForm.register("email")}
-                    placeholder="prenom.nom@email.com"
-                  />
-                  {signupForm.formState.errors.email && (
-                    <p className="text-xs text-destructive" role="alert" aria-live="assertive">{signupForm.formState.errors.email.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="register-birthdate">Date de naissance</Label>
-                  <Input
-                    id="register-birthdate"
-                    type="date"
-                    {...signupForm.register("birthdate")}
-                  />
-                  {signupForm.formState.errors.birthdate && (
-                    <p className="text-xs text-destructive" role="alert" aria-live="assertive">{signupForm.formState.errors.birthdate.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="register-sex">Sexe</Label>
-                  <Select
-                    value={signupForm.watch("sex")}
-                    onValueChange={(value) => signupForm.setValue("sex", value as "M" | "F")}
-                  >
-                    <SelectTrigger id="register-sex">
-                      <SelectValue placeholder="Sélectionnez" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="M">Garçon</SelectItem>
-                      <SelectItem value="F">Fille</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {signupForm.formState.errors.sex && (
-                    <p className="text-xs text-destructive" role="alert" aria-live="assertive">{signupForm.formState.errors.sex.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="register-group">Groupe</Label>
-                  <Select
-                    value={signupForm.watch("groupId")}
-                    onValueChange={(value) => signupForm.setValue("groupId", value)}
-                    disabled={groupsLoading || groups.length === 0}
-                  >
-                    <SelectTrigger id="register-group">
-                      <SelectValue placeholder={groupsLoading ? "Chargement..." : groupsError ? "Erreur de chargement" : "Sélectionnez un groupe"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {groups.map((group) => (
-                        <SelectItem key={group.id} value={String(group.id)}>
-                          {group.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {signupForm.formState.errors.groupId && (
-                    <p className="text-xs text-destructive" role="alert" aria-live="assertive">{signupForm.formState.errors.groupId.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="register-password">Mot de passe</Label>
-                  <Input
-                    id="register-password"
-                    type="password"
-                    {...signupForm.register("password")}
-                    placeholder="Choisissez un mot de passe"
-                  />
-                  {signupForm.formState.errors.password && (
-                    <p className="text-xs text-destructive" role="alert" aria-live="assertive">{signupForm.formState.errors.password.message}</p>
-                  )}
-                  <PasswordStrength password={signupForm.watch("password")} />
-                </div>
-
-                {signupForm.formState.errors.root && (
-                  <p className="text-sm text-destructive" role="alert" aria-live="assertive">{signupForm.formState.errors.root.message}</p>
-                )}
-
-                <Button type="submit" className="w-full" disabled={signupForm.formState.isSubmitting}>
-                  {signupForm.formState.isSubmitting ? "Création..." : "Créer le compte"}
-                </Button>
-              </form>
-            </>
-          )}
+          <div className="text-center space-y-4 py-4">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10"
+            >
+              <span className="text-3xl text-primary">&#10003;</span>
+            </motion.div>
+            <h2 className="text-xl font-semibold">Compte créé avec succès !</h2>
+            <p className="text-sm text-muted-foreground">
+              Un coach ou un administrateur doit valider votre inscription avant votre première connexion.
+            </p>
+            <Button
+              className="w-full"
+              onClick={() => {
+                setSignupComplete(false);
+                setActiveTab("login");
+              }}
+            >
+              Retour à la connexion
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -434,9 +581,14 @@ export default function Login() {
         <DialogContent className="sm:max-w-md">
           {resetSent ? (
             <div className="text-center space-y-4 py-4">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted"
+              >
                 <span className="text-3xl text-primary">&#9993;</span>
-              </div>
+              </motion.div>
               <h2 className="text-xl font-semibold">Email envoyé</h2>
               <p className="text-sm text-muted-foreground">
                 Un email de réinitialisation a été envoyé. Vérifiez votre boîte de réception.
@@ -468,20 +620,27 @@ export default function Login() {
                     type="email"
                     {...resetPasswordForm.register("email")}
                     placeholder="votre@email.com"
+                    className="min-h-12"
                     autoFocus
                   />
                   {resetPasswordForm.formState.errors.email && (
-                    <p className="text-xs text-destructive" role="alert" aria-live="assertive">{resetPasswordForm.formState.errors.email.message}</p>
+                    <p className="text-xs text-destructive" role="alert" aria-live="assertive">
+                      {resetPasswordForm.formState.errors.email.message}
+                    </p>
                   )}
                 </div>
 
                 {resetPasswordForm.formState.errors.root && (
-                  <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive text-center" role="alert" aria-live="assertive">
+                  <div
+                    className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive text-center"
+                    role="alert"
+                    aria-live="assertive"
+                  >
                     {resetPasswordForm.formState.errors.root.message}
                   </div>
                 )}
 
-                <Button type="submit" className="w-full" disabled={resetPasswordForm.formState.isSubmitting}>
+                <Button type="submit" className="w-full min-h-12" disabled={resetPasswordForm.formState.isSubmitting}>
                   {resetPasswordForm.formState.isSubmitting ? "Envoi..." : "Envoyer le lien"}
                 </Button>
 
@@ -499,10 +658,6 @@ export default function Login() {
           )}
         </DialogContent>
       </Dialog>
-
-      <div className="absolute bottom-4 text-xs text-muted-foreground opacity-50 uppercase font-bold tracking-widest">
-        EAC Performance Tracking
-      </div>
     </div>
   );
 }

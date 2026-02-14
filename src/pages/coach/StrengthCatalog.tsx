@@ -627,15 +627,18 @@ export default function StrengthCatalog() {
                             setExerciseEditOpen(false);
                             setEditingExercise(null);
                           }}
+                          className="h-10"
                         >
                           Annuler
                         </Button>
                         <Button
+                          variant="default"
                           onClick={() => {
                             if (!editingExercise?.id) return;
                             updateExercise.mutate(editingExercise as Exercise);
                           }}
                           disabled={!editingExercise.nom_exercice.trim()}
+                          className="h-10"
                         >
                             <Save className="mr-2 h-4 w-4"/> Enregistrer
                         </Button>
@@ -741,10 +744,12 @@ export default function StrengthCatalog() {
                       <Label htmlFor="warmup-flag">Exercice d’échauffement (warmup)</Label>
                   </div>
                   <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setExerciseDialogOpen(false)}>Annuler</Button>
+                      <Button variant="outline" onClick={() => setExerciseDialogOpen(false)} className="h-10">Annuler</Button>
                       <Button
+                        variant="default"
                         onClick={() => createExercise.mutate(newExercise)}
                         disabled={!newExercise.nom_exercice.trim()}
+                        className="h-10"
                       >
                           <Save className="mr-2 h-4 w-4"/> Enregistrer
                       </Button>
@@ -941,10 +946,10 @@ export default function StrengthCatalog() {
         <p className="text-sm text-muted-foreground mt-2">
           {exercisesError instanceof Error ? exercisesError.message : sessionsError instanceof Error ? sessionsError.message : "Une erreur s'est produite"}
         </p>
-        <Button onClick={() => {
+        <Button variant="default" onClick={() => {
           refetchExercises();
           refetchSessions();
-        }} className="mt-4">
+        }} className="mt-4 h-12 md:h-10">
           Réessayer
         </Button>
       </div>
@@ -964,8 +969,8 @@ export default function StrengthCatalog() {
                     {editingSessionId ? "Modifier Séance Muscu" : "Nouvelle Séance Muscu"}
                   </h2>
                   <div className="flex gap-2">
-                      <Button variant="outline" onClick={resetSessionForm}>Annuler</Button>
-                      <Button onClick={handleSaveSession}>
+                      <Button variant="outline" onClick={resetSessionForm} className="h-10">Annuler</Button>
+                      <Button variant="default" onClick={handleSaveSession} className="h-10">
                         <Save className="mr-2 h-4 w-4"/> Enregistrer
                       </Button>
                   </div>
@@ -1009,10 +1014,10 @@ export default function StrengthCatalog() {
                   <div className="flex items-center justify-between">
                       <h3 className="font-bold">Exercices</h3>
                       <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setExerciseDialogOpen(true)}>
+                          <Button size="sm" variant="outline" onClick={() => setExerciseDialogOpen(true)} className="h-10">
                               <Plus className="mr-2 h-4 w-4"/> Nouvel exercice
                           </Button>
-                          <Button size="sm" onClick={addItem}><Plus className="mr-2 h-4 w-4"/> Ajouter</Button>
+                          <Button size="sm" variant="default" onClick={addItem} className="h-10"><Plus className="mr-2 h-4 w-4"/> Ajouter</Button>
                       </div>
                   </div>
 
@@ -1168,11 +1173,13 @@ export default function StrengthCatalog() {
        <div className="flex justify-between items-center">
            <h3 className="font-bold text-lg">Catalogue Séances Musculation</h3>
            <Button
+             variant="default"
              onClick={() => {
                setEditingSessionId(null);
                setNewSession({ title: "", description: "", cycle: "endurance", items: [] });
                setIsCreating(true);
              }}
+             className="h-10"
            >
              <Plus className="mr-2 h-4 w-4"/> Créer
            </Button>
@@ -1223,7 +1230,7 @@ export default function StrengthCatalog() {
        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-lg">Catalogue Exercices</h3>
-            <Button variant="outline" onClick={() => setExerciseDialogOpen(true)}>
+            <Button variant="outline" onClick={() => setExerciseDialogOpen(true)} className="h-10">
               <Plus className="mr-2 h-4 w-4" /> Ajouter un exercice
             </Button>
           </div>

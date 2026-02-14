@@ -17,6 +17,8 @@ import { Edit2, LogOut, RefreshCw, Save, AlertCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { motion } from "framer-motion";
+import { fadeIn } from "@/lib/animations";
 
 export const shouldShowRecords = (role: string | null) => role !== "coach" && role !== "admin" && role !== "comite";
 
@@ -291,7 +293,12 @@ export default function Profile() {
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      variants={fadeIn}
+      initial="hidden"
+      animate="visible"
+    >
       <h1 className="text-3xl font-display font-bold uppercase italic text-primary">Profil</h1>
 
       <Card>
@@ -528,6 +535,6 @@ export default function Profile() {
           </CardContent>
         </Card>
       ) : null}
-    </div>
+    </motion.div>
   );
 }

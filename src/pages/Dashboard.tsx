@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { BottomActionBar, type SaveState } from "@/components/shared/BottomActionBar";
 import { Button } from "@/components/ui/button";
+import { slideInFromBottom, staggerChildren, listItem } from "@/lib/animations";
 import {
   ChevronLeft,
   ChevronRight,
@@ -379,10 +380,10 @@ function Drawer({
               // Desktop: drawer à droite
               "sm:right-0 sm:top-0 sm:left-auto sm:bottom-auto sm:h-full sm:w-full sm:max-w-xl sm:rounded-none"
             )}
-            initial={{ y: 22, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 22, opacity: 0 }}
-            transition={{ type: "spring", damping: 30, stiffness: 320 }}
+            variants={slideInFromBottom}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             role="dialog"
             aria-modal="true"
           >
@@ -1762,15 +1763,20 @@ export default function Dashboard() {
                       <div className="px-4 pb-4">
                         {!canRate && (
                           <div className="mb-3 rounded-2xl bg-sky-50 text-sky-900 px-3 py-2 text-xs">
-                            {isAbsentOverride ? "Absent: aucun ressenti." : "Non prévu: appuyez “Je suis venu”."}
+                            {isAbsentOverride ? "Absent: aucun ressenti." : 'Non prévu: appuyez "Je suis venu".'}
                           </div>
                         )}
 
-                        <div className="space-y-4">
+                        <motion.div
+                          className="space-y-4"
+                          variants={staggerChildren}
+                          initial="hidden"
+                          animate="visible"
+                        >
                           {INDICATORS.map((ind) => {
                             const selected = draftState[ind.key];
                             return (
-                              <div key={ind.key} className="space-y-2">
+                              <motion.div key={ind.key} className="space-y-2" variants={listItem}>
                                 <div className={cn("text-sm font-semibold", !canRate ? "text-muted-foreground" : "text-foreground")}>{ind.label}</div>
                                 <div className="flex items-center gap-2">
                                   {[1, 2, 3, 4, 5].map((n) => {
@@ -1795,11 +1801,11 @@ export default function Dashboard() {
                                     );
                                   })}
                                 </div>
-                              </div>
+                              </motion.div>
                             );
                           })}
 
-                          <div className="space-y-2">
+                          <motion.div className="space-y-2" variants={listItem}>
                             <div className={cn("text-sm font-semibold", !canRate ? "text-muted-foreground" : "text-foreground")}>Commentaire</div>
                             <textarea
                               value={draftState.comment}
@@ -1814,8 +1820,8 @@ export default function Dashboard() {
                                   : "bg-card text-foreground border-border focus:ring-2 focus:ring-foreground/10"
                               )}
                             />
-                          </div>
-                        </div>
+                          </motion.div>
+                        </motion.div>
 
                         {/* Stepper distance (±100m) */}
                         <DistanceStepper

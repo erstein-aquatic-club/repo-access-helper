@@ -209,10 +209,10 @@ export default function Admin() {
         <p className="text-sm text-muted-foreground mt-2">
           {usersError instanceof Error ? usersError.message : approvalsError instanceof Error ? approvalsError.message : "Une erreur s'est produite"}
         </p>
-        <Button onClick={() => {
+        <Button variant="default" onClick={() => {
           refetchUsers();
           refetchApprovals();
-        }} className="mt-4">
+        }} className="mt-4 h-12 md:h-10">
           Réessayer
         </Button>
       </div>
@@ -258,7 +258,7 @@ export default function Admin() {
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
-                      className="bg-status-success hover:opacity-90 text-white"
+                      className="bg-status-success hover:opacity-90 text-white h-10"
                       onClick={() => approveUser.mutate(pending.user_id)}
                       disabled={approveUser.isPending || rejectUser.isPending}
                     >
@@ -276,6 +276,7 @@ export default function Admin() {
                         rejectUser.mutate(pending.user_id);
                       }}
                       disabled={approveUser.isPending || rejectUser.isPending}
+                      className="h-10"
                     >
                       <XCircle className="mr-2 h-4 w-4" />
                       Rejeter
@@ -344,7 +345,7 @@ export default function Admin() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <Button type="submit" disabled={createCoach.isPending}>
+              <Button variant="default" type="submit" disabled={createCoach.isPending} className="h-10">
                 {createCoach.isPending ? "Création..." : "Créer le coach"}
               </Button>
               {createdCoachPassword ? (
@@ -486,6 +487,7 @@ export default function Admin() {
                               disableUser.mutate({ userId: user.id });
                             }}
                             disabled={!active || disableUser.isPending || isSelf}
+                            className="h-10"
                           >
                             <UserMinus className="mr-2 h-4 w-4" />
                             Désactiver

@@ -21,7 +21,7 @@ import { WorkoutRunner, resolveNextStep } from "@/components/strength/WorkoutRun
 import { BottomActionBar, SaveState } from "@/components/shared/BottomActionBar";
 import type { SetLogEntry, LocalStrengthRun, UpdateStrengthRunInput, OneRmEntry } from "@/lib/types";
 import { motion } from "framer-motion";
-import { staggerChildren, listItem } from "@/lib/animations";
+import { staggerChildren, listItem, fadeIn } from "@/lib/animations";
 
 const normalizeStrengthCycle = (value?: string | null): StrengthCycleType => {
   if (value === "endurance" || value === "hypertrophie" || value === "force") {
@@ -818,7 +818,7 @@ export default function Strength() {
         <AlertCircle className="h-12 w-12 text-destructive mb-4" />
         <h3 className="font-semibold">Impossible de charger les données</h3>
         <p className="text-sm text-muted-foreground mt-2">{(error as Error).message}</p>
-        <Button onClick={() => refetch()} className="mt-4">
+        <Button variant="default" onClick={() => refetch()} className="mt-4 h-12 md:h-10">
           Réessayer
         </Button>
       </div>
@@ -1062,6 +1062,7 @@ export default function Strength() {
 
                                     <div className="flex gap-2">
                                         <Button
+                                            variant="default"
                                             className="flex-1 h-12 rounded-xl font-semibold"
                                             disabled={!canResumeInProgress}
                                             onClick={() => {
@@ -1283,7 +1284,12 @@ export default function Strength() {
                )}
 
                {screenMode === "reader" && activeSession && (
-                   <div className="space-y-5 animate-in fade-in motion-reduce:animate-none pb-40">
+                   <motion.div
+                       className="space-y-5 pb-40"
+                       variants={fadeIn}
+                       initial="hidden"
+                       animate="visible"
+                   >
                        {/* Header compact avec retour */}
                        <div className="flex items-center gap-3">
                            <button
@@ -1496,14 +1502,15 @@ export default function Strength() {
                        {/* Bottom action bar fixe - plus visible */}
                        <BottomActionBar saveState={saveState}>
                            <Button
-                               className="flex-1 h-14 rounded-xl font-bold text-base bg-primary hover:bg-primary/90 shadow-lg"
+                               variant="default"
+                               className="flex-1 h-14 rounded-xl font-bold text-base shadow-lg"
                                onClick={handleLaunchFocus}
                            >
                                <Play className="h-5 w-5 mr-2" />
                                Lancer la séance
                            </Button>
                        </BottomActionBar>
-                   </div>
+                   </motion.div>
                )}
            </TabsContent>
            

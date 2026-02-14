@@ -15,7 +15,7 @@ import { shouldShowRecords } from "@/pages/Profile";
 import { Check, ChevronDown, Clock, Dumbbell, Edit2, Download, RefreshCw, StickyNote, Trophy, Waves, X, AlertCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { motion } from "framer-motion";
-import { staggerChildren, listItem } from "@/lib/animations";
+import { staggerChildren, listItem, successBounce, fadeIn } from "@/lib/animations";
 
 type OneRmRecord = {
   exercise_id: number;
@@ -184,6 +184,7 @@ export default function Records() {
   // History tab state
   const [histPoolLen, setHistPoolLen] = useState<25 | 50>(25);
   const [histEventFilter, setHistEventFilter] = useState<string>("all");
+  const [importSuccess, setImportSuccess] = useState<boolean>(false);
 
   const showRecords = shouldShowRecords(role);
 
@@ -275,6 +276,8 @@ export default function Records() {
         title: "Import terminé",
         description: `${data.total_found} trouvée(s), ${data.new_imported} importée(s), ${data.already_existed} déjà existante(s)`,
       });
+      setImportSuccess(true);
+      setTimeout(() => setImportSuccess(false), 2000);
     },
     onError: (e: Error) => {
       toast({
@@ -817,7 +820,12 @@ export default function Records() {
                               ) : null}
 
                               {swimMode === "training" && isEditing ? (
-                                <div className="mt-3">
+                                <motion.div
+                                  className="mt-3"
+                                  variants={fadeIn}
+                                  initial="hidden"
+                                  animate="visible"
+                                >
                                   <div className="rounded-2xl bg-muted/30 border border-border p-4 space-y-4">
                                     <div className="grid gap-4 sm:grid-cols-2">
                                       <div className="grid gap-2">
@@ -876,7 +884,7 @@ export default function Records() {
                                       </Button>
                                     </div>
                                   </div>
-                                </div>
+                                </motion.div>
                               ) : null}
                             </motion.div>
                           );
@@ -1012,19 +1020,25 @@ export default function Records() {
                   ) : null}
 
                   {/* Import button */}
-                  <Button
-                    type="button"
-                    onClick={() => importPerformances.mutate()}
-                    disabled={importPerformances.isPending || !userIuf}
-                    className="w-full rounded-2xl gap-2"
+                  <motion.div
+                    variants={successBounce}
+                    animate={importSuccess ? "visible" : "hidden"}
+                    className="w-full"
                   >
-                    {importPerformances.isPending ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4" />
-                    )}
-                    {importPerformances.isPending ? "Import en cours..." : "Importer mes performances FFN"}
-                  </Button>
+                    <Button
+                      type="button"
+                      onClick={() => importPerformances.mutate()}
+                      disabled={importPerformances.isPending || !userIuf}
+                      className="w-full rounded-2xl gap-2"
+                    >
+                      {importPerformances.isPending ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                      {importPerformances.isPending ? "Import en cours..." : "Importer mes performances FFN"}
+                    </Button>
+                  </motion.div>
 
                   {/* Event filter */}
                   {perfEventCodes.length > 0 ? (

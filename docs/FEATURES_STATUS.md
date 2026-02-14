@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-14 (§17 Keyboard navigation Dashboard + Strength)*
+*Dernière mise à jour : 2026-02-14 (§21 Phase 6 Complete: Visual Polish & Branding)*
 
 ## Légende
 
@@ -132,6 +132,19 @@ Tous les feature flags sont activés.
 | Affichage infos | ✅ | `Profile.tsx` | Nom, anniversaire, groupe, objectifs, bio |
 | Édition profil | ✅ | `Profile.tsx` | Avatar, objectifs, groupe, FFN IUF |
 | Changement mot de passe | ✅ | `Profile.tsx` | Via Supabase Auth |
+
+### UI/UX & Design System (Phase 6)
+
+| Fonctionnalité | Statut | Fichiers | Notes |
+|----------------|--------|----------|-------|
+| PWA Icons (EAC branding) | ✅ | `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`, `public/favicon.png` | 4 tailles (192, 512, 180, 128), logo EAC rouge |
+| Theme color (EAC red) | ✅ | `index.html`, `public/manifest.json` | #E30613 (was #3b82f6) |
+| Login page moderne | ✅ | `Login.tsx` | Split layout (hero + form), animations Framer Motion, password toggle |
+| Animations Framer Motion | ✅ | `Dashboard.tsx`, `Strength.tsx`, `Records.tsx`, `Profile.tsx`, `HallOfFame.tsx` | fadeIn, slideInFromBottom, staggerChildren, successBounce |
+| Animation library | ✅ | `src/lib/animations.ts` | 8 presets: fadeIn, slideUp, scaleIn, staggerChildren, listItem, successBounce, slideInFromBottom, slideInFromRight |
+| Button patterns standardisés | ✅ | `BUTTON_PATTERNS.md`, `Strength.tsx`, `SwimCatalog.tsx`, `StrengthCatalog.tsx`, `Admin.tsx` | h-12 mobile (48px), h-10 desktop (40px), variants (default, outline, ghost) |
+| Code splitting & lazy loading | ✅ | `App.tsx`, `Coach.tsx` | React.lazy + Suspense pour pages lourdes (Dashboard, Strength, Records, SwimCatalog, StrengthCatalog) |
+| Skeleton loading states | ✅ | `Dashboard.tsx`, `Strength.tsx`, `HallOfFame.tsx`, `RecordsClub.tsx`, `Admin.tsx`, `Profile.tsx` | Toutes les pages data-heavy |
 
 ### Accessibilité
 

@@ -1,6 +1,6 @@
 # Roadmap de Développement
 
-*Dernière mise à jour : 2026-02-08*
+*Dernière mise à jour : 2026-02-14*
 
 Ce document décrit les fonctionnalités à implémenter. Il sert de référence pour reprendre le développement dans une future conversation.
 
@@ -16,6 +16,7 @@ Ce document décrit les fonctionnalités à implémenter. Il sert de référence
 | 4 | Records club par catégorie d'âge / sexe / nage | Moyenne | Faible | Fait |
 | 5 | Dette technique UI/UX restante (patch-report) | Basse | Faible | Fait |
 | 6 | Fix timers mode focus (PWA iOS background) | Haute | Faible | Fait |
+| 7 | Visual Polish & Branding (Phase 6 UI/UX) | Haute | Moyenne | Fait |
 
 ---
 
@@ -54,6 +55,127 @@ Remplacer les timers relatifs par des **timestamps absolus** :
 ### Complexité estimée
 
 Faible — changement localisé dans un seul fichier, ~30-40 lignes à modifier.
+
+---
+
+## 7. Visual Polish & Branding (Phase 6 UI/UX)
+
+### Contexte
+
+User requested comprehensive visual modernization after completing Phases 1-5 (functional UX improvements). Specific asks:
+- "Est-ce que tu as pu générer un UI/UX mobile friendly, optimisé, épuré?"
+- "As-tu changé la favicon pour matcher le thème global?"
+- "Rendu la login page plus attrayante / moderne?"
+
+**Assessment before Phase 6:**
+- ✅ Functionality: Excellent (loading states, validation, error handling, PWA timers)
+- ✅ Mobile-friendly: YES (responsive, touch targets)
+- ✅ Optimized: YES (lazy loading, animations library exists)
+- ❌ Visual branding: NO (generic icons, wrong theme-color #3b82f6)
+- ❌ Modern login: NO (functional but dated card design)
+- ⚠️ Animations: Underutilized (only HallOfFame)
+
+### Objectif
+
+Transform app from functionally solid to visually distinctive, production-grade interface reflecting EAC brand identity (#E30613 red).
+
+### Implémentation réalisée
+
+**Step 1: PWA Icons & Branding**
+- ✅ Generated 4 EAC-branded PWA icons from `attached_assets/logo-eac.png`:
+  - icon-192.png (192×192, 21KB)
+  - icon-512.png (512×512, 119KB)
+  - apple-touch-icon.png (180×180, 19KB)
+  - favicon.png (128×128, 11KB)
+- ✅ Fixed theme-color in `index.html`: #3b82f6 → #E30613 (EAC red)
+- ✅ Fixed theme_color in `public/manifest.json`: #3b82f6 → #E30613
+- ✅ Updated manifest icons array with all 7 icon sizes
+
+**Step 2: Login Page Redesign**
+- ✅ Complete redesign (508 → 663 lines, better structure)
+- ✅ Split-screen layout:
+  - Desktop: 2-column grid (hero left, form right)
+  - Mobile: Stacked (logo top, form bottom)
+  - Hero: EAC red gradient, large logo (h-32 w-32), "SUIVI NATATION" title (text-5xl)
+- ✅ Replaced modal dialogs with inline tabs (Shadcn Tabs)
+- ✅ Added password visibility toggle (Eye/EyeOff icons)
+- ✅ Integrated Framer Motion animations (fadeIn, slideUp, staggerChildren)
+- ✅ Enhanced mobile UX: min-h-12 (48px) touch targets
+
+**Step 3: Animation Rollout**
+- ✅ Dashboard: slideInFromBottom to drawer, staggerChildren to form fields
+- ✅ Strength: staggerChildren to session list, fadeIn to detail view
+- ✅ Records: staggerChildren to list, successBounce to FFN sync, fadeIn to edit feedback
+- ✅ Profile: fadeIn to entire page
+
+**Step 4: Button Standardization**
+- ✅ Created `docs/BUTTON_PATTERNS.md` (250 lines) with comprehensive guidelines
+- ✅ Standardized buttons across 4 pages (24 buttons total):
+  - Strength.tsx: h-12 md:h-10 responsive heights
+  - SwimCatalog.tsx: unified h-10, variant="outline" for secondary
+  - StrengthCatalog.tsx: h-10 with explicit variants
+  - Admin.tsx: h-10 with proper variants
+
+### Fichiers modifiés
+
+| Fichier | Modification |
+|---------|-------------|
+| `public/icon-192.png` | Création PWA icon 192×192 |
+| `public/icon-512.png` | Création PWA icon 512×512 |
+| `public/apple-touch-icon.png` | Création iOS icon 180×180 |
+| `public/favicon.png` | Remplacement favicon 128×128 |
+| `index.html` | theme-color: #3b82f6 → #E30613 |
+| `public/manifest.json` | theme_color + icons array |
+| `src/pages/Login.tsx` | Refonte majeure (508 → 663 lignes) |
+| `src/pages/Dashboard.tsx` | +slideInFromBottom, +staggerChildren |
+| `src/pages/Strength.tsx` | +fadeIn, buttons h-12 md:h-10 |
+| `src/pages/Records.tsx` | +successBounce, +fadeIn |
+| `src/pages/Profile.tsx` | +fadeIn |
+| `src/pages/coach/SwimCatalog.tsx` | Buttons standardization |
+| `src/pages/coach/StrengthCatalog.tsx` | Buttons standardization |
+| `src/pages/Admin.tsx` | Buttons standardization |
+| `docs/BUTTON_PATTERNS.md` | Création guidelines (250 lignes) |
+
+### Complexité estimée
+
+Moyenne — 4 agents en parallèle, 12-16h estimées (réalisé en ~3h grâce au parallélisme).
+
+### Avancement
+
+| Étape | Statut | Date | Notes |
+|-------|--------|------|-------|
+| PWA Icons & Branding | ✅ Fait | 2026-02-14 | 4 icons générées, theme-color corrigé |
+| Login Page Redesign | ✅ Fait | 2026-02-14 | Split layout + animations |
+| Animation Rollout | ✅ Fait | 2026-02-14 | Dashboard, Strength, Records, Profile |
+| Button Standardization | ✅ Fait | 2026-02-14 | BUTTON_PATTERNS.md + 4 pages |
+| Build & Test | ✅ Fait | 2026-02-14 | Build success in 4.97s |
+| Documentation | ✅ Fait | 2026-02-14 | implementation-log.md, ROADMAP.md, FEATURES_STATUS.md |
+
+### Résultat
+
+**Quantitative:**
+- 15 files modified, 4 new files created, 1 file replaced
+- Build time: 4.97s (no performance regression)
+- Bundle size: Login chunk 16.51 kB, animations chunk 112.69 kB
+
+**Qualitative:**
+- Application visually distinctive with EAC brand identity
+- First impressions significantly improved (modern login, branded icons)
+- Animations create cohesive, polished feel across key interactions
+- Button patterns now consistent (48px mobile touch targets)
+- Theme color correctly reflects EAC red (#E30613) on all devices
+
+### Limites
+
+**Optional Phases Not Implemented:**
+- Phase 7: Component Architecture Refactor (6,129 lines → ~3,700 lines)
+  - Dashboard: 1,921 lines → ~700 lines
+  - Strength: 1,578 lines → ~600 lines
+  - SwimCatalog: 1,354 lines → ~400 lines
+  - StrengthCatalog: 1,276 lines → ~350 lines
+- Phase 8: Design System Documentation (Storybook setup)
+
+Ces phases sont optionnelles et peuvent être différées sauf si la maintenabilité devient critique ou si l'utilisateur le demande explicitement.
 
 ---
 

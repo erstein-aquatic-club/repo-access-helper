@@ -514,8 +514,9 @@ export default function SwimCatalog() {
             >
               <Play className="h-4 w-4" />
             </button>
-            <button
-              type="button"
+            <Button
+              variant="default"
+              size="sm"
               onClick={() => {
                 if (!newSession.name.trim()) {
                   toast({
@@ -534,10 +535,10 @@ export default function SwimCatalog() {
                   created_by: userId,
                 });
               }}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+              className="h-10 rounded-full"
             >
               <Save className="h-4 w-4" /> Sauver
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -622,10 +623,10 @@ export default function SwimCatalog() {
                     </div>
                   </div>
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     size="sm"
                     onClick={addBlock}
-                    className="h-9 rounded-full px-3 text-xs"
+                    className="h-10 rounded-full px-3 text-xs"
                   >
                     <Plus className="h-4 w-4" /> Bloc
                   </Button>
@@ -741,10 +742,10 @@ export default function SwimCatalog() {
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold">Édition détaillée</div>
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                   onClick={addBlock}
-                  className="h-9 rounded-full px-3 text-xs"
+                  className="h-10 rounded-full px-3 text-xs"
                 >
                   <Plus className="h-4 w-4" /> Ajouter bloc
                 </Button>
@@ -825,10 +826,10 @@ export default function SwimCatalog() {
                         </div>
                         <div className="flex items-end justify-end">
                           <Button
-                            variant="secondary"
+                            variant="outline"
                             size="sm"
                             onClick={() => addExercise(blockIndex)}
-                            className="h-9 rounded-full px-3 text-xs"
+                            className="h-10 rounded-full px-3 text-xs"
                           >
                             <Plus className="h-4 w-4" /> Exercice
                           </Button>
@@ -1033,10 +1034,10 @@ export default function SwimCatalog() {
 
                       <div className="mt-4 flex items-center justify-between">
                         <Button
-                          variant="secondary"
+                          variant="outline"
                           size="sm"
                           onClick={() => addExercise(blockIndex)}
-                          className="h-9 rounded-full px-3 text-xs"
+                          className="h-10 rounded-full px-3 text-xs"
                         >
                           <Plus className="h-4 w-4" /> Ajouter exercice
                         </Button>
@@ -1044,7 +1045,7 @@ export default function SwimCatalog() {
                           variant="destructive"
                           size="sm"
                           onClick={() => removeBlock(blockIndex)}
-                          className="h-9 rounded-full px-3 text-xs"
+                          className="h-10 rounded-full px-3 text-xs"
                         >
                           <Trash2 className="h-4 w-4" /> Supprimer bloc
                         </Button>
@@ -1130,7 +1131,7 @@ export default function SwimCatalog() {
         <p className="text-sm text-muted-foreground mt-2">
           {sessionsError instanceof Error ? sessionsError.message : "Une erreur s'est produite"}
         </p>
-        <Button onClick={() => refetchSessions()} className="mt-4">
+        <Button variant="default" onClick={() => refetchSessions()} className="mt-4 h-12 md:h-10">
           Réessayer
         </Button>
       </div>
@@ -1175,7 +1176,7 @@ export default function SwimCatalog() {
             <p className="text-xs text-destructive/80 mt-1">
               {assignmentsErrorObj instanceof Error ? assignmentsErrorObj.message : "Une erreur s'est produite"}
             </p>
-            <Button variant="outline" size="sm" onClick={() => refetchAssignments()} className="mt-2">
+            <Button variant="outline" size="sm" onClick={() => refetchAssignments()} className="mt-2 h-10">
               Réessayer
             </Button>
           </div>
