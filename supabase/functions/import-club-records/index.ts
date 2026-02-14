@@ -65,6 +65,20 @@ async function verifyCallerRole(
 
   const token = authHeader.replace("Bearer ", "");
 
+  // Detect service_role token by decoding JWT payload
+  try {
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const payload = JSON.parse(atob(parts[1]));
+      if (payload.role === "service_role") {
+        // Service role token: bypass user auth, return admin privileges
+        return { role: "admin", userId: 0 }; // userId 0 = system/service
+      }
+    }
+  } catch (e) {
+    // Invalid JWT format, continue to user auth check
+  }
+
   const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
