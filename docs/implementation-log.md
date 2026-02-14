@@ -39,6 +39,131 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §15 Feature: PWA install prompt banner (InstallPrompt component) | ✅ Fait | 2026-02-14 |
 | §16 Accessibility: ARIA live regions for dynamic content updates | ✅ Fait | 2026-02-14 |
 | §17 Accessibility: Keyboard navigation for Dashboard and Strength | ✅ Fait | 2026-02-14 |
+| §18 Framer Motion: Animation system implementation | ✅ Fait | 2026-02-14 |
+
+---
+
+## 2026-02-14 — Framer Motion: Animation system implementation (§18)
+
+**Branche** : `main`
+**Chantier ROADMAP** : Phase 5 - Polish & Performance
+
+### Contexte — Pourquoi ce patch
+
+Framer Motion v12 est installé dans le projet mais sous-utilisé. L'objectif est d'implémenter un système d'animations cohérent et performant pour améliorer l'UX sans impacter les performances. Les animations doivent :
+- Être fluides (60fps)
+- Respecter les préférences d'accessibilité (motion-reduce)
+- Rester subtiles et ne pas distraire l'utilisateur
+- Améliorer le feedback visuel sur les actions clés
+
+### Changements réalisés — Ce qui a été modifié
+
+1. **Bibliothèque d'animations** (`src/lib/animations.ts`)
+   - 8 presets d'animations réutilisables avec variants Framer Motion
+   - Animations simples : fadeIn, slideUp, scaleIn
+   - Animations de liste : staggerChildren + listItem
+   - Animations de feedback : successBounce
+   - Animations pour panels : slideInFromBottom, slideInFromRight
+
+2. **Page Strength** (`src/pages/Strength.tsx`)
+   - Import de motion et des animations staggerChildren/listItem
+   - Wrapping de la session list avec motion.div et variants staggerChildren
+   - Chaque session card devient motion.button avec variant listItem
+   - Animation stagger de 50ms entre chaque carte (staggerChildren: 0.05)
+
+3. **Page Records** (`src/pages/Records.tsx`)
+   - Import de motion et animations
+   - Wrapping des swim records avec motion.div + staggerChildren/listItem
+   - Wrapping des strength (1RM) records avec motion.div + staggerChildren/listItem
+   - Animation progressive de chaque ligne de record
+
+4. **BottomActionBar** (`src/components/shared/BottomActionBar.tsx`)
+   - Import de motion, AnimatePresence et successBounce
+   - AnimatePresence pour gérer les transitions entre états
+   - Animation successBounce avec spring physics pour l'état "saved"
+   - Animation scale pour l'icône CheckCircle2 (effet de pop)
+   - Exit animation pour les transitions fluides
+
+5. **Dialog** (`src/components/ui/dialog.tsx`)
+   - Ajout de motion-reduce:animate-none sur overlay et content
+   - Respect des préférences d'accessibilité pour reduced motion
+
+6. **Drawer** (`src/components/ui/drawer.tsx`)
+   - Ajout de motion-reduce:animate-none sur overlay et content
+   - Cohérence avec Dialog pour l'accessibilité
+
+### Fichiers modifiés — Tableau fichier / nature
+
+| Fichier | Nature | Lignes |
+|---------|--------|--------|
+| `src/lib/animations.ts` | Création | 77 |
+| `src/pages/Strength.tsx` | Modification (animations) | +7 lignes |
+| `src/pages/Records.tsx` | Modification (animations) | +8 lignes |
+| `src/components/shared/BottomActionBar.tsx` | Modification (animations) | +20 lignes |
+| `src/components/ui/dialog.tsx` | Modification (accessibility) | +2 lignes |
+| `src/components/ui/drawer.tsx` | Modification (accessibility) | +2 lignes |
+
+### Tests — Checklist build/test/tsc + tests manuels
+
+- [x] `npx tsc --noEmit` : ✅ Pas d'erreurs TypeScript
+- [x] `npm run build` : ✅ Build réussi en 4.71s
+- [x] Bundle animations : animations-BPeNADWv.js (112.36 kB │ gzip: 36.98 kB)
+- [x] motion-reduce:animate-none présent sur tous les composants animés
+- [ ] Tests visuels manuels requis :
+  - Strength page : vérifier animation stagger des sessions
+  - Records page : vérifier animation stagger des records swim/strength
+  - BottomActionBar : vérifier bounce animation sur "saved"
+  - Dialog/Drawer : vérifier que les animations respectent reduced motion
+
+### Décisions prises — Choix techniques et arbitrages
+
+1. **Animation durations** : 150-300ms pour rester subtiles
+   - fadeIn : 200ms
+   - slideUp : 300ms
+   - scaleIn : 200ms
+   - stagger delay : 50ms
+
+2. **Spring physics pour successBounce** : stiffness=300, damping=20
+   - Effet de bounce marqué mais pas excessif
+   - Feedback visuel clair pour l'état "saved"
+
+3. **motion-reduce:animate-none** systématique
+   - Ajouté sur tous les composants avec animations
+   - Respect WCAG 2.1 AA (Guideline 2.3.3)
+
+4. **Stagger children pattern**
+   - Utilisé pour les listes (sessions, records)
+   - Améliore la perception de l'ordre et de la hiérarchie
+   - 50ms entre items (perceptible sans être lent)
+
+5. **AnimatePresence sur BottomActionBar**
+   - Permet les transitions fluides entre états idle/saving/saved/error
+   - Mode "wait" pour éviter chevauchement des animations
+
+### Limites / dette — Ce qui reste imparfait
+
+1. **Tests visuels manuels requis**
+   - Les animations n'ont pas été testées visuellement dans un navigateur
+   - Vérifier que le stagger n'est pas trop rapide/lent
+   - Vérifier que successBounce n'est pas trop prononcé
+
+2. **Pas d'animations sur tous les composants**
+   - Focus sur les 3 pages principales + BottomActionBar
+   - D'autres composants pourraient bénéficier d'animations (Dashboard calendar, etc.)
+
+3. **Bundle size**
+   - animations chunk : 112 KB (37 KB gzipped)
+   - Acceptable mais surveiller si d'autres animations sont ajoutées
+   - Possibilité de code-split si nécessaire
+
+4. **Pas de layout animations**
+   - Les animations sont limitées à opacity, scale, x, y
+   - Pas d'animations de layout (layoutId, layout prop) pour éviter les rerenders complexes
+   - Pourrait être ajouté plus tard si besoin (ex: réorganisation de listes)
+
+5. **Pas de tests automatisés pour animations**
+   - Difficile de tester les animations de manière automatisée
+   - Repose sur tests visuels manuels
 
 ---
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Bell, Download, Dumbbell, HeartPulse, MessageSquare, Trophy, Users, Waves } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import StrengthCatalog from "./coach/StrengthCatalog";
-import SwimCatalog from "./coach/SwimCatalog";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -18,6 +17,10 @@ import CoachMessagesScreen from "./coach/CoachMessagesScreen";
 import ComingSoon from "./ComingSoon";
 import { FEATURES } from "@/lib/features";
 import type { LocalStrengthRun } from "@/lib/types";
+
+// Lazy load heavy catalog components
+const StrengthCatalog = lazy(() => import("./coach/StrengthCatalog"));
+const SwimCatalog = lazy(() => import("./coach/SwimCatalog"));
 
 type CoachSection = "home" | "swim" | "strength" | "swimmers" | "assignments" | "messaging";
 type KpiLookbackPeriod = 7 | 30 | 365;
@@ -544,7 +547,9 @@ export default function Coach() {
               </Button>
             }
           />
-          <SwimCatalog />
+          <Suspense fallback={<PageSkeleton />}>
+            <SwimCatalog />
+          </Suspense>
         </div>
       ) : null}
 
@@ -562,7 +567,9 @@ export default function Coach() {
             }
           />
           {FEATURES.coachStrength ? (
-            <StrengthCatalog />
+            <Suspense fallback={<PageSkeleton />}>
+              <StrengthCatalog />
+            </Suspense>
           ) : (
             <ComingSoon
               title="Musculation coach"

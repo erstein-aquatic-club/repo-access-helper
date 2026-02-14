@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { WorkoutRunner, resolveNextStep } from "@/components/strength/WorkoutRunner";
 import { BottomActionBar, SaveState } from "@/components/shared/BottomActionBar";
 import type { SetLogEntry, LocalStrengthRun, UpdateStrengthRunInput, OneRmEntry } from "@/lib/types";
+import { motion } from "framer-motion";
+import { staggerChildren, listItem } from "@/lib/animations";
 
 const normalizeStrengthCycle = (value?: string | null): StrengthCycleType => {
   if (value === "endurance" || value === "hypertrophie" || value === "force") {
@@ -1123,18 +1125,24 @@ export default function Strength() {
 
                         {/* Sessions list - modern cards */}
                         {filteredDisplaySessions.length > 0 ? (
-                            <div className="space-y-3">
+                            <motion.div
+                                className="space-y-3 motion-reduce:animate-none"
+                                variants={staggerChildren}
+                                initial="hidden"
+                                animate="visible"
+                            >
                                 {filteredDisplaySessions.map((session, index) => {
                                     const isFocused = selectedSessionIndex === index || (selectedSessionIndex === null && index === 0);
                                     return (
-                                    <button
+                                    <motion.button
                                         key={session.key}
                                         type="button"
                                         tabIndex={isFocused ? 0 : -1}
                                         data-session-card="true"
                                         onKeyDown={(e) => handleSessionListKeyDown(e, index)}
+                                        variants={listItem}
                                         className={cn(
-                                            "group w-full rounded-2xl border bg-card p-4 text-left shadow-sm transition-all active:scale-[0.98] hover:shadow-md hover:border-primary/30 focus:outline-none",
+                                            "group w-full rounded-2xl border bg-card p-4 text-left shadow-sm transition-all active:scale-[0.98] hover:shadow-md hover:border-primary/30 focus:outline-none motion-reduce:animate-none",
                                             isFocused && "ring-2 ring-primary"
                                         )}
                                         onClick={() => {
@@ -1184,9 +1192,9 @@ export default function Strength() {
                                                 <Play className="h-4 w-4 ml-0.5" />
                                             </div>
                                         </div>
-                                    </button>
+                                    </motion.button>
                                 )})}
-                            </div>
+                            </motion.div>
                         ) : (
                             <div className="py-12 text-center">
                                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
 // Retry wrapper for lazy imports — handles stale chunk filenames after deployments
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,7 +59,7 @@ const SwimSessionView = lazyWithRetry(() => import("@/pages/SwimSessionView"));
 const ComingSoon = lazyWithRetry(() => import("@/pages/ComingSoon"));
 const NotFound = lazyWithRetry(() => import("@/pages/not-found"));
 
-// Loading fallback for lazy components
+// Loading fallback for lazy components (kept for backward compatibility)
 function PageLoader() {
   return (
     <div className="flex items-center justify-center min-h-[50vh]">
@@ -193,7 +194,7 @@ function AppRouter() {
   if (!user) {
     return (
       <ErrorBoundary>
-        <Suspense fallback={<PageLoader />}>
+        <Suspense fallback={<PageSkeleton />}>
           <Switch>
             <Route path="/reset-password" component={ResetPassword} />
             <Route path="/" component={Login} />
@@ -226,7 +227,7 @@ function AppRouter() {
   return (
     <AppLayout>
       <ErrorBoundary>
-        <Suspense fallback={<PageLoader />}>
+        <Suspense fallback={<PageSkeleton />}>
           <Switch>
             <Route path="/reset-password" component={ResetPassword} />
             <Route path="/" component={Dashboard} />

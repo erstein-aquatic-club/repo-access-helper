@@ -1,6 +1,8 @@
 import React from "react";
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { successBounce } from "@/lib/animations";
 
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -43,37 +45,50 @@ export function BottomActionBar({
       )}
     >
       {/* Save state indicator */}
-      {saveState !== "idle" && (
-        <div
-          className={cn(
-            "mx-auto mb-2 flex max-w-md items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium shadow-lg transition-all duration-300 animate-in slide-in-from-bottom-2 motion-reduce:animate-none",
-            saveState === "saving" && "bg-muted text-muted-foreground",
-            saveState === "saved" && "bg-status-success text-white",
-            saveState === "error" && "bg-destructive text-destructive-foreground"
-          )}
-          role="status"
-          aria-live="polite"
-        >
-          {saveState === "saving" && (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>{saveMessage || "Enregistrement..."}</span>
-            </>
-          )}
-          {saveState === "saved" && (
-            <>
-              <CheckCircle2 className="h-4 w-4" />
-              <span>{saveMessage || "Enregistré"}</span>
-            </>
-          )}
-          {saveState === "error" && (
-            <>
-              <AlertCircle className="h-4 w-4" />
-              <span>{saveMessage || "Erreur lors de l'enregistrement"}</span>
-            </>
-          )}
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {saveState !== "idle" && (
+          <motion.div
+            key={saveState}
+            variants={saveState === "saved" ? successBounce : undefined}
+            initial="hidden"
+            animate="visible"
+            exit={{ opacity: 0, scale: 0.8 }}
+            className={cn(
+              "mx-auto mb-2 flex max-w-md items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium shadow-lg motion-reduce:animate-none",
+              saveState === "saving" && "bg-muted text-muted-foreground",
+              saveState === "saved" && "bg-status-success text-white",
+              saveState === "error" && "bg-destructive text-destructive-foreground"
+            )}
+            role="status"
+            aria-live="polite"
+          >
+            {saveState === "saving" && (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>{saveMessage || "Enregistrement..."}</span>
+              </>
+            )}
+            {saveState === "saved" && (
+              <>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                </motion.div>
+                <span>{saveMessage || "Enregistré"}</span>
+              </>
+            )}
+            {saveState === "error" && (
+              <>
+                <AlertCircle className="h-4 w-4" />
+                <span>{saveMessage || "Erreur lors de l'enregistrement"}</span>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div
         className={cn(

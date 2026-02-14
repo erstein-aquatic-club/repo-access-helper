@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { shouldShowRecords } from "@/pages/Profile";
 import { Check, ChevronDown, Clock, Dumbbell, Edit2, Download, RefreshCw, StickyNote, Trophy, Waves, X, AlertCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { motion } from "framer-motion";
+import { staggerChildren, listItem } from "@/lib/animations";
 
 type OneRmRecord = {
   exercise_id: number;
@@ -740,7 +742,12 @@ export default function Records() {
                         </div>
                       </div>
 
-                      <div className="divide-y divide-border">
+                      <motion.div
+                        className="divide-y divide-border motion-reduce:animate-none"
+                        variants={staggerChildren}
+                        initial="hidden"
+                        animate="visible"
+                      >
                         {filteredSwimRecords.map((record) => {
                           const isEditing = swimEditorOpenFor === record.id;
                           const time = formatTimeSeconds(record.time_seconds);
@@ -764,7 +771,7 @@ export default function Records() {
                             "";
 
                           return (
-                            <div key={record.id} className="px-3 sm:px-4 py-3">
+                            <motion.div key={record.id} className="px-3 sm:px-4 py-3 motion-reduce:animate-none" variants={listItem}>
                               <div className={cx("grid items-center gap-2", swimCols)}>
                                 <div className="min-w-0 justify-self-start">
                                   <div className="text-sm font-semibold truncate">{record.event_name}</div>
@@ -871,10 +878,10 @@ export default function Records() {
                                   </div>
                                 </div>
                               ) : null}
-                            </div>
+                            </motion.div>
                           );
                         })}
-                      </div>
+                      </motion.div>
                     </div>
                   )}
                 </CardContent>
@@ -1177,7 +1184,12 @@ export default function Records() {
                       Impossible de charger les records musculation.
                     </div>
                   ) : (
-                    <div className="divide-y divide-border">
+                    <motion.div
+                      className="divide-y divide-border motion-reduce:animate-none"
+                      variants={staggerChildren}
+                      initial="hidden"
+                      animate="visible"
+                    >
                       {(exercises as Exercise[])
                         ?.filter((e) => e.exercise_type !== "warmup")
                         .map((ex) => {
@@ -1192,7 +1204,7 @@ export default function Records() {
                           const isEditingNote = editingNoteExerciseId === ex.id;
 
                           return (
-                            <div key={ex.id} className="px-3 sm:px-4 py-3">
+                            <motion.div key={ex.id} className="px-3 sm:px-4 py-3 motion-reduce:animate-none" variants={listItem}>
                               <div className="flex items-start justify-between gap-4">
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
@@ -1330,10 +1342,10 @@ export default function Records() {
                                   </div>
                                 </div>
                               ) : null}
-                            </div>
+                            </motion.div>
                           );
                         })}
-                    </div>
+                    </motion.div>
                   )}
 
                   {update1RM.isPending ? (

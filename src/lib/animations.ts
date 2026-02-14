@@ -1,0 +1,87 @@
+import { Variants } from "framer-motion";
+
+/**
+ * Framer Motion animation presets for consistent, performant animations.
+ * All animations include reduced motion support via Tailwind's motion-reduce utility.
+ */
+
+// Basic fade in animation
+export const fadeIn: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.2 } },
+};
+
+// Slide up with fade
+export const slideUp: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+};
+
+// Scale in with fade
+export const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.2 } },
+};
+
+// Stagger children animation
+export const staggerChildren = {
+  visible: { transition: { staggerChildren: 0.05 } },
+};
+
+// List item animation (for use with staggerChildren)
+export const listItem: Variants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: { opacity: 1, x: 0 },
+};
+
+// Success animation with bounce effect
+export const successBounce: Variants = {
+  hidden: { opacity: 0, scale: 0.8 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 20,
+    },
+  },
+};
+
+// Slide in from bottom (for drawers)
+export const slideInFromBottom: Variants = {
+  hidden: { opacity: 0, y: "100%" },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 30,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: "100%",
+    transition: { duration: 0.2 },
+  },
+};
+
+// Slide in from right (for side panels)
+export const slideInFromRight: Variants = {
+  hidden: { opacity: 0, x: "100%" },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 30,
+    },
+  },
+  exit: {
+    opacity: 0,
+    x: "100%",
+    transition: { duration: 0.2 },
+  },
+};

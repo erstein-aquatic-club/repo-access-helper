@@ -14,6 +14,8 @@ import {
   toRelativeScore,
 } from "@/pages/hallOfFame/valueUtils";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
+import { staggerChildren, listItem } from "@/lib/animations";
 import type { HallOfFameData, HallOfFameSwimDistance, HallOfFameSwimPerformance, HallOfFameSwimEngagement, HallOfFameStrength } from "@/lib/types";
 
 export default function HallOfFame() {
@@ -130,23 +132,30 @@ export default function HallOfFame() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {swimDistance.map((item, index) => {
-                      const distanceKm = item.total_distance ? item.total_distance / 1000 : 0;
-                      return (
-                    <div key={item.athlete_name} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
-                        <div className="flex items-center gap-4 min-w-0">
-                        <RankIcon rank={index} />
-                        <div className="font-bold uppercase tracking-tight truncate">{item.athlete_name}</div>
-                        </div>
-                        <div className="shrink-0">
-                          <HallOfFameValue
-                          value={formatHallOfFameValue(distanceKm, { decimals: 1, suffix: "km" })}
-                          toneScore={toRelativeScore(item.total_distance, distanceRange)}
-                          />
-                        </div>
-                    </div>
-                      );
-                    })}
+                    <motion.div
+                      variants={staggerChildren}
+                      initial="hidden"
+                      animate="visible"
+                      className="space-y-4"
+                    >
+                      {swimDistance.map((item, index) => {
+                        const distanceKm = item.total_distance ? item.total_distance / 1000 : 0;
+                        return (
+                      <motion.div key={item.athlete_name} variants={listItem} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
+                          <div className="flex items-center gap-4 min-w-0">
+                          <RankIcon rank={index} />
+                          <div className="font-bold uppercase tracking-tight truncate">{item.athlete_name}</div>
+                          </div>
+                          <div className="shrink-0">
+                            <HallOfFameValue
+                            value={formatHallOfFameValue(distanceKm, { decimals: 1, suffix: "km" })}
+                            toneScore={toRelativeScore(item.total_distance, distanceRange)}
+                            />
+                          </div>
+                      </motion.div>
+                        );
+                      })}
+                    </motion.div>
                     {swimDistance.length === 0 && <div className="text-center text-muted-foreground py-4">Aucune donnée</div>}
                 </CardContent>
                 </Card>
@@ -159,20 +168,27 @@ export default function HallOfFame() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {swimPerformance.map((item, index) => (
-                    <div key={item.athlete_name} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
-                        <div className="flex items-center gap-4 min-w-0">
-                        <RankIcon rank={index} />
-                        <div className="font-bold uppercase tracking-tight truncate">{item.athlete_name}</div>
-                        </div>
-                        <div className="shrink-0">
-                          <HallOfFameValue
-                          value={formatHallOfFameValue(item.avg_effort, { decimals: 1 })}
-                          toneScore={item.avg_effort}
-                          />
-                        </div>
-                    </div>
-                    ))}
+                    <motion.div
+                      variants={staggerChildren}
+                      initial="hidden"
+                      animate="visible"
+                      className="space-y-4"
+                    >
+                      {swimPerformance.map((item, index) => (
+                      <motion.div key={item.athlete_name} variants={listItem} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
+                          <div className="flex items-center gap-4 min-w-0">
+                          <RankIcon rank={index} />
+                          <div className="font-bold uppercase tracking-tight truncate">{item.athlete_name}</div>
+                          </div>
+                          <div className="shrink-0">
+                            <HallOfFameValue
+                            value={formatHallOfFameValue(item.avg_effort, { decimals: 1 })}
+                            toneScore={item.avg_effort}
+                            />
+                          </div>
+                      </motion.div>
+                      ))}
+                    </motion.div>
                     {swimPerformance.length === 0 && <div className="text-center text-muted-foreground py-4">Aucune donnée</div>}
                 </CardContent>
                 </Card>
@@ -185,20 +201,27 @@ export default function HallOfFame() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {swimEngagement.map((item, index) => (
-                    <div key={`${item.athlete_name}-engagement`} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
-                        <div className="flex items-center gap-4 min-w-0">
-                        <RankIcon rank={index} />
-                        <div className="font-bold uppercase tracking-tight truncate">{item.athlete_name}</div>
-                        </div>
-                        <div className="shrink-0">
-                          <HallOfFameValue
-                          value={formatHallOfFameValue(item.avg_engagement, { decimals: 1 })}
-                          toneScore={item.avg_engagement}
-                          />
-                        </div>
-                    </div>
-                    ))}
+                    <motion.div
+                      variants={staggerChildren}
+                      initial="hidden"
+                      animate="visible"
+                      className="space-y-4"
+                    >
+                      {swimEngagement.map((item, index) => (
+                      <motion.div key={`${item.athlete_name}-engagement`} variants={listItem} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
+                          <div className="flex items-center gap-4 min-w-0">
+                          <RankIcon rank={index} />
+                          <div className="font-bold uppercase tracking-tight truncate">{item.athlete_name}</div>
+                          </div>
+                          <div className="shrink-0">
+                            <HallOfFameValue
+                            value={formatHallOfFameValue(item.avg_engagement, { decimals: 1 })}
+                            toneScore={item.avg_engagement}
+                            />
+                          </div>
+                      </motion.div>
+                      ))}
+                    </motion.div>
                     {swimEngagement.length === 0 && <div className="text-center text-muted-foreground py-4">Aucune donnée</div>}
                 </CardContent>
                 </Card>
@@ -215,20 +238,27 @@ export default function HallOfFame() {
                       </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                      {strengthTonnage.map((item, index) => (
-                           <div key={item.athlete_name} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
-                              <div className="flex items-center gap-4 min-w-0">
-                              <RankIcon rank={index} />
-                              <div className="font-bold uppercase tracking-tight truncate">{item.athlete_name}</div>
-                              </div>
-                              <div className="shrink-0">
-                                <HallOfFameValue
-                                  value={formatHallOfFameValue(Number(item.total_volume ?? 0), { suffix: "kg" })}
-                                  toneScore={toRelativeScore(Number(item.total_volume ?? 0), tonnageRange)}
-                                />
-                              </div>
-                          </div>
-                      ))}
+                      <motion.div
+                        variants={staggerChildren}
+                        initial="hidden"
+                        animate="visible"
+                        className="space-y-4"
+                      >
+                        {strengthTonnage.map((item, index) => (
+                             <motion.div key={item.athlete_name} variants={listItem} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
+                                <div className="flex items-center gap-4 min-w-0">
+                                <RankIcon rank={index} />
+                                <div className="font-bold uppercase tracking-tight truncate">{item.athlete_name}</div>
+                                </div>
+                                <div className="shrink-0">
+                                  <HallOfFameValue
+                                    value={formatHallOfFameValue(Number(item.total_volume ?? 0), { suffix: "kg" })}
+                                    toneScore={toRelativeScore(Number(item.total_volume ?? 0), tonnageRange)}
+                                  />
+                                </div>
+                            </motion.div>
+                        ))}
+                      </motion.div>
                       {strengthTonnage.length === 0 && <div className="text-center text-muted-foreground py-4">Aucune donnée</div>}
                   </CardContent>
               </Card>
@@ -241,20 +271,27 @@ export default function HallOfFame() {
                       </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                      {strengthReps.map((item, index) => (
-                           <div key={`${item.athlete_name}-reps`} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
-                              <div className="flex items-center gap-4 min-w-0">
-                              <RankIcon rank={index} />
-                              <div className="font-bold uppercase tracking-tight truncate">{item.athlete_name}</div>
-                              </div>
-                              <div className="shrink-0">
-                                <HallOfFameValue
-                                  value={formatHallOfFameValue(Number(item.total_reps ?? 0), { suffix: "reps" })}
-                                  toneScore={toRelativeScore(Number(item.total_reps ?? 0), repsRange)}
-                                />
-                              </div>
-                          </div>
-                      ))}
+                      <motion.div
+                        variants={staggerChildren}
+                        initial="hidden"
+                        animate="visible"
+                        className="space-y-4"
+                      >
+                        {strengthReps.map((item, index) => (
+                             <motion.div key={`${item.athlete_name}-reps`} variants={listItem} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30">
+                                <div className="flex items-center gap-4 min-w-0">
+                                <RankIcon rank={index} />
+                                <div className="font-bold uppercase tracking-tight truncate">{item.athlete_name}</div>
+                                </div>
+                                <div className="shrink-0">
+                                  <HallOfFameValue
+                                    value={formatHallOfFameValue(Number(item.total_reps ?? 0), { suffix: "reps" })}
+                                    toneScore={toRelativeScore(Number(item.total_reps ?? 0), repsRange)}
+                                  />
+                                </div>
+                            </motion.div>
+                        ))}
+                      </motion.div>
                       {strengthReps.length === 0 && <div className="text-center text-muted-foreground py-4">Aucune donnée</div>}
                   </CardContent>
               </Card>
