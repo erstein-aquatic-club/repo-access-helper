@@ -248,7 +248,7 @@ export default function RecordsAdmin() {
   }, [swimmers]);
 
   const incompleteCount = useMemo(
-    () => swimmers.filter((s) => s.is_active && (!s.iuf || !s.sex)).length,
+    () => swimmers.filter((s) => s.is_active && (!s.iuf || !s.sex || !s.birthdate)).length,
     [swimmers],
   );
 
@@ -362,7 +362,7 @@ export default function RecordsAdmin() {
           {!isLoading && incompleteCount > 0 && (
             <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
               <strong>{incompleteCount} nageur{incompleteCount > 1 ? "s" : ""} incomplet{incompleteCount > 1 ? "s" : ""}</strong>{" "}
-              — les champs IUF et Sexe sont requis pour le calcul des records.
+              — les champs IUF, Sexe et Année de naissance sont requis pour le calcul des records.
             </div>
           )}
           {isLoading && (
@@ -390,6 +390,7 @@ export default function RecordsAdmin() {
                     <TableHead>Source</TableHead>
                     <TableHead>IUF</TableHead>
                     <TableHead>Sexe</TableHead>
+                    <TableHead>Année naiss.</TableHead>
                     <TableHead>Dernière maj</TableHead>
                     <TableHead>Actif</TableHead>
                     <TableHead>Actions</TableHead>
@@ -435,6 +436,23 @@ export default function RecordsAdmin() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          key={`${rowKey}-birth-${swimmer.birthdate ?? ""}`}
+                          type="number"
+                          placeholder="Année"
+                          defaultValue={swimmer.birthdate ? new Date(swimmer.birthdate).getFullYear() : ""}
+                          onBlur={(event) => {
+                            const year = event.target.value.trim();
+                            if (year && /^\d{4}$/.test(year)) {
+                              updateSwimmerEntry(swimmer, { birthdate: `${year}-01-01` });
+                            } else if (!year) {
+                              updateSwimmerEntry(swimmer, { birthdate: null });
+                            }
+                          }}
+                          className={cn("w-20", swimmer.is_active && !swimmer.birthdate && "ring-2 ring-amber-400/50")}
+                        />
                       </TableCell>
                       <TableCell>
                         <span className={stale ? "text-amber-600 dark:text-amber-400 text-xs font-medium" : "text-xs text-muted-foreground"}>
