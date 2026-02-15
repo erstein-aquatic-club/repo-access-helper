@@ -23,7 +23,7 @@ const WHITE: [number, number, number] = [255, 255, 255];
 // ── Constants ──
 
 const AGE_COLS = [
-  { age: 8, label: "≤8" },
+  { age: 8, label: "8-" },
   { age: 9, label: "9" },
   { age: 10, label: "10" },
   { age: 11, label: "11" },
