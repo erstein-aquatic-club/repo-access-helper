@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
+import { UpdateNotification } from "@/components/shared/UpdateNotification";
 
 // Retry wrapper for lazy imports — handles stale chunk filenames after deployments
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -290,6 +291,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <UpdateNotification />
         <Toaster />
         <Router hook={useHashLocation}>
           <AppRouter />
