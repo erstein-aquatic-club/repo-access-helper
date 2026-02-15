@@ -45,7 +45,7 @@ function IconButton({ onClick, label, children, tone = "neutral", disabled }: Ic
 
 interface CalendarHeaderProps {
   monthCursor: Date;
-  selectedDayStatus: { completed: number; total: number; slots: Array<{ slotKey: "AM" | "PM"; expected: boolean; completed: boolean }> };
+  selectedDayStatus: { completed: number; total: number; slots: Array<{ slotKey: "AM" | "PM"; expected: boolean; completed: boolean; absent: boolean }> };
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onJumpToday: () => void;
@@ -74,7 +74,7 @@ export function CalendarHeader({ monthCursor, selectedDayStatus, onPrevMonth, on
                   key={s.slotKey}
                   className={cn(
                     "h-1.5 w-1.5 rounded-full",
-                    s.completed ? "bg-status-success" : "bg-muted-foreground/30"
+                    s.completed ? "bg-status-success" : s.absent ? "bg-muted-foreground/15" : "bg-muted-foreground/30"
                   )}
                 />
               ))

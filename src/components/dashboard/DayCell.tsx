@@ -10,7 +10,7 @@ function toISODate(d: Date) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
-type SlotStatus = { slotKey: "AM" | "PM"; expected: boolean; completed: boolean };
+type SlotStatus = { slotKey: "AM" | "PM"; expected: boolean; completed: boolean; absent: boolean };
 
 interface DayCellProps {
   date: Date;
@@ -35,8 +35,9 @@ export const DayCell = memo(function DayCell({
 }: DayCellProps) {
   const { total, slots } = status;
   const isRest = total === 0;
-
-  const allDone = total > 0 && status.completed === total;
+  const expectedSlots = slots.filter((s) => s.expected);
+  const allAbsent = expectedSlots.length > 0 && expectedSlots.every((s) => s.absent);
+  const allDone = total > 0 && status.completed === total && !allAbsent;
   const bg = isRest ? "bg-muted/30" : allDone ? "bg-status-success/10" : "bg-card";
   const border = "border-border";
 
@@ -80,13 +81,13 @@ export const DayCell = memo(function DayCell({
               <div className="flex gap-1">
                 {/* AM pill (left position) */}
                 {amSlot?.expected ? (
-                  <span className={cn("h-1.5 flex-1 rounded-full", amSlot.completed ? "bg-status-success" : "bg-muted-foreground/30")} />
+                  <span className={cn("h-1.5 flex-1 rounded-full", amSlot.completed ? "bg-status-success" : amSlot.absent ? "bg-muted-foreground/15" : "bg-muted-foreground/30")} />
                 ) : (
                   <span className="flex-1" />
                 )}
                 {/* PM pill (right position) */}
                 {pmSlot?.expected ? (
-                  <span className={cn("h-1.5 flex-1 rounded-full", pmSlot.completed ? "bg-status-success" : "bg-muted-foreground/30")} />
+                  <span className={cn("h-1.5 flex-1 rounded-full", pmSlot.completed ? "bg-status-success" : pmSlot.absent ? "bg-muted-foreground/15" : "bg-muted-foreground/30")} />
                 ) : (
                   <span className="flex-1" />
                 )}

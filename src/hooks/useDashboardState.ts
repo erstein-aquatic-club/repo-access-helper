@@ -433,7 +433,7 @@ export function useDashboardState({ sessions, assignments, userId, user }: UseDa
   }, [monthStart]);
 
   const completionByISO = useMemo(() => {
-    const map: Record<string, { completed: number; total: number; slots: Array<{ slotKey: "AM" | "PM"; expected: boolean; completed: boolean }> }> = {};
+    const map: Record<string, { completed: number; total: number; slots: Array<{ slotKey: "AM" | "PM"; expected: boolean; completed: boolean; absent: boolean }> }> = {};
 
     for (const d of gridDates) {
       const iso = toISODate(d);
@@ -441,22 +441,21 @@ export function useDashboardState({ sessions, assignments, userId, user }: UseDa
 
       let total = 0;
       let completed = 0;
-      const slots: Array<{ slotKey: "AM" | "PM"; expected: boolean; completed: boolean }> = [];
+      const slots: Array<{ slotKey: "AM" | "PM"; expected: boolean; completed: boolean; absent: boolean }> = [];
 
       for (const s of planned) {
         const st = getSessionStatus(s, d);
         if (!st.expected) {
-          slots.push({ slotKey: s.slotKey, expected: false, completed: false });
+          slots.push({ slotKey: s.slotKey, expected: false, completed: false, absent: false });
           continue;
         }
         total += 1;
 
         const hasLog = Boolean(logsBySessionId[s.id]);
         const isAbsent = st.status === "absent";
-        const isDone = hasLog || isAbsent;
-        if (isDone) completed += 1;
+        if (hasLog) completed += 1;
 
-        slots.push({ slotKey: s.slotKey, expected: true, completed: isDone });
+        slots.push({ slotKey: s.slotKey, expected: true, completed: hasLog, absent: isAbsent });
       }
 
       map[iso] = { completed, total, slots };
@@ -472,7 +471,7 @@ export function useDashboardState({ sessions, assignments, userId, user }: UseDa
 
   const sessionsForSelectedDay = useMemo(() => getSessionsForISO(selectedISO), [getSessionsForISO, selectedISO]);
 
-  const selectedDayStatus = completionByISO[selectedISO] || { completed: 0, total: 2, slots: [{ slotKey: "AM" as const, expected: true, completed: false }, { slotKey: "PM" as const, expected: true, completed: false }] };
+  const selectedDayStatus = completionByISO[selectedISO] || { completed: 0, total: 2, slots: [{ slotKey: "AM" as const, expected: true, completed: false, absent: false }, { slotKey: "PM" as const, expected: true, completed: false, absent: false }] };
 
   const globalKm = useMemo(() => {
     const list = Array.isArray(sessions) ? sessions : [];
