@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-15 (§28 Audit UX flux musculation athlete)*
+*Dernière mise à jour : 2026-02-15 (§30 Refonte mobile-first catalogue musculation coach)*
 
 ## Légende
 
@@ -61,8 +61,9 @@ Tous les feature flags sont activés.
 
 | Fonctionnalité | Statut | Fichiers | Notes |
 |----------------|--------|----------|-------|
-| Création séance | ✅ | `SwimCatalog.tsx` | Blocs, exercices, intensité, matériel |
-| Édition séance | ✅ | `SwimCatalog.tsx` | |
+| Création séance | ✅ | `SwimCatalog.tsx`, `SwimSessionBuilder.tsx` | Blocs, exercices, intensité, matériel, récupération départ/repos |
+| Édition séance | ✅ | `SwimCatalog.tsx`, `SwimSessionBuilder.tsx` | Vue accordion inline, duplication exercice |
+| Récupération entre exercices | ✅ | `SwimExerciseForm.tsx`, `SwimSessionConsultation.tsx` | Départ (temps de départ) OU Repos (pause), affiché côté nageur |
 | Catalogue | ✅ | `SwimCatalog.tsx` | Archivage, suppression |
 | Assignation | ✅ | `CoachAssignScreen.tsx` | Nage + muscu |
 
@@ -81,8 +82,8 @@ Tous les feature flags sont activés.
 
 | Fonctionnalité | Statut | Fichiers | Notes |
 |----------------|--------|----------|-------|
-| Builder séance | ✅ | `StrengthCatalog.tsx` | Activé (`coachStrength: true`) |
-| Catalogue exercices | ✅ | `StrengthCatalog.tsx` | Par cycle (endurance/hypertrophie/force) |
+| Builder séance | ✅ | `StrengthCatalog.tsx`, `StrengthSessionBuilder.tsx`, `StrengthExerciseCard.tsx` | Mobile-first : cards expand/collapse, DragDropList touch-friendly, SessionMetadataForm partagé (§30) |
+| Catalogue exercices | ✅ | `StrengthCatalog.tsx` | Par cycle (endurance/hypertrophie/force), barre de recherche, liste compacte (§30) |
 | Assignation | ✅ | `CoachAssignScreen.tsx` | Via écran d'assignation partagé |
 
 ### Records & FFN
@@ -184,9 +185,9 @@ Tous les feature flags sont activés.
 | **Phase 7: Component Architecture** |
 | Dashboard Components | ✅ | `components/dashboard/` (6 files) | CalendarHeader, DayCell, CalendarGrid, StrokeDetailForm, FeedbackDrawer, useDashboardState hook |
 | Strength Components | ✅ | `components/strength/` (3 files) | HistoryTable, SessionDetailPreview, SessionList, useStrengthState hook |
-| Swim Coach Shared | ✅ | `components/coach/shared/` (4 files) | SessionListView, SessionMetadataForm, FormActions, DragDropList (reusable) |
+| Swim Coach Shared | ✅ | `components/coach/shared/` (4 files) | SessionListView (générique T), SessionMetadataForm, FormActions, DragDropList (reusable) |
 | Swim Coach Components | ✅ | `components/coach/swim/` (2 files) | SwimExerciseForm, SwimSessionBuilder |
-| Strength Coach Components | ✅ | `components/coach/strength/` (2 files) | StrengthExerciseForm, StrengthSessionBuilder |
+| Strength Coach Components | ✅ | `components/coach/strength/` (2 files) | StrengthExerciseCard (expand/collapse), StrengthSessionBuilder (§30) |
 | **Phase 8: Design System** |
 | Storybook Setup | ✅ | `.storybook/`, story files (5) | Dark mode support, 36 story variants |
 | Design Tokens | ✅ | `lib/design-tokens.ts` | 57+ tokens (colors, durations, spacing, typography, z-index) |

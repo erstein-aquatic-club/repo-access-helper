@@ -50,6 +50,64 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §26 Audit UI: boutons masquant contenu, overflows, z-index | ✅ Fait | 2026-02-15 |
 | §27 Calendrier: pills dynamiques par creneau | ✅ Fait | 2026-02-15 |
 | §28 Audit UX flux musculation athlete (mobile first) | ✅ Fait | 2026-02-15 |
+| §29 Refonte builder séances natation coach | ✅ Fait | 2026-02-15 |
+
+---
+
+## 2026-02-15 — Refonte builder séances natation coach (§29)
+
+**Branche** : `main`
+**Chantier ROADMAP** : §29 — Refonte SwimSessionBuilder
+
+### Contexte — Pourquoi ce patch
+
+Le SwimSessionBuilder coach avait deux modes séparés (condensé lecture seule / détaillé édition) fragmentant l'expérience. Le formulaire d'exercice était verbeux (~400px/exercice). Il manquait la gestion de la récupération entre exercices (départ vs repos), concept fondamental en natation.
+
+### Changements réalisés
+
+1. **Fusion compact/détaillé en vue unique accordion** — Le toggle "Condensé / Détail" est supprimé. Les exercices sont affichés en lignes compactes (badges) cliquables. Un clic ouvre le formulaire d'édition inline sous l'exercice. Un seul exercice ouvert à la fois.
+
+2. **Récupération Départ/Repos par exercice** — Nouveau champ `restType: "departure" | "rest"` sur `SwimExercise`. Un SegmentedControl permet de choisir entre "Départ" (départ toutes les X) et "Repos" (X secondes de pause). Stepper min/sec pour la valeur. Persisté dans `raw_payload.exercise_rest_type`.
+
+3. **Formulaire exercice compacté** — Grille 4 colonnes sur desktop (reps/distance/nage/type sur une ligne), 2 colonnes sur mobile. Labels raccourcis ("Rép.", "Dist.").
+
+4. **Duplication d'exercice** — Bouton Copy sur chaque exercice, insère une copie juste après et l'ouvre en édition.
+
+5. **Affichage dans la consultation nageur** — SwimSessionConsultation affiche "Dép. 1'30" ou "Repos 30s" selon le type de récupération.
+
+6. **Titre bloc éditable inline** — Le titre du bloc est un Input transparent éditable directement dans l'en-tête compact.
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/pages/coach/SwimCatalog.tsx` | Interface SwimExercise + restType, sérialisation |
+| `src/components/coach/swim/SwimSessionBuilder.tsx` | Vue unique accordion, duplicateExercise, formatRecoveryTime |
+| `src/components/coach/swim/SwimExerciseForm.tsx` | Layout compact, récupération Départ/Repos, onDuplicate |
+| `src/components/swim/SwimSessionConsultation.tsx` | Affichage Dép./Repos, restType dans SwimExerciseDetail |
+| `src/lib/types.ts` | exercise_rest_type dans SwimPayloadFields |
+
+### Tests
+
+- [x] `npm run build` — OK (9.75s)
+- [x] `npx tsc --noEmit` — OK (erreurs pre-existantes .stories.tsx uniquement)
+- [x] `npm test` — 58 pass, 6 fail (tous pre-existants)
+- [ ] Test manuel : créer une séance avec blocs, exercices, récupération départ/repos
+- [ ] Test manuel : dupliquer un exercice, vérifier copie correcte
+- [ ] Test manuel : preview nageur, vérifier affichage Dép./Repos
+
+### Décisions prises
+
+- **Départ OU Repos** (pas les deux) par exercice — correspond à la pratique natation
+- **restType défaut = "rest"** — rétrocompatible avec les séances existantes qui avaient `rest` sans type
+- **Un seul exercice ouvert** — évite la surcharge visuelle, garde la vue d'ensemble
+- **Pas de refactoring des utilitaires dupliqués** (normalizeIntensityValue etc.) — hors scope
+
+### Limites / dette
+
+- `normalizeIntensityValue` est dupliqué dans 4+ fichiers — à extraire dans un module partagé
+- Les interfaces `SwimExercise`, `SwimBlock`, `SwimSessionDraft` sont dupliquées entre SwimCatalog.tsx et SwimSessionBuilder.tsx — à centraliser
+- Pas de drag & drop pour réordonner les exercices (boutons up/down uniquement)
 
 ---
 
@@ -3249,3 +3307,34 @@ Audit UX mobile-first du parcours musculation athlete : Liste → Reader → Foc
 
 - Les muscle tags sont gardes en ligne sous le header mais pourraient etre supprimes si l'espace reste contraint sur tres petits ecrans
 - Le bouton "Voir les series" est maintenant hors card, visuellement deconnecte — pourrait beneficier d'un regroupement visuel leger
+
+## §30 — Refonte mobile-first catalogue musculation coach
+
+**Date** : 2026-02-15
+**Contexte** : L'interface coach pour la création de séances de musculation était fonctionnelle mais pas optimisée mobile. Les exercices s'empilaient verticalement (scroll excessif), le drag & drop HTML5 ne fonctionnait pas sur iOS/Android, et le style était incohérent avec SwimCatalog.
+
+**Changements** :
+1. **StrengthExerciseCard** (`src/components/coach/strength/StrengthExerciseCard.tsx`) — Nouveau composant compact avec expand/collapse. État fermé : 1 ligne (nom + résumé sets×reps). État ouvert : grille 2×2 des champs numériques + sélecteur exercice + notes.
+2. **StrengthSessionBuilder** (`src/components/coach/strength/StrengthSessionBuilder.tsx`) — Refonte complète utilisant `SessionMetadataForm` (slot additionalFields), `DragDropList` (réordonnement touch-friendly via boutons ↑↓), et `StrengthExerciseCard`.
+3. **SessionListView** (`src/components/coach/shared/SessionListView.tsx`) — Généralisé avec type générique `T extends { id: number }` et render props (`renderTitle`, `renderMetrics`). `onArchive` rendu optionnel. SwimCatalog mis à jour.
+4. **StrengthCatalog** (`src/pages/coach/StrengthCatalog.tsx`) — Utilise `SessionListView` avec badges colorés par cycle (endurance=bleu, hypertrophie=violet, force=rouge). Barre de recherche ajoutée. Catalogue exercices en liste compacte.
+5. **Cleanup** — `StrengthExerciseForm.tsx` supprimé.
+
+**Fichiers modifiés/créés/supprimés** :
+| Fichier | Action |
+|---------|--------|
+| `src/components/coach/strength/StrengthExerciseCard.tsx` | Création |
+| `src/components/coach/strength/StrengthSessionBuilder.tsx` | Refonte |
+| `src/components/coach/shared/SessionListView.tsx` | Généralisation |
+| `src/pages/coach/SwimCatalog.tsx` | Adaptation (render props) |
+| `src/pages/coach/StrengthCatalog.tsx` | Refonte |
+| `src/components/coach/strength/StrengthExerciseForm.tsx` | Suppression |
+
+**Décisions** :
+- Approche composants partagés (vs composants dédiés muscu) pour cohérence swim/strength
+- Compact cards expand/collapse (vs inline edit) pour réduire le scroll mobile
+- `DragDropList` avec boutons ↑↓ (vs HTML5 drag API) pour compatibilité touch
+
+**Limites** :
+- Duplication de séance non implémentée (différée)
+- Pas de changement aux dialogues de création/édition d'exercice
