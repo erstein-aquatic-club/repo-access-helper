@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PasswordStrength } from "@/components/shared/PasswordStrength";
-import { fadeIn, slideUp, staggerChildren } from "@/lib/animations";
+import { fadeIn, staggerChildren } from "@/lib/animations";
 import { durationsSeconds } from "@/lib/design-tokens";
 import eacLogo from "@assets/logo-eac.png";
 import {
@@ -254,15 +254,11 @@ export default function Login() {
 
             {/* Login Tab */}
             <TabsContent value="login" className="space-y-6">
-                  <motion.form
-                    key="login-form"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: durationsSeconds.normal }}
+                  <form
                     onSubmit={loginForm.handleSubmit(handleLogin)}
                     className="space-y-4"
                   >
-                    <motion.div variants={slideUp} className="space-y-2">
+                    <div className="space-y-2">
                       <Label htmlFor="login-email">Email</Label>
                       <Input
                         id="login-email"
@@ -277,9 +273,9 @@ export default function Login() {
                           {loginForm.formState.errors.email.message}
                         </p>
                       )}
-                    </motion.div>
+                    </div>
 
-                    <motion.div variants={slideUp} className="space-y-2">
+                    <div className="space-y-2">
                       <Label htmlFor="login-password">Mot de passe</Label>
                       <div className="relative">
                         <Input
@@ -303,21 +299,19 @@ export default function Login() {
                           {loginForm.formState.errors.password.message}
                         </p>
                       )}
-                    </motion.div>
+                    </div>
 
                     {error && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                      <div
                         className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
                         role="alert"
                         aria-live="assertive"
                       >
                         {error}
-                      </motion.div>
+                      </div>
                     )}
 
-                    <motion.div variants={slideUp}>
+                    <div>
                       <Button
                         type="submit"
                         className="w-full min-h-12 text-base font-semibold"
@@ -325,9 +319,9 @@ export default function Login() {
                       >
                         {loginForm.formState.isSubmitting ? "Connexion..." : "SE CONNECTER"}
                       </Button>
-                    </motion.div>
+                    </div>
 
-                    <motion.div variants={slideUp} className="text-center">
+                    <div className="text-center">
                       <button
                         type="button"
                         onClick={() => {
@@ -339,21 +333,17 @@ export default function Login() {
                       >
                         Mot de passe oublié ?
                       </button>
-                    </motion.div>
-                  </motion.form>
+                    </div>
+                  </form>
                 </TabsContent>
 
             {/* Signup Tab */}
             <TabsContent value="signup" className="space-y-6">
-                  <motion.form
-                    key="signup-form"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: durationsSeconds.normal }}
+                  <form
                     onSubmit={signupForm.handleSubmit(handleSignup)}
                     className="space-y-4"
                   >
-                    <motion.div variants={slideUp} className="space-y-2">
+                    <div className="space-y-2">
                       <Label htmlFor="signup-name">Nom d'affichage</Label>
                       <Input
                         id="signup-name"
@@ -367,9 +357,9 @@ export default function Login() {
                           {signupForm.formState.errors.name.message}
                         </p>
                       )}
-                    </motion.div>
+                    </div>
 
-                    <motion.div variants={slideUp} className="space-y-2">
+                    <div className="space-y-2">
                       <Label htmlFor="signup-email">Email</Label>
                       <Input
                         id="signup-email"
@@ -383,10 +373,10 @@ export default function Login() {
                           {signupForm.formState.errors.email.message}
                         </p>
                       )}
-                    </motion.div>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      <motion.div variants={slideUp} className="space-y-2">
+                      <div className="space-y-2">
                         <Label htmlFor="signup-birthdate">Date de naissance</Label>
                         <Input
                           id="signup-birthdate"
@@ -399,9 +389,9 @@ export default function Login() {
                             {signupForm.formState.errors.birthdate.message}
                           </p>
                         )}
-                      </motion.div>
+                      </div>
 
-                      <motion.div variants={slideUp} className="space-y-2">
+                      <div className="space-y-2">
                         <Label htmlFor="signup-sex">Sexe</Label>
                         <Select
                           value={signupForm.watch("sex")}
@@ -420,10 +410,10 @@ export default function Login() {
                             {signupForm.formState.errors.sex.message}
                           </p>
                         )}
-                      </motion.div>
+                      </div>
                     </div>
 
-                    <motion.div variants={slideUp} className="space-y-2">
+                    <div className="space-y-2">
                       <Label htmlFor="signup-group">Groupe</Label>
                       <Select
                         value={signupForm.watch("groupId")}
@@ -454,9 +444,9 @@ export default function Login() {
                           {signupForm.formState.errors.groupId.message}
                         </p>
                       )}
-                    </motion.div>
+                    </div>
 
-                    <motion.div variants={slideUp} className="space-y-2">
+                    <div className="space-y-2">
                       <Label htmlFor="signup-password">Mot de passe</Label>
                       <div className="relative">
                         <Input
@@ -481,21 +471,19 @@ export default function Login() {
                         </p>
                       )}
                       <PasswordStrength password={signupForm.watch("password")} />
-                    </motion.div>
+                    </div>
 
                     {signupForm.formState.errors.root && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                      <div
                         className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
                         role="alert"
                         aria-live="assertive"
                       >
                         {signupForm.formState.errors.root.message}
-                      </motion.div>
+                      </div>
                     )}
 
-                    <motion.div variants={slideUp}>
+                    <div>
                       <Button
                         type="submit"
                         className="w-full min-h-12 text-base font-semibold"
@@ -503,8 +491,8 @@ export default function Login() {
                       >
                         {signupForm.formState.isSubmitting ? "Création..." : "CRÉER LE COMPTE"}
                       </Button>
-                    </motion.div>
-                  </motion.form>
+                    </div>
+                  </form>
                 </TabsContent>
           </Tabs>
         </motion.div>
