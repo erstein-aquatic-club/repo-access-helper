@@ -165,6 +165,47 @@ function assignmentPlannedKm(a: Record<string, unknown>): number | null {
   return null;
 }
 
+function assignmentPlannedStrokes(items: any[] | null | undefined): Record<string, number> | null {
+  if (!Array.isArray(items) || items.length === 0) return null;
+
+  // Map stroke names to stroke codes
+  const strokeMap: Record<string, string> = {
+    crawl: "NL",
+    dos: "DOS",
+    brasse: "BR",
+    pap: "PAP",
+    "4n": "QN",
+  };
+
+  const strokes: Record<string, number> = {
+    NL: 0,
+    DOS: 0,
+    BR: 0,
+    PAP: 0,
+    QN: 0,
+  };
+
+  for (const item of items) {
+    const distance = Number(item?.distance);
+    if (!Number.isFinite(distance) || distance <= 0) continue;
+
+    const payload = item?.raw_payload as Record<string, any> | null | undefined;
+    const exerciseStroke = payload?.exercise_stroke ?? payload?.stroke ?? "crawl";
+    const strokeCode = strokeMap[String(exerciseStroke).toLowerCase()];
+
+    if (strokeCode) {
+      strokes[strokeCode] += distance;
+    } else {
+      // Unknown stroke: distribute proportionally across all strokes or default to crawl
+      strokes.NL += distance;
+    }
+  }
+
+  // Check if any strokes have distance
+  const hasStrokes = Object.values(strokes).some((d) => d > 0);
+  return hasStrokes ? strokes : null;
+}
+
 function fmtKm(km: number | string | null | undefined) {
   const n = Number(km);
   if (!Number.isFinite(n)) return "—";
@@ -488,15 +529,39 @@ export function useDashboardState({ sessions, assignments, userId, user }: UseDa
     const activeSession = sessionsForSelectedDay.find((s) => s.id === activeSessionId);
     if (activeSession) {
       const plannedMeters = kmToMeters(activeSession.km ?? 0);
+
+      // Get planned strokes from assignment items
+      let plannedStrokes: StrokeDraft = emptyStrokeDraft;
+      if (activeSession.assignmentId) {
+        const assignment = (assignments ?? []).find((a) => a.id === activeSession.assignmentId);
+        if (assignment?.items) {
+          const strokeDistances = assignmentPlannedStrokes(assignment.items);
+          if (strokeDistances) {
+            plannedStrokes = {
+              NL: String(strokeDistances.NL || ""),
+              DOS: String(strokeDistances.DOS || ""),
+              BR: String(strokeDistances.BR || ""),
+              PAP: String(strokeDistances.PAP || ""),
+              QN: String(strokeDistances.QN || ""),
+            };
+          }
+        }
+      }
+
+      // Check if feedbackDraft already has strokes (existing log)
+      const hasExistingStrokes = Object.values(feedbackDraft.strokes).some((v) => v && Number(v) > 0);
+
       setDraftState((prev) => ({
         ...prev,
         ...feedbackDraft,
         distanceMeters: feedbackDraft.distanceMeters == null ? plannedMeters : feedbackDraft.distanceMeters,
+        strokes: hasExistingStrokes ? feedbackDraft.strokes : plannedStrokes,
+        showStrokeDetail: hasExistingStrokes || Object.values(plannedStrokes).some((v) => v && Number(v) > 0),
       }));
       return;
     }
     setDraftState((prev) => ({ ...prev, ...feedbackDraft }));
-  }, [feedbackDraft, activeSessionId, sessionsForSelectedDay]);
+  }, [feedbackDraft, activeSessionId, sessionsForSelectedDay, assignments]);
 
   // Auto-close drawer once day becomes fully completed
   useEffect(() => {
