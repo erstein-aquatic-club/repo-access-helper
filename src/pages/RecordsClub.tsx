@@ -550,12 +550,6 @@ function RecordRow({
                 Classement — {label} ({ageLabel} ans)
               </p>
 
-              {isCascaded && originalAgeLabel && (
-                <p className="mb-2 text-[11px] text-muted-foreground italic">
-                  Record du club détenu par {record.athlete_name} ({originalAgeLabel} ans) — {formatTime(record.time_ms)}
-                </p>
-              )}
-
               {rankingLoading ? (
                 <div className="space-y-1.5">
                   {[1, 2, 3].map((i) => (
@@ -565,58 +559,123 @@ function RecordRow({
                     />
                   ))}
                 </div>
-              ) : !rankingData || rankingData.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  Aucune donnée de classement.
-                </p>
               ) : (
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-muted-foreground">
-                      <th className="w-8 py-1 text-left">#</th>
-                      <th className="py-1 text-left">Nageur</th>
-                      <th className="w-[80px] py-1 text-left">Temps</th>
-                      <th className="w-[40px] py-1 text-left">Âge</th>
-                      <th className="hidden w-[80px] py-1 text-left sm:table-cell">
-                        Date
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rankingData.map((perf, idx) => (
-                      <tr
-                        key={perf.id}
-                        className={cn(
-                          "border-t border-border/50",
-                          idx === 0 && "font-semibold text-primary",
-                        )}
-                      >
-                        <td className="py-1">
-                          {idx === 0 ? (
-                            <Trophy className="inline h-3 w-3 text-yellow-500" />
-                          ) : (
-                            idx + 1
-                          )}
-                        </td>
-                        <td className="py-1">{perf.athlete_name}</td>
-                        <td className="py-1 font-mono tabular-nums">
-                          {formatTime(perf.time_ms)}
-                        </td>
-                        <td className="py-1 text-muted-foreground">
-                          {perf.actual_age ?? perf.age}
-                        </td>
-                        <td className="hidden py-1 text-muted-foreground sm:table-cell">
-                          {formatDate(perf.record_date)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <RankingTable
+                  record={record}
+                  rankingData={rankingData}
+                  isCascaded={isCascaded}
+                  originalAgeLabel={originalAgeLabel}
+                />
               )}
             </div>
           </TableCell>
         </TableRow>
       )}
     </>
+  );
+}
+
+// ── Ranking Table with record holder always first ──
+
+function RankingTable({
+  record,
+  rankingData,
+  isCascaded,
+  originalAgeLabel,
+}: {
+  record: ClubRecord;
+  rankingData?: ClubPerformanceRanked[];
+  isCascaded: boolean;
+  originalAgeLabel: string | null;
+}) {
+  // Build the display list: record holder as #1, then age-specific ranking
+  const rows = useMemo(() => {
+    const agePerfs = rankingData ?? [];
+
+    if (!isCascaded) {
+      // Not cascaded: ranking data already has the record holder
+      return agePerfs;
+    }
+
+    // Cascaded: inject record holder as synthetic #1 entry
+    const recordEntry: ClubPerformanceRanked = {
+      id: -1,
+      athlete_name: record.athlete_name,
+      swimmer_iuf: record.swimmer_iuf ?? null,
+      sex: record.sex,
+      pool_m: record.pool_m,
+      event_code: record.event_code,
+      event_label: record.event_label,
+      age: record.original_age ?? record.age,
+      actual_age: record.original_age ?? record.age,
+      time_ms: record.time_ms,
+      record_date: record.record_date,
+    };
+
+    return [recordEntry, ...agePerfs];
+  }, [rankingData, record, isCascaded]);
+
+  if (rows.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        Aucune donnée de classement.
+      </p>
+    );
+  }
+
+  return (
+    <table className="w-full text-xs">
+      <thead>
+        <tr className="text-muted-foreground">
+          <th className="w-8 py-1 text-left">#</th>
+          <th className="py-1 text-left">Nageur</th>
+          <th className="w-[80px] py-1 text-left">Temps</th>
+          <th className="w-[40px] py-1 text-left">Âge</th>
+          <th className="hidden w-[80px] py-1 text-left sm:table-cell">
+            Date
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((perf, idx) => {
+          const isRecordHolder = idx === 0 && isCascaded && perf.id === -1;
+          return (
+            <tr
+              key={perf.id === -1 ? "record-holder" : perf.id}
+              className={cn(
+                "border-t border-border/50",
+                idx === 0 && "font-semibold text-primary",
+                isRecordHolder && "bg-primary/5",
+              )}
+            >
+              <td className="py-1">
+                {idx === 0 ? (
+                  <Trophy className="inline h-3 w-3 text-yellow-500" />
+                ) : (
+                  idx + 1
+                )}
+              </td>
+              <td className="py-1">
+                {perf.athlete_name}
+                {isRecordHolder && originalAgeLabel && (
+                  <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                    (record {originalAgeLabel} ans)
+                  </span>
+                )}
+              </td>
+              <td className="py-1 font-mono tabular-nums">
+                {formatTime(perf.time_ms)}
+              </td>
+              <td className="py-1 text-muted-foreground">
+                {perf.actual_age ?? perf.age}
+              </td>
+              <td className="hidden py-1 text-muted-foreground sm:table-cell">
+                {formatDate(perf.record_date)}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
