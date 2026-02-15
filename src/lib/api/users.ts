@@ -235,9 +235,10 @@ export async function getPendingApprovals(): Promise<
   Array<{ user_id: number; display_name: string; email: string | null; created_at: string }>
 > {
   if (!canUseSupabase()) return [];
+  // Explicitly specify the foreign key to use (user_id, not approved_by)
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("user_id, display_name, email, users!inner(created_at)")
+    .select("user_id, display_name, email, users!user_profiles_user_id_fkey(created_at)")
     .eq("is_approved", false);
   if (error) throw new Error(error.message);
   // Transform the response to match the expected interface
