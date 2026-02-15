@@ -261,9 +261,11 @@ export async function approveUser(userId: number): Promise<void> {
 
 export async function rejectUser(userId: number): Promise<void> {
   if (!canUseSupabase()) return;
-  const { error } = await supabase.functions.invoke("admin-user", {
-    body: { action: "disable_user", target_user_id: userId },
-  });
+  // Delete from users table (will cascade to user_profiles and other related tables)
+  const { error } = await supabase
+    .from("users")
+    .delete()
+    .eq("id", userId);
   if (error) throw new Error(error.message);
 }
 
