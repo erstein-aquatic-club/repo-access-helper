@@ -217,13 +217,13 @@ export function SwimExerciseForm({ exercise, onChange, onDelete, onDuplicate, sh
 
           <div className="col-span-2">
             <div className="text-[11px] font-semibold text-muted-foreground">Récupération</div>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <div className="inline-flex rounded-full border border-border bg-card p-0.5 text-xs font-semibold">
                 <button
                   type="button"
                   onClick={() => onChange("restType", "departure")}
                   className={cn(
-                    "rounded-full px-3 py-1.5 transition-colors",
+                    "rounded-full px-2.5 py-1 transition-colors",
                     exercise.restType === "departure"
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground"
@@ -235,7 +235,7 @@ export function SwimExerciseForm({ exercise, onChange, onDelete, onDuplicate, sh
                   type="button"
                   onClick={() => onChange("restType", "rest")}
                   className={cn(
-                    "rounded-full px-3 py-1.5 transition-colors",
+                    "rounded-full px-2.5 py-1 transition-colors",
                     exercise.restType === "rest"
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground"
@@ -256,9 +256,9 @@ export function SwimExerciseForm({ exercise, onChange, onDelete, onDuplicate, sh
                     onChange("rest", min * 60 + sec || null);
                   }}
                   placeholder="0"
-                  className="w-14 rounded-2xl text-center"
+                  className="w-12 rounded-2xl text-center"
                 />
-                <span className="text-xs text-muted-foreground">min</span>
+                <span className="text-[11px] text-muted-foreground">min</span>
                 <Input
                   type="number"
                   min={0}
@@ -270,15 +270,15 @@ export function SwimExerciseForm({ exercise, onChange, onDelete, onDuplicate, sh
                     onChange("rest", min * 60 + sec || null);
                   }}
                   placeholder="0"
-                  className="w-14 rounded-2xl text-center"
+                  className="w-12 rounded-2xl text-center"
                 />
-                <span className="text-xs text-muted-foreground">sec</span>
+                <span className="text-[11px] text-muted-foreground">sec</span>
               </div>
               {exercise.rest ? (
                 <button
                   type="button"
                   onClick={() => onChange("rest", null)}
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  className="text-[11px] text-muted-foreground hover:text-foreground"
                 >
                   Effacer
                 </button>

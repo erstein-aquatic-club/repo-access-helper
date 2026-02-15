@@ -321,22 +321,22 @@ export function SwimSessionBuilder({
           {session.blocks.map((block, blockIndex) => (
             <div key={blockIndex} className="rounded-2xl border border-border bg-card">
               {/* Block header */}
-              <div className="flex items-center justify-between gap-2 px-3 py-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
+              <div className="flex items-center justify-between gap-1 px-3 py-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
                     <Repeat className="inline h-3 w-3" /> {block.repetitions ?? 1}x
                   </span>
                   <Input
                     value={block.title}
                     onChange={(e) => updateBlock(blockIndex, "title", e.target.value)}
                     placeholder={`Bloc ${blockIndex + 1}`}
-                    className="h-7 rounded-lg border-none bg-transparent px-1 text-xs font-semibold shadow-none focus-visible:bg-muted focus-visible:ring-1"
+                    className="h-7 min-w-0 flex-1 rounded-lg border-none bg-transparent px-1 text-xs font-semibold shadow-none focus-visible:bg-muted focus-visible:ring-1"
                   />
-                  <div className="text-[11px] text-muted-foreground whitespace-nowrap">
+                  <div className="shrink-0 text-[11px] text-muted-foreground whitespace-nowrap">
                     · {block.exercises.length} ex
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex shrink-0 items-center gap-0.5">
                   <Input
                     type="number"
                     min={1}
@@ -344,21 +344,21 @@ export function SwimSessionBuilder({
                     onChange={(e) =>
                       updateBlock(blockIndex, "repetitions", e.target.value === "" ? null : Number(e.target.value))
                     }
-                    className="h-7 w-12 rounded-lg text-center text-xs"
+                    className="h-7 w-11 rounded-lg text-center text-xs"
                     placeholder="1"
                   />
                   <button type="button" onClick={() => moveBlock(blockIndex, "up")}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40"
                     disabled={blockIndex === 0}>
                     <ArrowUp className="h-3.5 w-3.5" />
                   </button>
                   <button type="button" onClick={() => moveBlock(blockIndex, "down")}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40"
                     disabled={blockIndex === session.blocks.length - 1}>
                     <ArrowDown className="h-3.5 w-3.5" />
                   </button>
                   <button type="button" onClick={() => removeBlock(blockIndex)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-destructive hover:bg-destructive/10">
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full text-destructive hover:bg-destructive/10">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -382,50 +382,50 @@ export function SwimSessionBuilder({
                           )
                         }
                         className={cn(
-                          "flex w-full items-center gap-1.5 px-3 py-2 text-left text-[11px] font-semibold transition-colors hover:bg-muted/50",
+                          "flex w-full items-center gap-1 px-3 py-2 text-left text-[11px] font-semibold transition-colors hover:bg-muted/50 overflow-hidden",
                           isExpanded && "bg-muted/50"
                         )}
                       >
-                        <span className="text-muted-foreground">
-                          {exercise.repetitions ?? ""}×{exercise.distance ?? ""}m
-                        </span>
-                        <span className="text-muted-foreground">{exercise.stroke}</span>
-                        <span className={cn(
-                          "inline-flex items-center rounded-full px-1.5 py-0.5 ring-1",
-                          swimTypeTone[exercise.strokeType] ?? "bg-muted ring-border"
-                        )}>
-                          {strokeTypeLabels[exercise.strokeType] ?? exercise.strokeType}
-                        </span>
-                        <span className={cn(
-                          "inline-flex items-center gap-1 rounded-full bg-card px-1.5 py-0.5 ring-1",
-                          intensityRingTone[normalizedIntensity],
-                          intensityTextTone[normalizedIntensity],
-                        )}>
-                          <span className={cn("h-1.5 w-1.5 rounded-full", intensityTone[normalizedIntensity] ?? "bg-muted")} />
-                          {formatIntensityLabel(normalizedIntensity)}
-                        </span>
-                        {exercise.rest ? (
-                          <span className="text-muted-foreground">
-                            {exercise.restType === "departure" ? "⏱" : "⏸"}{" "}
-                            {exercise.restType === "departure" ? "Dép." : "Repos"}{" "}
-                            {formatRecoveryTime(exercise.rest)}
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+                          <span className="text-muted-foreground whitespace-nowrap">
+                            {exercise.repetitions ?? ""}×{exercise.distance ?? ""}m
                           </span>
-                        ) : null}
-                        {exercise.equipment.length > 0 ? (
-                          <span className="text-muted-foreground">
-                            🏊{exercise.equipment.length}
+                          <span className="text-muted-foreground whitespace-nowrap">{exercise.stroke}</span>
+                          <span className={cn(
+                            "inline-flex items-center rounded-full px-1.5 py-0.5 ring-1 whitespace-nowrap",
+                            swimTypeTone[exercise.strokeType] ?? "bg-muted ring-border"
+                          )}>
+                            {strokeTypeLabels[exercise.strokeType] ?? exercise.strokeType}
                           </span>
-                        ) : null}
-                        <span className="ml-auto flex items-center gap-1">
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeExercise(blockIndex, exerciseIndex);
-                            }}
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-3 w-3" />
+                          <span className={cn(
+                            "inline-flex items-center gap-1 rounded-full bg-card px-1.5 py-0.5 ring-1 whitespace-nowrap",
+                            intensityRingTone[normalizedIntensity],
+                            intensityTextTone[normalizedIntensity],
+                          )}>
+                            <span className={cn("h-1.5 w-1.5 rounded-full", intensityTone[normalizedIntensity] ?? "bg-muted")} />
+                            {formatIntensityLabel(normalizedIntensity)}
                           </span>
+                          {exercise.rest ? (
+                            <span className="text-muted-foreground whitespace-nowrap">
+                              {exercise.restType === "departure" ? "⏱" : "⏸"}{" "}
+                              {exercise.restType === "departure" ? "Dép." : "Repos"}{" "}
+                              {formatRecoveryTime(exercise.rest)}
+                            </span>
+                          ) : null}
+                          {exercise.equipment.length > 0 ? (
+                            <span className="text-muted-foreground whitespace-nowrap">
+                              🏊{exercise.equipment.length}
+                            </span>
+                          ) : null}
+                        </div>
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeExercise(blockIndex, exerciseIndex);
+                          }}
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3 w-3" />
                         </span>
                       </button>
 
