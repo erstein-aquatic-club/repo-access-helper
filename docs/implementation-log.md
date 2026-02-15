@@ -2969,3 +2969,49 @@ Cette modification est **100% backward compatible** :
 git revert 92762d6
 npx supabase functions deploy import-club-records
 ```
+
+---
+
+## 2026-02-15 — §27 Refonte graphique export PDF Records Club
+
+**Branche** : `main`
+**Chantier ROADMAP** : §5 — Dette UI/UX (amélioration continue)
+
+### Contexte — Pourquoi ce patch
+
+Le PDF exporté depuis la page Records Club était très fade : titre rouge centré, petit icône PWA (icon-192.png) au lieu du vrai logo, tableau basique avec le thème "grid" par défaut de jspdf-autotable. Manque total d'identité graphique EAC.
+
+### Changements réalisés
+
+- **Header pleine largeur** : bande rouge EAC (#E30613) de 30mm avec bande sombre en accent haut, triangles diagonaux texturés en rouge clair pour la profondeur
+- **Vrai logo EAC** : import via `@assets/logo-eac.png` (Vite asset) au lieu de `/icon-192.png`, affiché dans un cercle blanc sur fond rouge
+- **Typographie hiérarchisée** : nom du club en gras blanc 16pt, titre de page en 10pt, date en 7pt rosé
+- **Table professionnelle** : thème "plain" avec header charcoal (#232328), séparation rouge sous le header, barre d'accent rouge sur la colonne épreuve
+- **Rendu deux tons** : temps en gras 7pt (dark) + nom en regular 5.5pt (muted) via `willDrawCell`/`didDrawCell` custom
+- **Footer brandé** : ligne rouge, carré décoratif, "ERSTEIN AQUATIC CLUB" à gauche, pagination centrée, "Records du club" à droite
+- **Palette complète** : 9 couleurs nommées (EAC_RED, EAC_RED_LIGHT, EAC_DARK_RED, CHARCOAL, TEXT_DARK, TEXT_MUTED, BORDER_LIGHT, ROW_ALT, WHITE)
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/lib/export-records-pdf.ts` | Refonte complète (219 → 397 lignes) |
+
+### Tests
+
+- [x] `npx tsc --noEmit` — aucune erreur sur le fichier
+- [x] `npm run build` — build OK, logo asset bundled (`dist/assets/logo-eac-CbBi48or.png`)
+- [ ] Test manuel : export PDF depuis la page Records Club
+
+### Décisions prises
+
+- Import Vite du logo (`import eacLogoUrl from "@assets/logo-eac.png"`) plutôt que fetch d'un chemin statique — gestion automatique du base path en production
+- Pas d'utilisation de `GState` (opacity) pour compatibilité maximale jsPDF 4.x — effets de profondeur obtenus par variation de teintes (EAC_RED_LIGHT sur EAC_RED)
+- Thème "plain" + rendu custom plutôt que thème "grid" — contrôle total sur chaque pixel
+- Header charcoal au lieu de rouge pour la table — évite la monotonie rouge-sur-rouge et crée un contraste fort
+
+### Limites / dette
+
+- Fontes limitées à Helvetica (contrainte jsPDF sans plugin de polices custom)
+- Les triangles décoratifs du header sont un effet subtil — visible surtout sur écran, moins en impression
+- Pas de test automatisé du rendu PDF (limitation intrinsèque)

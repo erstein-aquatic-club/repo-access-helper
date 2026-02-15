@@ -1,15 +1,24 @@
 // src/lib/export-records-pdf.ts
-// Generates a PDF of club records with one page per pool/sex combination.
-// Each page is a table: rows = events, columns = age categories.
-// Branding: EAC logo, EAC red color (#E30613), fixed column widths
+// Generates a branded PDF of club records — one page per pool/sex combination.
+// Design: full-width EAC header band with logo, two-tone cell rendering,
+// red accent bars, branded footer. Sports-institutional aesthetic.
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { ClubRecord } from "@/lib/api";
+import eacLogoUrl from "@assets/logo-eac.png";
 
-// EAC branding colors (RGB)
-const EAC_RED: [number, number, number] = [227, 6, 19]; // #E30613
-const EAC_GRAY: [number, number, number] = [120, 120, 120];
+// ── EAC Branding Palette (RGB) ──
+
+const EAC_RED: [number, number, number] = [227, 6, 19];
+const EAC_RED_LIGHT: [number, number, number] = [237, 40, 52];
+const EAC_DARK_RED: [number, number, number] = [180, 4, 14];
+const CHARCOAL: [number, number, number] = [35, 35, 40];
+const TEXT_DARK: [number, number, number] = [45, 45, 50];
+const TEXT_MUTED: [number, number, number] = [125, 125, 135];
+const BORDER_LIGHT: [number, number, number] = [215, 218, 225];
+const ROW_ALT: [number, number, number] = [248, 249, 253];
+const WHITE: [number, number, number] = [255, 255, 255];
 
 // ── Constants ──
 
@@ -70,16 +79,14 @@ function formatTime(ms: number): string {
 function shortName(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
   if (parts.length <= 1) return fullName;
-  // "Prénom Nom" → "P. Nom"
   const firstName = parts[0];
   const lastName = parts.slice(1).join(" ");
   return `${firstName.charAt(0)}. ${lastName}`;
 }
 
-// Load logo image and convert to data URL for embedding in PDF
 async function loadLogoAsDataUrl(): Promise<string | null> {
   try {
-    const response = await fetch("/icon-192.png");
+    const response = await fetch(eacLogoUrl);
     if (!response.ok) return null;
     const blob = await response.blob();
     return new Promise((resolve) => {
@@ -93,53 +100,139 @@ async function loadLogoAsDataUrl(): Promise<string | null> {
   }
 }
 
-// ── Main export function ──
+// ── Page Elements ──
+
+const HEADER_H = 30;
+
+function drawHeader(
+  doc: jsPDF,
+  logoDataUrl: string | null,
+  title: string,
+  pageWidth: number,
+) {
+  // Main red band
+  doc.setFillColor(...EAC_RED);
+  doc.rect(0, 0, pageWidth, HEADER_H, "F");
+
+  // Top accent strip (darker red)
+  doc.setFillColor(...EAC_DARK_RED);
+  doc.rect(0, 0, pageWidth, 1.5, "F");
+
+  // Subtle diagonal stripes for texture (lighter red on red)
+  doc.setFillColor(...EAC_RED_LIGHT);
+  for (let i = 0; i < 6; i++) {
+    const x = pageWidth - 80 + i * 18;
+    doc.triangle(x, 0, x + 45, 0, x + 22, HEADER_H, "F");
+  }
+
+  // Logo with white circle backdrop
+  const logoSize = 20;
+  const logoX = 10;
+  const logoY = (HEADER_H - logoSize) / 2 + 0.75;
+  if (logoDataUrl) {
+    try {
+      doc.setFillColor(...WHITE);
+      doc.circle(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2 + 1.5, "F");
+      doc.addImage(logoDataUrl, "PNG", logoX, logoY, logoSize, logoSize);
+    } catch {
+      // Continue without logo
+    }
+  }
+
+  // Text anchor (offset if logo present)
+  const textX = logoDataUrl ? logoX + logoSize + 6 : 12;
+
+  // Club name
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(...WHITE);
+  doc.text("ERSTEIN AQUATIC CLUB", textX, 12);
+
+  // Thin separator line
+  doc.setDrawColor(255, 180, 180);
+  doc.setLineWidth(0.15);
+  doc.line(textX, 14.5, textX + 75, 14.5);
+
+  // Page title
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(...WHITE);
+  doc.text(title, textX, 20);
+
+  // Edition date
+  doc.setFontSize(7);
+  doc.setTextColor(255, 190, 190);
+  doc.text(
+    `Édité le ${new Date().toLocaleDateString("fr-FR")}`,
+    textX,
+    26,
+  );
+
+  // Bottom edge accent (dark line)
+  doc.setFillColor(...CHARCOAL);
+  doc.rect(0, HEADER_H, pageWidth, 0.6, "F");
+}
+
+function drawFooter(
+  doc: jsPDF,
+  pageWidth: number,
+  pageHeight: number,
+  pageNum: number,
+  totalPages: number,
+) {
+  const y = pageHeight - 9;
+
+  // Red accent line
+  doc.setDrawColor(...EAC_RED);
+  doc.setLineWidth(0.4);
+  doc.line(10, y, pageWidth - 10, y);
+
+  // Small red square decorative accent
+  doc.setFillColor(...EAC_RED);
+  doc.rect(10, y - 1, 2, 2, "F");
+
+  // Club name (left)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6.5);
+  doc.setTextColor(...EAC_RED);
+  doc.text("ERSTEIN AQUATIC CLUB", 15, y + 4.5);
+
+  // Page number (center)
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text(`${pageNum} / ${totalPages}`, pageWidth / 2, y + 4.5, {
+    align: "center",
+  });
+
+  // Right text
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(...TEXT_MUTED);
+  doc.text("Records du club", pageWidth - 10, y + 4.5, { align: "right" });
+}
+
+// ── Main Export ──
 
 export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
-  // Build a lookup: key = `${pool_m}_${sex}_${event_code}_${age}` → record
   const lookup = new Map<string, ClubRecord>();
   for (const r of records) {
     lookup.set(`${r.pool_m}_${r.sex}_${r.event_code}_${r.age}`, r);
   }
 
-  // Load EAC logo for branding
   const logoDataUrl = await loadLogoAsDataUrl();
-
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const totalPages = PAGES.length;
 
   let isFirstPage = true;
 
-  for (const page of PAGES) {
+  for (let pageIdx = 0; pageIdx < PAGES.length; pageIdx++) {
+    const page = PAGES[pageIdx];
     if (!isFirstPage) doc.addPage();
     isFirstPage = false;
 
-    // Add EAC logo in top left corner
-    if (logoDataUrl) {
-      try {
-        doc.addImage(logoDataUrl, "PNG", 8, 6, 16, 16); // x, y, width, height
-      } catch {
-        // If logo fails to load, continue without it
-      }
-    }
-
-    // Title (offset right to accommodate logo)
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...EAC_RED); // EAC red for title
-    doc.text(page.title, pageWidth / 2, 14, { align: "center" });
-
-    // Subtitle
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...EAC_GRAY);
-    doc.text(
-      `EAC — Erstein Aquatic Club — Édité le ${new Date().toLocaleDateString("fr-FR")}`,
-      pageWidth / 2,
-      20,
-      { align: "center" },
-    );
-    doc.setTextColor(0, 0, 0);
+    drawHeader(doc, logoDataUrl, page.title, pageWidth);
+    drawFooter(doc, pageWidth, pageHeight, pageIdx + 1, totalPages);
 
     // Build table data
     const head = [["Épreuve", ...AGE_COLS.map((a) => a.label)]];
@@ -149,7 +242,9 @@ export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
       const row: string[] = [event.label];
       let hasAny = false;
       for (const ageCol of AGE_COLS) {
-        const rec = lookup.get(`${page.pool_m}_${page.sex}_${event.id}_${ageCol.age}`);
+        const rec = lookup.get(
+          `${page.pool_m}_${page.sex}_${event.id}_${ageCol.age}`,
+        );
         if (rec) {
           hasAny = true;
           row.push(`${formatTime(rec.time_ms)}\n${shortName(rec.athlete_name)}`);
@@ -157,59 +252,142 @@ export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
           row.push("");
         }
       }
-      if (hasAny) {
-        body.push(row);
-      }
+      if (hasAny) body.push(row);
     }
 
     if (body.length === 0) {
+      doc.setFont("helvetica", "italic");
       doc.setFontSize(10);
-      doc.text("Aucun record enregistré", pageWidth / 2, 35, { align: "center" });
+      doc.setTextColor(...TEXT_MUTED);
+      doc.text("Aucun record enregistré", pageWidth / 2, 50, {
+        align: "center",
+      });
       continue;
     }
 
     autoTable(doc, {
-      startY: 24,
+      startY: HEADER_H + 3,
       head,
       body,
-      theme: "grid",
+      theme: "plain",
       styles: {
-        fontSize: 7,
-        cellPadding: 1.5,
+        fontSize: 6.5,
+        cellPadding: { top: 2.5, right: 1.5, bottom: 2.5, left: 1.5 },
         valign: "middle",
         halign: "center",
-        lineWidth: 0.2,
-        lineColor: [200, 200, 200],
+        textColor: TEXT_DARK,
+        lineWidth: 0,
       },
       headStyles: {
-        fillColor: EAC_RED, // EAC red for header background
-        textColor: 255,
+        fillColor: CHARCOAL,
+        textColor: WHITE,
         fontStyle: "bold",
-        fontSize: 7.5,
+        fontSize: 7,
         halign: "center",
+        cellPadding: { top: 3, right: 1.5, bottom: 3, left: 1.5 },
       },
       columnStyles: {
-        // Fixed column widths: Event column wider, age columns equal
-        0: { halign: "left", fontStyle: "bold", cellWidth: 28 }, // Event label
-        1: { cellWidth: 22 }, // Age 8
-        2: { cellWidth: 22 }, // Age 9
-        3: { cellWidth: 22 }, // Age 10
-        4: { cellWidth: 22 }, // Age 11
-        5: { cellWidth: 22 }, // Age 12
-        6: { cellWidth: 22 }, // Age 13
-        7: { cellWidth: 22 }, // Age 14
-        8: { cellWidth: 22 }, // Age 15
-        9: { cellWidth: 22 }, // Age 16
-        10: { cellWidth: 22 }, // Age 17
+        0: {
+          halign: "left",
+          fontStyle: "bold",
+          cellWidth: 28,
+          textColor: CHARCOAL,
+          cellPadding: { top: 2.5, right: 1.5, bottom: 2.5, left: 3.5 },
+        },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 22 },
+        4: { cellWidth: 22 },
+        5: { cellWidth: 22 },
+        6: { cellWidth: 22 },
+        7: { cellWidth: 22 },
+        8: { cellWidth: 22 },
+        9: { cellWidth: 22 },
+        10: { cellWidth: 22 },
       },
       alternateRowStyles: {
-        fillColor: [245, 247, 250],
+        fillColor: ROW_ALT,
       },
-      margin: { left: 8, right: 8 },
-      didParseCell(data) {
-        // Style the time line vs the name line differently
-        if (data.section === "body" && data.column.index > 0 && data.cell.raw) {
-          data.cell.styles.fontSize = 6.5;
+      margin: { left: 10, right: 10, bottom: 14 },
+      willDrawCell(data) {
+        // Suppress default text for data cells — we render custom two-tone text
+        if (
+          data.section === "body" &&
+          data.column.index > 0 &&
+          data.cell.raw
+        ) {
+          data.cell.text = [];
+        }
+      },
+      didDrawCell(data) {
+        // Red left accent bar on event column
+        if (data.section === "body" && data.column.index === 0) {
+          doc.setFillColor(...EAC_RED);
+          doc.rect(data.cell.x, data.cell.y, 0.7, data.cell.height, "F");
+        }
+
+        // Custom two-tone rendering for time + name cells
+        if (
+          data.section === "body" &&
+          data.column.index > 0 &&
+          data.cell.raw
+        ) {
+          const raw = String(data.cell.raw);
+          if (!raw.trim()) return;
+          const lines = raw.split("\n");
+          const cx = data.cell.x + data.cell.width / 2;
+
+          if (lines.length >= 2) {
+            // Time: bold, dark, prominent
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(7);
+            doc.setTextColor(...TEXT_DARK);
+            doc.text(lines[0], cx, data.cell.y + data.cell.height * 0.38, {
+              align: "center",
+            });
+
+            // Name: regular, muted, smaller
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(5.5);
+            doc.setTextColor(...TEXT_MUTED);
+            doc.text(lines[1], cx, data.cell.y + data.cell.height * 0.72, {
+              align: "center",
+            });
+          } else if (lines[0]) {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(6);
+            doc.setTextColor(...TEXT_MUTED);
+            doc.text(
+              lines[0],
+              cx,
+              data.cell.y + data.cell.height / 2 + 1,
+              { align: "center" },
+            );
+          }
+        }
+
+        // Subtle bottom border on all body cells
+        if (data.section === "body") {
+          doc.setDrawColor(...BORDER_LIGHT);
+          doc.setLineWidth(0.1);
+          doc.line(
+            data.cell.x,
+            data.cell.y + data.cell.height,
+            data.cell.x + data.cell.width,
+            data.cell.y + data.cell.height,
+          );
+        }
+
+        // Red bottom edge on header cells for visual anchor
+        if (data.section === "head") {
+          doc.setFillColor(...EAC_RED);
+          doc.rect(
+            data.cell.x,
+            data.cell.y + data.cell.height - 0.6,
+            data.cell.width,
+            0.6,
+            "F",
+          );
         }
       },
     });
