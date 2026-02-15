@@ -1,7 +1,7 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Archive, Pencil, Play, Trash2 } from "lucide-react";
+import { AlertCircle, Archive, FolderInput, Pencil, Play, RotateCcw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SessionListViewProps<T extends { id: number }> {
@@ -16,6 +16,8 @@ interface SessionListViewProps<T extends { id: number }> {
   onDelete: (session: T) => void;
   canDelete: (sessionId: number) => boolean;
   isDeleting?: boolean;
+  onMove?: (session: T) => void;
+  archiveMode?: "archive" | "restore";
 }
 
 export function SessionListView<T extends { id: number }>({
@@ -30,6 +32,8 @@ export function SessionListView<T extends { id: number }>({
   onDelete,
   canDelete,
   isDeleting,
+  onMove,
+  archiveMode = "archive",
 }: SessionListViewProps<T>) {
   if (isLoading) {
     return (
@@ -116,15 +120,30 @@ export function SessionListView<T extends { id: number }>({
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
+                  {onMove && (
+                    <button
+                      type="button"
+                      onClick={() => onMove(session)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
+                      aria-label="Déplacer"
+                      title="Déplacer dans un dossier"
+                    >
+                      <FolderInput className="h-4 w-4" />
+                    </button>
+                  )}
                   {onArchive && (
                     <button
                       type="button"
                       onClick={() => onArchive(session)}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
-                      aria-label="Archiver"
-                      title="Archiver"
+                      aria-label={archiveMode === "restore" ? "Restaurer" : "Archiver"}
+                      title={archiveMode === "restore" ? "Restaurer" : "Archiver"}
                     >
-                      <Archive className="h-4 w-4" />
+                      {archiveMode === "restore" ? (
+                        <RotateCcw className="h-4 w-4" />
+                      ) : (
+                        <Archive className="h-4 w-4" />
+                      )}
                     </button>
                   )}
                   <button

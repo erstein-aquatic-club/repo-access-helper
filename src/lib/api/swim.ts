@@ -27,6 +27,8 @@ export async function getSwimCatalog(): Promise<SwimSessionTemplate[]> {
       created_by: safeOptionalInt(catalog.created_by) ?? null,
       created_at: catalog.created_at ?? null,
       updated_at: catalog.updated_at ?? null,
+      folder: catalog.folder ?? null,
+      is_archived: catalog.is_archived ?? false,
       items: Array.isArray(catalog.swim_session_items)
         ? catalog.swim_session_items
             .sort((a: any, b: any) => (a.ordre ?? 0) - (b.ordre ?? 0))
@@ -53,6 +55,8 @@ export async function getSwimCatalog(): Promise<SwimSessionTemplate[]> {
     created_by: safeOptionalInt(catalog.created_by) ?? null,
     created_at: catalog.created_at ?? null,
     updated_at: catalog.updated_at ?? null,
+    folder: catalog.folder ?? null,
+    is_archived: catalog.is_archived ?? false,
     items: Array.isArray(catalog.items)
       ? catalog.items.map((item: any, index: number) => ({
           id: safeOptionalInt(item.id) ?? undefined,
@@ -98,6 +102,7 @@ export async function createSwimSession(session: any) {
         .update({
           name: session.name,
           description: session.description ?? null,
+          folder: session.folder ?? null,
         })
         .eq("id", session.id);
       if (error) throw new Error(error.message);
@@ -117,6 +122,7 @@ export async function createSwimSession(session: any) {
       .insert({
         name: session.name,
         description: session.description ?? null,
+        folder: session.folder ?? null,
       })
       .select("id")
       .single();
@@ -158,4 +164,47 @@ export async function deleteSwimSession(sessionId: number) {
   );
   localStorageSave(STORAGE_KEYS.SWIM_SESSIONS, updatedSessions);
   return { status: "deleted" };
+}
+
+export async function archiveSwimSession(sessionId: number, archived: boolean) {
+  if (canUseSupabase()) {
+    const { error } = await supabase
+      .from("swim_sessions_catalog")
+      .update({ is_archived: archived })
+      .eq("id", sessionId);
+    if (error) throw new Error(error.message);
+    return { status: archived ? "archived" : "restored" };
+  }
+  const sessions = (localStorageGet(STORAGE_KEYS.SWIM_SESSIONS) || []) as any[];
+  const updated = sessions.map((s: any) =>
+    s.id === sessionId ? { ...s, is_archived: archived } : s
+  );
+  localStorageSave(STORAGE_KEYS.SWIM_SESSIONS, updated);
+  return { status: archived ? "archived" : "restored" };
+}
+
+export async function moveSwimSession(sessionId: number, folder: string | null) {
+  if (canUseSupabase()) {
+    const { error } = await supabase
+      .from("swim_sessions_catalog")
+      .update({ folder })
+      .eq("id", sessionId);
+    if (error) throw new Error(error.message);
+    return { status: "moved" };
+  }
+  const sessions = (localStorageGet(STORAGE_KEYS.SWIM_SESSIONS) || []) as any[];
+  const updated = sessions.map((s: any) =>
+    s.id === sessionId ? { ...s, folder } : s
+  );
+  localStorageSave(STORAGE_KEYS.SWIM_SESSIONS, updated);
+  return { status: "moved" };
+}
+
+export async function migrateLocalStorageArchive(archivedIds: number[]) {
+  if (!canUseSupabase() || archivedIds.length === 0) return;
+  const { error } = await supabase
+    .from("swim_sessions_catalog")
+    .update({ is_archived: true })
+    .in("id", archivedIds);
+  if (error) throw new Error(error.message);
 }

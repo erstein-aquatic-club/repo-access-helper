@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Assignment, SwimSessionItem, SwimSessionTemplate } from "@/lib/api";
 import type { SwimSessionInput, SwimPayloadFields } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,11 +15,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { SwimSessionConsultation } from "@/components/swim/SwimSessionConsultation";
 import { SessionListView } from "@/components/coach/shared/SessionListView";
 import { SwimSessionBuilder } from "@/components/coach/swim/SwimSessionBuilder";
-import { AlertCircle, Layers, Plus, Route, Search, Timer } from "lucide-react";
+import { AlertCircle, Archive, FolderOpen, FolderPlus, Home, Layers, Plus, Route, Search, Timer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useBeforeUnload } from "@/hooks/use-before-unload";
 import { useAuth } from "@/lib/auth";
@@ -51,6 +60,7 @@ interface SwimSessionDraft {
   name: string;
   description: string;
   estimatedDuration: number;
+  folder: string | null;
   blocks: SwimBlock[];
 }
 
@@ -204,12 +214,18 @@ const countBlocks = (items: SwimSessionItem[] = []) => {
 };
 
 const ARCHIVED_SWIM_SESSIONS_KEY = "swim_catalog_archived_ids";
+const ARCHIVE_MIGRATED_KEY = "swim_catalog_archive_migrated";
 
 export const canDeleteSwimCatalog = (sessionId: number, assignments: Assignment[] | null) => {
   if (assignments === null) return false;
   return !assignments.some(
     (assignment) => assignment.session_type === "swim" && assignment.session_id === sessionId,
   );
+};
+
+const getFolderDisplayName = (folderPath: string, parentFolder: string | null) => {
+  if (parentFolder === null) return folderPath;
+  return folderPath.slice(parentFolder.length + 1);
 };
 
 export default function SwimCatalog() {
@@ -222,13 +238,20 @@ export default function SwimCatalog() {
   const [pendingDeleteSession, setPendingDeleteSession] = useState<SwimSessionTemplate | null>(null);
   const [pendingArchiveSession, setPendingArchiveSession] = useState<SwimSessionTemplate | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [archivedSessionIds, setArchivedSessionIds] = useState<Set<number>>(new Set());
+
+  // Folder navigation
+  const [currentFolder, setCurrentFolder] = useState<string | null>(null);
+  const [showArchive, setShowArchive] = useState(false);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [pendingMoveSession, setPendingMoveSession] = useState<SwimSessionTemplate | null>(null);
 
   const createEmptySession = (): SwimSessionDraft => ({
     id: null,
     name: formatSwimSessionDefaultTitle(new Date()),
     description: "",
     estimatedDuration: 0,
+    folder: currentFolder,
     blocks: [],
   });
 
@@ -245,37 +268,109 @@ export default function SwimCatalog() {
     enabled: role === "coach" || role === "admin",
   });
 
+  // One-time migration: localStorage archived IDs → database is_archived
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (window.localStorage.getItem(ARCHIVE_MIGRATED_KEY)) return;
+
     const raw = window.localStorage.getItem(ARCHIVED_SWIM_SESSIONS_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        setArchivedSessionIds(
-          new Set(parsed.map((value) => Number(value)).filter((value) => Number.isFinite(value))),
-        );
-      }
-    } catch {
+    if (!raw) {
+      window.localStorage.setItem(ARCHIVE_MIGRATED_KEY, "true");
       return;
     }
-  }, []);
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const ids = parsed.map(Number).filter(Number.isFinite);
+        api.migrateLocalStorageArchive(ids).then(() => {
+          window.localStorage.removeItem(ARCHIVED_SWIM_SESSIONS_KEY);
+          window.localStorage.setItem(ARCHIVE_MIGRATED_KEY, "true");
+          queryClient.invalidateQueries({ queryKey: ["swim_catalog"] });
+        }).catch(() => {
+          // Will retry next load
+        });
+      } else {
+        window.localStorage.removeItem(ARCHIVED_SWIM_SESSIONS_KEY);
+        window.localStorage.setItem(ARCHIVE_MIGRATED_KEY, "true");
+      }
+    } catch {
+      window.localStorage.removeItem(ARCHIVED_SWIM_SESSIONS_KEY);
+      window.localStorage.setItem(ARCHIVE_MIGRATED_KEY, "true");
+    }
+  }, [queryClient]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(
-      ARCHIVED_SWIM_SESSIONS_KEY,
-      JSON.stringify(Array.from(archivedSessionIds.values())),
-    );
-  }, [archivedSessionIds]);
+  // Derive folder structure from sessions
+  const allFolders = useMemo(() => {
+    const folderSet = new Set<string>();
+    (sessions ?? []).forEach((s) => {
+      if (s.folder) {
+        const parts = s.folder.split("/");
+        for (let i = 1; i <= parts.length; i++) {
+          folderSet.add(parts.slice(0, i).join("/"));
+        }
+      }
+    });
+    return Array.from(folderSet).sort();
+  }, [sessions]);
 
-  const filteredSessions = useMemo(() => {
+  // Sub-folders of current folder
+  const currentSubFolders = useMemo(() => {
+    const prefix = currentFolder ? currentFolder + "/" : "";
+    const subFolders = new Set<string>();
+    allFolders.forEach((f) => {
+      if (currentFolder === null) {
+        if (!f.includes("/")) subFolders.add(f);
+      } else if (f.startsWith(prefix)) {
+        const remainder = f.slice(prefix.length);
+        if (remainder && !remainder.includes("/")) {
+          subFolders.add(f);
+        }
+      }
+    });
+    return Array.from(subFolders).sort();
+  }, [allFolders, currentFolder]);
+
+  // Session counts per sub-folder
+  const folderSessionCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (sessions ?? []).filter((s) => !s.is_archived).forEach((s) => {
+      if (s.folder) {
+        currentSubFolders.forEach((sub) => {
+          if (s.folder === sub || s.folder!.startsWith(sub + "/")) {
+            counts[sub] = (counts[sub] ?? 0) + 1;
+          }
+        });
+      }
+    });
+    return counts;
+  }, [sessions, currentSubFolders]);
+
+  const archivedCount = useMemo(
+    () => (sessions ?? []).filter((s) => s.is_archived).length,
+    [sessions],
+  );
+
+  // Filtered + visible sessions
+  const visibleSessions = useMemo(() => {
+    let filtered = sessions ?? [];
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return sessions ?? [];
-    return (sessions ?? []).filter((session) => session.name.toLowerCase().includes(q));
-  }, [sessions, searchQuery]);
 
-  const visibleSessions = filteredSessions.filter((session) => !archivedSessionIds.has(session.id));
+    if (showArchive) {
+      filtered = filtered.filter((s) => s.is_archived);
+    } else {
+      filtered = filtered.filter((s) => !s.is_archived);
+      filtered = filtered.filter((s) => {
+        if (currentFolder === null) return !s.folder;
+        return s.folder === currentFolder;
+      });
+    }
+
+    if (q) {
+      filtered = filtered.filter((s) => s.name.toLowerCase().includes(q));
+    }
+
+    return filtered;
+  }, [sessions, searchQuery, currentFolder, showArchive]);
 
   const createSession = useMutation({
     mutationFn: (data: SwimSessionInput) => api.createSwimSession(data),
@@ -305,6 +400,28 @@ export default function SwimCatalog() {
     },
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: ({ sessionId, archived }: { sessionId: number; archived: boolean }) =>
+      api.archiveSwimSession(sessionId, archived),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["swim_catalog"] });
+      setPendingArchiveSession(null);
+      toast({
+        title: variables.archived ? "Séance archivée" : "Séance restaurée",
+      });
+    },
+  });
+
+  const moveMutation = useMutation({
+    mutationFn: ({ sessionId, folder }: { sessionId: number; folder: string | null }) =>
+      api.moveSwimSession(sessionId, folder),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["swim_catalog"] });
+      setPendingMoveSession(null);
+      toast({ title: "Séance déplacée" });
+    },
+  });
+
   const handleSave = () => {
     if (!newSession.name.trim()) {
       toast({
@@ -319,6 +436,7 @@ export default function SwimCatalog() {
       name: newSession.name,
       description: newSession.description,
       estimated_duration: newSession.estimatedDuration || null,
+      folder: newSession.folder ?? currentFolder,
       items: buildItemsFromBlocks(newSession.blocks),
       created_by: userId ?? null,
     });
@@ -335,6 +453,7 @@ export default function SwimCatalog() {
       name: session.name ?? formatSwimSessionDefaultTitle(new Date()),
       description: session.description ?? "",
       estimatedDuration: Number((session as { estimated_duration?: number }).estimated_duration ?? 0),
+      folder: session.folder ?? null,
       blocks: buildBlocksFromItems(session.items ?? []),
     });
     setIsCreating(true);
@@ -346,9 +465,11 @@ export default function SwimCatalog() {
 
   const handleArchiveConfirm = () => {
     if (!pendingArchiveSession) return;
-    setArchivedSessionIds((prev) => new Set([...Array.from(prev), pendingArchiveSession.id]));
-    setPendingArchiveSession(null);
-    toast({ title: "Séance archivée" });
+    archiveMutation.mutate({ sessionId: pendingArchiveSession.id, archived: true });
+  };
+
+  const handleRestore = (session: SwimSessionTemplate) => {
+    archiveMutation.mutate({ sessionId: session.id, archived: false });
   };
 
   const handleDelete = (session: SwimSessionTemplate) => {
@@ -358,6 +479,45 @@ export default function SwimCatalog() {
   const handleDeleteConfirm = () => {
     if (!pendingDeleteSession) return;
     deleteSession.mutate(pendingDeleteSession.id);
+  };
+
+  const handleCreateFolder = () => {
+    const trimmed = newFolderName.trim();
+    if (!trimmed) return;
+    const path = currentFolder ? `${currentFolder}/${trimmed}` : trimmed;
+    setCurrentFolder(path);
+    setShowCreateFolder(false);
+    setNewFolderName("");
+  };
+
+  const handleMoveToFolder = (folder: string | null) => {
+    if (!pendingMoveSession) return;
+    moveMutation.mutate({ sessionId: pendingMoveSession.id, folder });
+  };
+
+  const renderMetrics = (session: SwimSessionTemplate) => {
+    const totalDistance = calculateSwimTotalDistance(session.items ?? []);
+    const hasDuration = session.items?.some((item) => item.duration != null) ?? false;
+    const totalDuration = hasDuration
+      ? session.items?.reduce((sum, item) => sum + (item.duration ?? 0), 0) ?? 0
+      : null;
+    const blockCount = countBlocks(session.items ?? []);
+    return (
+      <>
+        <span className="inline-flex items-center gap-1">
+          <Route className="h-3.5 w-3.5" />
+          {totalDistance}m
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Timer className="h-3.5 w-3.5" />
+          ~{totalDuration ?? "—"} min
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Layers className="h-3.5 w-3.5" />
+          {blockCount}
+        </span>
+      </>
+    );
   };
 
   if (isCreating) {
@@ -424,19 +584,64 @@ export default function SwimCatalog() {
           <div className="text-base font-semibold">Coach</div>
           <div className="text-xs text-muted-foreground">Création</div>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setNewSession(createEmptySession());
-            setIsCreating(true);
-          }}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" /> Nouvelle
-        </button>
+        {!showArchive && (
+          <button
+            type="button"
+            onClick={() => {
+              setNewSession(createEmptySession());
+              setIsCreating(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+          >
+            <Plus className="h-4 w-4" /> Nouvelle
+          </button>
+        )}
       </div>
 
       <div className="p-4">
+        {/* Breadcrumb navigation */}
+        {(currentFolder !== null || showArchive) && (
+          <Breadcrumb className="mb-3">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink
+                  className="cursor-pointer"
+                  onClick={() => { setCurrentFolder(null); setShowArchive(false); }}
+                >
+                  <Home className="h-4 w-4" />
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              {showArchive ? (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>Archives</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              ) : (
+                currentFolder?.split("/").map((part, index, parts) => (
+                  <React.Fragment key={index}>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      {index === parts.length - 1 ? (
+                        <BreadcrumbPage>{part}</BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink
+                          className="cursor-pointer"
+                          onClick={() => setCurrentFolder(parts.slice(0, index + 1).join("/"))}
+                        >
+                          {part}
+                        </BreadcrumbLink>
+                      )}
+                    </BreadcrumbItem>
+                  </React.Fragment>
+                ))
+              )}
+            </BreadcrumbList>
+          </Breadcrumb>
+        )}
+
+        {/* Search */}
         <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2">
           <Search className="h-4 w-4 text-muted-foreground" />
           <input
@@ -446,6 +651,45 @@ export default function SwimCatalog() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+
+        {/* Folder chips + Archive link */}
+        {!showArchive && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {currentSubFolders.map((folderPath) => (
+              <button
+                key={folderPath}
+                type="button"
+                onClick={() => setCurrentFolder(folderPath)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors"
+              >
+                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                {getFolderDisplayName(folderPath, currentFolder)}
+                <span className="text-xs text-muted-foreground">
+                  ({folderSessionCounts[folderPath] ?? 0})
+                </span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setShowCreateFolder(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+            >
+              <FolderPlus className="h-4 w-4" />
+              Nouveau dossier
+            </button>
+            {currentFolder === null && archivedCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowArchive(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+              >
+                <Archive className="h-4 w-4" />
+                Archives
+                <span className="text-xs">({archivedCount})</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {assignmentsError && (
           <div className="mt-4 flex flex-col items-center rounded-lg border border-destructive/20 bg-destructive/10 p-4">
@@ -466,48 +710,26 @@ export default function SwimCatalog() {
             isLoading={sessionsLoading}
             error={sessionsError}
             renderTitle={(session) => session.name}
-            renderMetrics={(session) => {
-              const totalDistance = calculateSwimTotalDistance(session.items ?? []);
-              const hasDuration = session.items?.some((item) => item.duration != null) ?? false;
-              const totalDuration = hasDuration
-                ? session.items?.reduce((sum, item) => sum + (item.duration ?? 0), 0) ?? 0
-                : null;
-              const blockCount = countBlocks(session.items ?? []);
-              return (
-                <>
-                  <span className="inline-flex items-center gap-1">
-                    <Route className="h-3.5 w-3.5" />
-                    {totalDistance}m
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Timer className="h-3.5 w-3.5" />
-                    ~{totalDuration ?? "—"} min
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Layers className="h-3.5 w-3.5" />
-                    {blockCount}
-                  </span>
-                </>
-              );
-            }}
+            renderMetrics={renderMetrics}
             onPreview={setSelectedSession}
             onEdit={handleEdit}
-            onArchive={handleArchive}
+            onArchive={showArchive ? handleRestore : handleArchive}
             onDelete={handleDelete}
             canDelete={(sessionId) => canDeleteSwimCatalog(sessionId, assignments ?? null)}
             isDeleting={deleteSession.isPending}
+            onMove={showArchive ? undefined : (session) => setPendingMoveSession(session)}
+            archiveMode={showArchive ? "restore" : "archive"}
           />
         </div>
 
         <div className="h-8" />
       </div>
 
+      {/* Preview dialog */}
       <Dialog
         open={Boolean(selectedSession)}
         onOpenChange={(open) => {
-          if (!open) {
-            setSelectedSession(null);
-          }
+          if (!open) setSelectedSession(null);
         }}
       >
         <DialogContent className="max-w-4xl">
@@ -519,6 +741,75 @@ export default function SwimCatalog() {
         </DialogContent>
       </Dialog>
 
+      {/* Create folder dialog */}
+      <Dialog open={showCreateFolder} onOpenChange={setShowCreateFolder}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouveau dossier</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder="Nom du dossier"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleCreateFolder(); }}
+              className="rounded-2xl"
+            />
+            {newFolderName.trim() && (
+              <p className="text-xs text-muted-foreground">
+                Chemin : {currentFolder ? `${currentFolder}/${newFolderName.trim()}` : newFolderName.trim()}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setShowCreateFolder(false); setNewFolderName(""); }}>
+                Annuler
+              </Button>
+              <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
+                Créer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move to folder dialog */}
+      <Dialog
+        open={Boolean(pendingMoveSession)}
+        onOpenChange={(open) => { if (!open) setPendingMoveSession(null); }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Déplacer « {pendingMoveSession?.name} »</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            <button
+              type="button"
+              onClick={() => handleMoveToFolder(null)}
+              className={`w-full rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-muted ${
+                !pendingMoveSession?.folder ? "bg-muted text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <Home className="mr-2 inline h-4 w-4" />
+              Racine
+            </button>
+            {allFolders.map((folder) => (
+              <button
+                key={folder}
+                type="button"
+                onClick={() => handleMoveToFolder(folder)}
+                className={`w-full rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-muted ${
+                  pendingMoveSession?.folder === folder ? "bg-muted text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                <FolderOpen className="mr-2 inline h-4 w-4" />
+                {folder}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Archive confirmation dialog */}
       <AlertDialog
         open={Boolean(pendingArchiveSession)}
         onOpenChange={(open) => {
@@ -529,7 +820,7 @@ export default function SwimCatalog() {
           <AlertDialogHeader>
             <AlertDialogTitle>Archiver la séance ?</AlertDialogTitle>
             <AlertDialogDescription>
-              La séance sera masquée du catalogue (sans suppression).
+              La séance sera déplacée dans les archives. Vous pourrez la restaurer à tout moment.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -541,6 +832,7 @@ export default function SwimCatalog() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Delete confirmation dialog */}
       <AlertDialog
         open={Boolean(pendingDeleteSession)}
         onOpenChange={(open) => {

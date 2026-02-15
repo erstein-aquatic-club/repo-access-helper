@@ -228,6 +228,7 @@ export interface SwimSessionInput {
   description?: string | null;
   estimated_duration?: number | null;
   created_by?: number | null;
+  folder?: string | null;
   items?: SwimSessionItemInput[];
 }
 
@@ -374,6 +375,8 @@ export interface RawSwimCatalog {
   created_by?: number | null;
   created_at?: string | null;
   updated_at?: string | null;
+  folder?: string | null;
+  is_archived?: boolean;
   swim_session_items?: RawSwimCatalogItem[];
   items?: RawSwimCatalogItem[];
 }
