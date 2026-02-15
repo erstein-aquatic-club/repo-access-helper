@@ -179,13 +179,15 @@ async function recalculateClubRecords(): Promise<RecalcStats> {
     unmapped_event_codes: [],
   };
 
+  // Load ALL swimmers (active + inactive) for record calculation
+  // Note: is_active only controls FFN import, not record eligibility
   const { data: allSwimmers } = await supabaseAdmin
     .from("club_record_swimmers")
-    .select("iuf, sex, birthdate, display_name")
-    .eq("is_active", true)
+    .select("iuf, sex, birthdate, display_name, is_active")
     .not("iuf", "is", null);
 
-  stats.active_swimmers = allSwimmers?.length ?? 0;
+  const activeCount = allSwimmers?.filter((s) => s.is_active).length ?? 0;
+  stats.active_swimmers = activeCount;
 
   const swimmerMap = new Map<
     string,
