@@ -30,6 +30,7 @@ const loginSchema = z.object({
 const signupSchema = z.object({
   name: z.string().min(2, "Minimum 2 caractères"),
   email: z.string().min(1, "Email requis").email("Email invalide"),
+  role: z.enum(["athlete", "coach"], { required_error: "Rôle requis" }),
   birthdate: z.string().min(1, "Date de naissance requise").refine((val) => {
     const date = new Date(val);
     if (Number.isNaN(date.getTime())) return false;
@@ -75,6 +76,7 @@ export default function Login() {
     defaultValues: {
       name: "",
       email: "",
+      role: "athlete",
       birthdate: "",
       sex: undefined,
       groupId: "",
@@ -145,8 +147,10 @@ export default function Login() {
         email: data.email.trim(),
         password: data.password,
         options: {
+          emailRedirectTo: window.location.origin + "/competition/#/",
           data: {
             display_name: data.name.trim(),
+            role: data.role,
             birthdate: data.birthdate,
             group_id: Number(data.groupId),
             sex: data.sex,
@@ -157,9 +161,23 @@ export default function Login() {
         throw new Error(signUpError.message);
       }
       if (authData.user) {
-        // Sign out immediately — the user must be approved before logging in
-        await supabase.auth.signOut();
-        setSignupComplete(true);
+        // Athletes can login immediately, coaches need approval
+        if (data.role === "athlete") {
+          // Auto-login for athletes
+          const { data: sessionData } = await supabase.auth.signInWithPassword({
+            email: data.email.trim(),
+            password: data.password,
+          });
+          if (sessionData?.session) {
+            loginFromSession(sessionData.session);
+            await loadUser();
+            setLocation("/", { replace: true });
+          }
+        } else {
+          // Coaches must wait for approval
+          await supabase.auth.signOut();
+          setSignupComplete(true);
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Création impossible.";
@@ -362,6 +380,32 @@ export default function Login() {
                       {signupForm.formState.errors.email && (
                         <p className="text-xs text-destructive" role="alert" aria-live="assertive">
                           {signupForm.formState.errors.email.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-role">Je m'inscris en tant que</Label>
+                      <Select
+                        value={signupForm.watch("role")}
+                        onValueChange={(value) => signupForm.setValue("role", value as "athlete" | "coach")}
+                      >
+                        <SelectTrigger id="signup-role" className="min-h-12">
+                          <SelectValue placeholder="Sélectionnez votre rôle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="athlete">Athlète</SelectItem>
+                          <SelectItem value="coach">Coach / Entraineur</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {signupForm.formState.errors.role && (
+                        <p className="text-xs text-destructive" role="alert" aria-live="assertive">
+                          {signupForm.formState.errors.role.message}
+                        </p>
+                      )}
+                      {signupForm.watch("role") === "coach" && (
+                        <p className="text-xs text-muted-foreground">
+                          ⚠️ Les comptes coachs nécessitent une validation par un administrateur
                         </p>
                       )}
                     </div>
