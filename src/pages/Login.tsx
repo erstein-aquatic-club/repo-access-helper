@@ -410,7 +410,7 @@ export default function Login() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="signup-birthdate">Date de naissance</Label>
                         <Input
