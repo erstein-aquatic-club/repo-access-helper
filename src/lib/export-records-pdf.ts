@@ -84,6 +84,13 @@ function shortName(fullName: string): string {
   return `${firstName.charAt(0)}. ${lastName}`;
 }
 
+function isRecordFromCurrentYear(recordDate: string | null | undefined): boolean {
+  if (!recordDate) return false;
+  const currentYear = new Date().getFullYear();
+  const recordYear = new Date(recordDate).getFullYear();
+  return recordYear === currentYear;
+}
+
 async function loadLogoAsDataUrl(): Promise<string | null> {
   try {
     const response = await fetch(eacLogoUrl);
@@ -173,6 +180,18 @@ function drawHeader(
     21,
   );
 
+  // Legend for new records (right side)
+  const currentYear = new Date().getFullYear();
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6);
+  doc.setTextColor(255, 210, 210);
+  doc.text(
+    `🆕 Records ${currentYear}`,
+    pageWidth - 12,
+    21,
+    { align: "right" },
+  );
+
   // Bottom edge accent (dark line)
   doc.setFillColor(...CHARCOAL);
   doc.rect(0, HEADER_H, pageWidth, 0.5, "F");
@@ -242,6 +261,8 @@ export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
     // Build table data
     const head = [["Épreuve", ...AGE_COLS.map((a) => a.label)]];
 
+    // Store records with metadata for later rendering
+    const recordsMetadata = new Map<string, ClubRecord>();
     const body: string[][] = [];
     for (const event of EVENTS_ORDER) {
       const row: string[] = [event.label];
@@ -252,6 +273,8 @@ export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
         );
         if (rec) {
           hasAny = true;
+          const cellKey = `${body.length}_${ageCol.age}`;
+          recordsMetadata.set(cellKey, rec);
           row.push(`${formatTime(rec.time_ms)}\n${shortName(rec.athlete_name)}`);
         } else {
           row.push("");
@@ -271,13 +294,13 @@ export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
     }
 
     autoTable(doc, {
-      startY: HEADER_H + 2,
+      startY: HEADER_H + 4,
       head,
       body,
       theme: "plain",
       styles: {
-        fontSize: 6,
-        cellPadding: { top: 1.2, right: 1, bottom: 1.2, left: 1 },
+        fontSize: 7,
+        cellPadding: { top: 1.8, right: 1.2, bottom: 1.8, left: 1.2 },
         valign: "middle",
         halign: "center",
         textColor: TEXT_DARK,
@@ -287,51 +310,61 @@ export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
         fillColor: CHARCOAL,
         textColor: WHITE,
         fontStyle: "bold",
-        fontSize: 6.5,
+        fontSize: 7.5,
         halign: "center",
-        cellPadding: { top: 2, right: 1, bottom: 2, left: 1 },
+        cellPadding: { top: 2.5, right: 1.2, bottom: 2.5, left: 1.2 },
       },
       columnStyles: {
         0: {
           halign: "left",
           fontStyle: "bold",
-          cellWidth: 26,
+          cellWidth: 28,
           textColor: CHARCOAL,
-          cellPadding: { top: 1.2, right: 1, bottom: 1.2, left: 3 },
+          cellPadding: { top: 1.8, right: 1.2, bottom: 1.8, left: 3.5 },
         },
-        1: { cellWidth: 23 },
-        2: { cellWidth: 23 },
-        3: { cellWidth: 23 },
-        4: { cellWidth: 23 },
-        5: { cellWidth: 23 },
-        6: { cellWidth: 23 },
-        7: { cellWidth: 23 },
-        8: { cellWidth: 23 },
-        9: { cellWidth: 23 },
-        10: { cellWidth: 23 },
+        1: { cellWidth: 24 },
+        2: { cellWidth: 24 },
+        3: { cellWidth: 24 },
+        4: { cellWidth: 24 },
+        5: { cellWidth: 24 },
+        6: { cellWidth: 24 },
+        7: { cellWidth: 24 },
+        8: { cellWidth: 24 },
+        9: { cellWidth: 24 },
+        10: { cellWidth: 24 },
       },
       alternateRowStyles: {
         fillColor: ROW_ALT,
       },
-      margin: { left: 8, right: 8, bottom: 10 },
+      margin: { left: 12, right: 12, bottom: 10 },
       willDrawCell(data) {
-        // Suppress default text for data cells — we render custom two-tone text
-        if (
-          data.section === "body" &&
-          data.column.index > 0 &&
-          data.cell.raw
-        ) {
+        // Suppress default text for all body cells — we render custom text
+        if (data.section === "body" && data.cell.raw) {
           data.cell.text = [];
         }
       },
       didDrawCell(data) {
-        // Red left accent bar on event column
+        // Red left accent bar + larger font for event column
         if (data.section === "body" && data.column.index === 0) {
           doc.setFillColor(...EAC_RED);
           doc.rect(data.cell.x, data.cell.y, 0.7, data.cell.height, "F");
+
+          // Render event label with larger font for better readability
+          if (data.cell.raw) {
+            const eventLabel = String(data.cell.raw);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(7.5);
+            doc.setTextColor(...CHARCOAL);
+            doc.text(
+              eventLabel,
+              data.cell.x + 3.5,
+              data.cell.y + data.cell.height / 2 + 1.5,
+              { align: "left" },
+            );
+          }
         }
 
-        // Custom two-tone rendering for time + name cells
+        // Custom two-tone rendering for time + name cells with current year highlight
         if (
           data.section === "body" &&
           data.column.index > 0 &&
@@ -342,25 +375,46 @@ export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
           const lines = raw.split("\n");
           const cx = data.cell.x + data.cell.width / 2;
 
+          // Check if this is a current year record
+          const cellKey = `${data.row.index}_${AGE_COLS[data.column.index - 1].age}`;
+          const recordMeta = recordsMetadata.get(cellKey);
+          const isNewRecord = recordMeta && isRecordFromCurrentYear(recordMeta.record_date);
+
+          // Highlight background for current year records
+          if (isNewRecord) {
+            doc.setFillColor(255, 250, 240); // Subtle warm highlight
+            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, "F");
+          }
+
           if (lines.length >= 2) {
-            // Time: bold, dark, prominent
+            // Time: bold, dark, prominent (larger for readability)
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(6.5);
+            doc.setFontSize(7.5);
             doc.setTextColor(...TEXT_DARK);
-            doc.text(lines[0], cx, data.cell.y + data.cell.height * 0.38, {
+            doc.text(lines[0], cx, data.cell.y + data.cell.height * 0.35, {
               align: "center",
             });
 
-            // Name: regular, muted, smaller
+            // NEW badge for current year records
+            if (isNewRecord) {
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(5);
+              doc.setTextColor(...EAC_RED);
+              doc.text("🆕", cx + 12, data.cell.y + data.cell.height * 0.28, {
+                align: "center",
+              });
+            }
+
+            // Name: regular, muted, larger
             doc.setFont("helvetica", "normal");
-            doc.setFontSize(5);
+            doc.setFontSize(5.5);
             doc.setTextColor(...TEXT_MUTED);
             doc.text(lines[1], cx, data.cell.y + data.cell.height * 0.72, {
               align: "center",
             });
           } else if (lines[0]) {
             doc.setFont("helvetica", "normal");
-            doc.setFontSize(5.5);
+            doc.setFontSize(6);
             doc.setTextColor(...TEXT_MUTED);
             doc.text(
               lines[0],
