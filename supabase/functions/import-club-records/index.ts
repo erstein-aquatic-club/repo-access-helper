@@ -143,6 +143,7 @@ interface PerSwimmerBest {
   pool_m: number;
   sex: string;
   age: number;
+  original_age?: number; // Track original age before cascade
 }
 
 /** Extract age from competition_name like "(12 ans)" */
@@ -340,6 +341,7 @@ async function recalculateClubRecords(): Promise<RecalcStats> {
           overallBests.set(olderKey, {
             ...currentRecord,
             age: olderAge, // Update age to reflect the category
+            original_age: currentRecord.original_age ?? age, // Preserve original age
           });
         }
       }
@@ -363,11 +365,13 @@ async function recalculateClubRecords(): Promise<RecalcStats> {
       {
         performance_id: perfRow?.id ?? 0,
         athlete_name: record.athlete_name,
+        swimmer_iuf: record.swimmer_iuf,
         sex: record.sex,
         pool_m: record.pool_m,
         event_code: record.event_code,
         event_label: record.event_label,
         age: record.age,
+        original_age: record.original_age ?? record.age, // Track original age
         time_ms: record.time_ms,
         record_date: record.record_date,
       },

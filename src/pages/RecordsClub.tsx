@@ -190,7 +190,9 @@ export default function RecordsClub() {
   }, [filteredRecords, ageValue]);
 
   const toggleExpand = (record: ClubRecord) => {
-    const key = `${record.event_code}__${pool}__${sex}__${record.age}`;
+    // Use original_age if available (cascaded record), otherwise use age
+    const rankingAge = record.original_age ?? record.age;
+    const key = `${record.event_code}__${pool}__${sex}__${rankingAge}`;
     setExpandedKey((prev) => (prev === key ? null : key));
   };
 
@@ -499,6 +501,9 @@ function RecordRow({
 
   const ageLabel =
     record.age === 8 ? "≤8" : record.age === 17 ? "≥17" : String(record.age);
+  const originalAgeLabel =
+    record.original_age === 8 ? "≤8" : record.original_age === 17 ? "≥17" : record.original_age ? String(record.original_age) : null;
+  const isCascaded = record.original_age != null && record.original_age !== record.age;
 
   return (
     <>
@@ -512,7 +517,14 @@ function RecordRow({
         <TableCell className="font-mono text-primary font-semibold tabular-nums text-sm">
           {formatTime(record.time_ms)}
         </TableCell>
-        <TableCell className="text-sm">{record.athlete_name}</TableCell>
+        <TableCell className="text-sm">
+          {record.athlete_name}
+          {isCascaded && originalAgeLabel && (
+            <span className="ml-1.5 text-xs text-muted-foreground">
+              ({originalAgeLabel} ans)
+            </span>
+          )}
+        </TableCell>
         {showAge && (
           <TableCell>
             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
@@ -539,7 +551,7 @@ function RecordRow({
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Classement — {label}
                 {!showAge &&
-                  ` (${ageLabel} ans)`}
+                  ` (${isCascaded && originalAgeLabel ? originalAgeLabel : ageLabel} ans)`}
               </p>
 
               {rankingLoading ? (

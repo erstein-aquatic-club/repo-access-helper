@@ -196,11 +196,13 @@ export interface ClubRecord {
   id: number;
   performance_id: number;
   athlete_name: string;
+  swimmer_iuf?: string | null;
   sex: string;
   pool_m: number;
   event_code: string;
   event_label?: string | null;
   age: number;
+  original_age?: number | null; // Original age before cascade
   time_ms: number;
   record_date?: string | null;
 }
