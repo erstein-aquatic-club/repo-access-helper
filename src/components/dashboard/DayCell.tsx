@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { Minus } from "lucide-react";
+import { Moon } from "lucide-react";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -36,7 +36,8 @@ export const DayCell = memo(function DayCell({
   const { total, slots } = status;
   const isRest = total === 0;
 
-  const bg = isRest ? "bg-muted/30" : "bg-card";
+  const allDone = total > 0 && status.completed === total;
+  const bg = isRest ? "bg-muted/30" : allDone ? "bg-status-success/10" : "bg-card";
   const border = "border-border";
 
   const ring = isSelected ? "ring-2 ring-primary/30" : "";
@@ -73,7 +74,7 @@ export const DayCell = memo(function DayCell({
 
         <div className="flex items-center justify-end">
           {isRest ? (
-            <Minus className="h-3 w-3 text-muted-foreground/40" />
+            <Moon className="h-3 w-3 text-muted-foreground/40" />
           ) : (
             <div className="w-6">
               <div className="flex gap-1">
