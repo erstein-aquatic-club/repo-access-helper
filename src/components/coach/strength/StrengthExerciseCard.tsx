@@ -1,0 +1,177 @@
+import React, { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { ChevronDown, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { Exercise, StrengthSessionItem } from "@/lib/api";
+
+interface StrengthExerciseCardProps {
+  exercise: StrengthSessionItem;
+  exercises: Exercise[];
+  exerciseFilter: "all" | "strength" | "warmup";
+  index: number;
+  onChange: (field: string, value: string | number | null) => void;
+  onDelete: () => void;
+}
+
+export function StrengthExerciseCard({
+  exercise,
+  exercises,
+  exerciseFilter,
+  index,
+  onChange,
+  onDelete,
+}: StrengthExerciseCardProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const filteredExercises = exercises.filter((ex) => {
+    if (exerciseFilter === "all") return true;
+    return ex.exercise_type === exerciseFilter;
+  });
+
+  const currentExercise = exercises.find((ex) => ex.id === exercise.exercise_id);
+  const exerciseName = currentExercise?.nom_exercice ?? "Exercice";
+  const isWarmup = currentExercise?.exercise_type === "warmup";
+
+  return (
+    <Card
+      className={cn(
+        "rounded-2xl border-border transition-all",
+        expanded && "ring-1 ring-primary/20"
+      )}
+    >
+      {/* Collapsed header — always visible */}
+      <button
+        type="button"
+        className="flex w-full items-center gap-3 p-3 text-left"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
+          {index + 1}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-semibold">{exerciseName}</span>
+            {isWarmup && (
+              <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                Échauf.
+              </span>
+            )}
+          </div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            {exercise.sets}&times;{exercise.reps}
+            {exercise.percent_1rm ? ` @ ${exercise.percent_1rm}% 1RM` : ""}
+            {exercise.rest_seconds ? ` · ${exercise.rest_seconds}s repos` : ""}
+          </div>
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+            expanded && "rotate-180"
+          )}
+        />
+      </button>
+
+      {/* Expanded content */}
+      {expanded && (
+        <div className="border-t border-border px-3 pb-3 pt-3 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Séries</Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={exercise.sets === 0 ? "" : exercise.sets}
+                onChange={(e) => onChange("sets", e.target.value === "" ? 0 : Number(e.target.value))}
+                className="rounded-xl h-10"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Reps</Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={exercise.reps === 0 ? "" : exercise.reps}
+                onChange={(e) => onChange("reps", e.target.value === "" ? 0 : Number(e.target.value))}
+                className="rounded-xl h-10"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">% 1RM</Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={exercise.percent_1rm === 0 ? "" : exercise.percent_1rm}
+                onChange={(e) => onChange("percent_1rm", e.target.value === "" ? 0 : Number(e.target.value))}
+                className="rounded-xl h-10"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Repos (s)</Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={exercise.rest_seconds === 0 ? "" : exercise.rest_seconds}
+                onChange={(e) => onChange("rest_seconds", e.target.value === "" ? 0 : Number(e.target.value))}
+                className="rounded-xl h-10"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Exercice</Label>
+            <Select
+              value={exercise.exercise_id.toString()}
+              onValueChange={(v) => onChange("exercise_id", parseInt(v))}
+            >
+              <SelectTrigger className="rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredExercises.length ? (
+                  filteredExercises.map((ex) => (
+                    <SelectItem key={ex.id} value={ex.id.toString()}>
+                      {ex.nom_exercice}
+                      {ex.exercise_type === "warmup" ? " · Échauffement" : ""}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-exercise" disabled>
+                    Aucun exercice disponible
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Notes</Label>
+            <Textarea
+              value={exercise.notes ?? ""}
+              onChange={(e) => onChange("notes", e.target.value || null)}
+              placeholder="Notes optionnelles..."
+              className="rounded-xl min-h-[60px]"
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="inline-flex h-9 items-center gap-2 rounded-full px-3 text-xs font-medium text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Supprimer
+            </button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
