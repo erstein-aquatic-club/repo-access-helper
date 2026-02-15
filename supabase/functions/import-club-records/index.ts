@@ -350,13 +350,15 @@ async function recalculateClubRecords(): Promise<RecalcStats> {
 
   // Upsert club_records with the overall best (including cascaded records)
   for (const [, record] of overallBests) {
+    // Find performance_id using original_age (not cascaded age)
+    const lookupAge = record.original_age ?? record.age;
     const { data: perfRow } = await supabaseAdmin
       .from("club_performances")
       .select("id")
       .eq("event_code", record.event_code)
       .eq("pool_m", record.pool_m)
       .eq("sex", record.sex)
-      .eq("age", record.age)
+      .eq("age", lookupAge)
       .eq("time_ms", record.time_ms)
       .limit(1)
       .single();

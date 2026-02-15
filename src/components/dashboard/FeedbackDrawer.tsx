@@ -307,7 +307,7 @@ export function FeedbackDrawer({
                 </IconButton>
               </div>
 
-              <div className="flex-1 overflow-auto p-4 pb-24 sm:p-5 sm:pb-5">
+              <div className="flex-1 overflow-auto p-4 sm:p-5">
                 {/* Header jour minimal */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -651,24 +651,6 @@ export function FeedbackDrawer({
                                 onLogsChange={(exerciseLogs) => onDraftStateChange({ ...draftState, exerciseLogs })}
                               />
 
-                              <BottomActionBar saveState={saveState}>
-                                <button
-                                  type="button"
-                                  onClick={onSaveFeedback}
-                                  disabled={isPending || !canRate || !INDICATORS.every((i) => Number.isInteger(draftState[i.key]))}
-                                  className={cn(
-                                    "rounded-2xl px-4 py-3 text-sm font-semibold transition flex-1",
-                                    isPending || !canRate
-                                      ? "bg-muted text-muted-foreground cursor-not-allowed"
-                                      : INDICATORS.every((i) => Number.isInteger(draftState[i.key]))
-                                      ? "bg-status-success text-white hover:opacity-90"
-                                      : "bg-status-success-bg text-status-success cursor-not-allowed"
-                                  )}
-                                >
-                                  Valider
-                                </button>
-                                <div className="text-xs text-muted-foreground">→ km</div>
-                              </BottomActionBar>
                             </div>
                           </>
                         );
@@ -677,6 +659,32 @@ export function FeedbackDrawer({
                   )}
                 </AnimatePresence>
               </div>
+
+              {/* Action bar outside scroll area — constrained to drawer width */}
+              {activeSession && (() => {
+                const st = getSessionStatus(activeSession, selectedDate);
+                const canRate = st.expected && st.status !== "absent";
+                return (
+                  <BottomActionBar saveState={saveState} position="static">
+                    <button
+                      type="button"
+                      onClick={onSaveFeedback}
+                      disabled={isPending || !canRate || !INDICATORS.every((i) => Number.isInteger(draftState[i.key]))}
+                      className={cn(
+                        "rounded-2xl px-4 py-3 text-sm font-semibold transition flex-1",
+                        isPending || !canRate
+                          ? "bg-muted text-muted-foreground cursor-not-allowed"
+                          : INDICATORS.every((i) => Number.isInteger(draftState[i.key]))
+                          ? "bg-status-success text-white hover:opacity-90"
+                          : "bg-status-success-bg text-status-success cursor-not-allowed"
+                      )}
+                    >
+                      Valider
+                    </button>
+                    <div className="text-xs text-muted-foreground">{"\u2192"} km</div>
+                  </BottomActionBar>
+                );
+              })()}
             </div>
           </motion.div>
         </>

@@ -304,7 +304,7 @@ export function WorkoutRunner({
       piece.style.backgroundColor = confettiColors[i % confettiColors.length];
       piece.style.opacity = "0.9";
       piece.style.pointerEvents = "none";
-      piece.style.zIndex = "9999";
+      piece.style.zIndex = "80";
       piece.style.borderRadius = "2px";
       document.body.appendChild(piece);
       const drift = (Math.random() - 0.5) * 200;
@@ -789,7 +789,7 @@ export function WorkoutRunner({
 
       {!inputSheetOpen && !isResting ? (
         <BottomActionBar 
-          className="bottom-0 z-[60]" 
+          className="bottom-0 z-modal"
           containerClassName="gap-3 py-4"
         >
           <Button
@@ -823,7 +823,7 @@ export function WorkoutRunner({
       ) : null}
 
       {isResting && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background/95 pb-[env(safe-area-inset-bottom)]">
+        <div className="fixed inset-0 z-modal flex flex-col bg-background/95 pb-[env(safe-area-inset-bottom)]">
           <div className="flex items-start justify-between border-b px-6 py-4">
             <div>
               <div className="text-xs font-semibold text-muted-foreground">Timer</div>
