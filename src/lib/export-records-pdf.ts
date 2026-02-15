@@ -102,7 +102,7 @@ async function loadLogoAsDataUrl(): Promise<string | null> {
 
 // ── Page Elements ──
 
-const HEADER_H = 30;
+const HEADER_H = 24;
 
 function drawHeader(
   doc: jsPDF,
@@ -116,7 +116,7 @@ function drawHeader(
 
   // Top accent strip (darker red)
   doc.setFillColor(...EAC_DARK_RED);
-  doc.rect(0, 0, pageWidth, 1.5, "F");
+  doc.rect(0, 0, pageWidth, 1.2, "F");
 
   // Subtle diagonal stripes for texture (lighter red on red)
   doc.setFillColor(...EAC_RED_LIGHT);
@@ -125,14 +125,19 @@ function drawHeader(
     doc.triangle(x, 0, x + 45, 0, x + 22, HEADER_H, "F");
   }
 
-  // Logo with white circle backdrop
-  const logoSize = 20;
-  const logoX = 10;
-  const logoY = (HEADER_H - logoSize) / 2 + 0.75;
+  // Logo with white rounded rectangle backdrop
+  const logoSize = 17;
+  const logoPad = 1.5;
+  const logoX = 8;
+  const logoY = (HEADER_H - logoSize) / 2;
   if (logoDataUrl) {
     try {
       doc.setFillColor(...WHITE);
-      doc.circle(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2 + 1.5, "F");
+      doc.roundedRect(
+        logoX - logoPad, logoY - logoPad,
+        logoSize + logoPad * 2, logoSize + logoPad * 2,
+        2.5, 2.5, "F",
+      );
       doc.addImage(logoDataUrl, "PNG", logoX, logoY, logoSize, logoSize);
     } catch {
       // Continue without logo
@@ -140,37 +145,37 @@ function drawHeader(
   }
 
   // Text anchor (offset if logo present)
-  const textX = logoDataUrl ? logoX + logoSize + 6 : 12;
+  const textX = logoDataUrl ? logoX + logoSize + logoPad + 5 : 12;
 
   // Club name
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setTextColor(...WHITE);
-  doc.text("ERSTEIN AQUATIC CLUB", textX, 12);
+  doc.text("ERSTEIN AQUATIC CLUB", textX, 9.5);
 
   // Thin separator line
   doc.setDrawColor(255, 180, 180);
   doc.setLineWidth(0.15);
-  doc.line(textX, 14.5, textX + 75, 14.5);
+  doc.line(textX, 11.5, textX + 70, 11.5);
 
   // Page title
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(...WHITE);
-  doc.text(title, textX, 20);
+  doc.text(title, textX, 16.5);
 
   // Edition date
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setTextColor(255, 190, 190);
   doc.text(
     `Édité le ${new Date().toLocaleDateString("fr-FR")}`,
     textX,
-    26,
+    21,
   );
 
   // Bottom edge accent (dark line)
   doc.setFillColor(...CHARCOAL);
-  doc.rect(0, HEADER_H, pageWidth, 0.6, "F");
+  doc.rect(0, HEADER_H, pageWidth, 0.5, "F");
 }
 
 function drawFooter(
@@ -180,7 +185,7 @@ function drawFooter(
   pageNum: number,
   totalPages: number,
 ) {
-  const y = pageHeight - 9;
+  const y = pageHeight - 7;
 
   // Red accent line
   doc.setDrawColor(...EAC_RED);
@@ -266,13 +271,13 @@ export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
     }
 
     autoTable(doc, {
-      startY: HEADER_H + 3,
+      startY: HEADER_H + 2,
       head,
       body,
       theme: "plain",
       styles: {
-        fontSize: 6.5,
-        cellPadding: { top: 2.5, right: 1.5, bottom: 2.5, left: 1.5 },
+        fontSize: 6,
+        cellPadding: { top: 1.2, right: 1, bottom: 1.2, left: 1 },
         valign: "middle",
         halign: "center",
         textColor: TEXT_DARK,
@@ -282,33 +287,33 @@ export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
         fillColor: CHARCOAL,
         textColor: WHITE,
         fontStyle: "bold",
-        fontSize: 7,
+        fontSize: 6.5,
         halign: "center",
-        cellPadding: { top: 3, right: 1.5, bottom: 3, left: 1.5 },
+        cellPadding: { top: 2, right: 1, bottom: 2, left: 1 },
       },
       columnStyles: {
         0: {
           halign: "left",
           fontStyle: "bold",
-          cellWidth: 28,
+          cellWidth: 26,
           textColor: CHARCOAL,
-          cellPadding: { top: 2.5, right: 1.5, bottom: 2.5, left: 3.5 },
+          cellPadding: { top: 1.2, right: 1, bottom: 1.2, left: 3 },
         },
-        1: { cellWidth: 22 },
-        2: { cellWidth: 22 },
-        3: { cellWidth: 22 },
-        4: { cellWidth: 22 },
-        5: { cellWidth: 22 },
-        6: { cellWidth: 22 },
-        7: { cellWidth: 22 },
-        8: { cellWidth: 22 },
-        9: { cellWidth: 22 },
-        10: { cellWidth: 22 },
+        1: { cellWidth: 23 },
+        2: { cellWidth: 23 },
+        3: { cellWidth: 23 },
+        4: { cellWidth: 23 },
+        5: { cellWidth: 23 },
+        6: { cellWidth: 23 },
+        7: { cellWidth: 23 },
+        8: { cellWidth: 23 },
+        9: { cellWidth: 23 },
+        10: { cellWidth: 23 },
       },
       alternateRowStyles: {
         fillColor: ROW_ALT,
       },
-      margin: { left: 10, right: 10, bottom: 14 },
+      margin: { left: 8, right: 8, bottom: 10 },
       willDrawCell(data) {
         // Suppress default text for data cells — we render custom two-tone text
         if (
@@ -340,7 +345,7 @@ export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
           if (lines.length >= 2) {
             // Time: bold, dark, prominent
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(7);
+            doc.setFontSize(6.5);
             doc.setTextColor(...TEXT_DARK);
             doc.text(lines[0], cx, data.cell.y + data.cell.height * 0.38, {
               align: "center",
@@ -348,14 +353,14 @@ export async function exportRecordsPdf(records: ClubRecord[]): Promise<void> {
 
             // Name: regular, muted, smaller
             doc.setFont("helvetica", "normal");
-            doc.setFontSize(5.5);
+            doc.setFontSize(5);
             doc.setTextColor(...TEXT_MUTED);
             doc.text(lines[1], cx, data.cell.y + data.cell.height * 0.72, {
               align: "center",
             });
           } else if (lines[0]) {
             doc.setFont("helvetica", "normal");
-            doc.setFontSize(6);
+            doc.setFontSize(5.5);
             doc.setTextColor(...TEXT_MUTED);
             doc.text(
               lines[0],
