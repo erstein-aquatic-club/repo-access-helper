@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, Exercise, StrengthCycleType, StrengthSessionItem, StrengthSessionTemplate } from "@/lib/api";
+import { api, Exercise, StrengthCycleType, StrengthSessionItem, StrengthSessionTemplate, StrengthFolder } from "@/lib/api";
 import type { StrengthSessionInput } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, Plus, Edit2, Search, Dumbbell, Upload, Loader2, Trash2 } from "lucide-react";
+import { AlertCircle, Plus, Edit2, Search, Dumbbell, Upload, Loader2, Trash2, FolderPlus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +26,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StrengthSessionBuilder } from "@/components/coach/strength/StrengthSessionBuilder";
 import { SessionListView } from "@/components/coach/shared/SessionListView";
+import { FolderSection } from "@/components/coach/strength/FolderSection";
+import { MoveToFolderPopover } from "@/components/coach/strength/MoveToFolderPopover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 type ExerciseDraft = Omit<Exercise, "id"> & {
@@ -314,11 +317,13 @@ export default function StrengthCatalog() {
     description: string;
     cycle: StrengthCycleType;
     items: StrengthSessionItem[];
+    folder_id?: number | null;
   }>({
     title: "",
     description: "",
     cycle: "endurance",
     items: [],
+    folder_id: null,
   });
 
   const [newExercise, setNewExercise] = useState<ExerciseDraft>({
@@ -341,12 +346,66 @@ export default function StrengthCatalog() {
     queryFn: () => api.getStrengthSessions()
   });
 
+  const { data: sessionFolders } = useQuery({
+    queryKey: ["strength_folders", "session"],
+    queryFn: () => api.getStrengthFolders("session"),
+  });
+
+  const { data: exerciseFolders } = useQuery({
+    queryKey: ["strength_folders", "exercise"],
+    queryFn: () => api.getStrengthFolders("exercise"),
+  });
+
+  const renderSessionMetrics = (session: StrengthSessionTemplate) => {
+    const totalSets = session.items?.reduce((sum, item) => sum + (item.sets || 0), 0) ?? 0;
+    return (
+      <>
+        <span className="capitalize">{session.cycle}</span>
+        <span>·</span>
+        <span>{session.items?.length ?? 0} exos</span>
+        <span>·</span>
+        <span>{totalSets} séries</span>
+      </>
+    );
+  };
+
   const filteredSessions = useMemo(() => {
     if (!sessions) return [];
     if (!searchQuery.trim()) return sessions;
     const q = searchQuery.toLowerCase();
     return sessions.filter((s) => s.title?.toLowerCase().includes(q));
   }, [sessions, searchQuery]);
+
+  const unfiledSessions = filteredSessions.filter((s) => !s.folder_id);
+
+  const sessionsByFolder = useMemo(() => {
+    const map = new Map<number, typeof filteredSessions>();
+    for (const s of filteredSessions) {
+      if (s.folder_id) {
+        const arr = map.get(s.folder_id) ?? [];
+        arr.push(s);
+        map.set(s.folder_id, arr);
+      }
+    }
+    return map;
+  }, [filteredSessions]);
+
+  const unfiledExercises = useMemo(() =>
+    (exercises ?? []).filter((ex) => !ex.folder_id),
+    [exercises]
+  );
+
+  const exercisesByFolder = useMemo(() => {
+    const map = new Map<number, Exercise[]>();
+    for (const ex of (exercises ?? [])) {
+      if (ex.folder_id) {
+        const arr = map.get(ex.folder_id) ?? [];
+        arr.push(ex);
+        map.set(ex.folder_id, arr);
+      }
+    }
+    return map;
+  }, [exercises]);
 
   const createExercise = useMutation({
     mutationFn: (data: Omit<Exercise, "id">) => api.createExercise(data),
@@ -362,7 +421,7 @@ export default function StrengthCatalog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["strength_catalog"] });
       setIsCreating(false);
-      setNewSession({ title: "", description: "", cycle: "endurance", items: [] });
+      setNewSession({ title: "", description: "", cycle: "endurance", items: [], folder_id: null });
       toast({ title: "Séance créée avec succès" });
     }
   });
@@ -403,7 +462,7 @@ export default function StrengthCatalog() {
       queryClient.invalidateQueries({ queryKey: ["strength_catalog"] });
       setIsCreating(false);
       setEditingSessionId(null);
-      setNewSession({ title: "", description: "", cycle: "endurance", items: [] });
+      setNewSession({ title: "", description: "", cycle: "endurance", items: [], folder_id: null });
       toast({ title: "Séance mise à jour" });
     }
   });
@@ -412,10 +471,48 @@ export default function StrengthCatalog() {
     mutationFn: (session: StrengthSessionTemplate) => api.persistStrengthSessionOrder(session),
   });
 
+  const createFolder = useMutation({
+    mutationFn: ({ name, type }: { name: string; type: 'session' | 'exercise' }) =>
+      api.createStrengthFolder(name, type),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["strength_folders"] });
+      toast({ title: "Dossier créé" });
+    },
+  });
+
+  const renameFolder = useMutation({
+    mutationFn: ({ id, name }: { id: number; name: string }) =>
+      api.renameStrengthFolder(id, name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["strength_folders"] });
+      toast({ title: "Dossier renommé" });
+    },
+  });
+
+  const deleteFolderMut = useMutation({
+    mutationFn: (id: number) => api.deleteStrengthFolder(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["strength_folders"] });
+      queryClient.invalidateQueries({ queryKey: ["strength_catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["exercises"] });
+      toast({ title: "Dossier supprimé" });
+    },
+  });
+
+  const moveItem = useMutation({
+    mutationFn: ({ itemId, folderId, table }: { itemId: number; folderId: number | null; table: 'strength_sessions' | 'dim_exercices' }) =>
+      api.moveToFolder(itemId, folderId, table),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["strength_catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["exercises"] });
+      toast({ title: "Déplacé" });
+    },
+  });
+
   const resetSessionForm = () => {
     setIsCreating(false);
     setEditingSessionId(null);
-    setNewSession({ title: "", description: "", cycle: "endurance", items: [] });
+    setNewSession({ title: "", description: "", cycle: "endurance", items: [], folder_id: null });
   };
 
   const startEditSession = (session: StrengthSessionTemplate) => {
@@ -434,6 +531,7 @@ export default function StrengthCatalog() {
         cycle_type: item.cycle_type,
         notes: item.notes ?? "",
       })) ?? [],
+      folder_id: session.folder_id ?? null,
     });
     setIsCreating(true);
   };
@@ -833,6 +931,7 @@ export default function StrengthCatalog() {
           session={newSession}
           exercises={exercises ?? []}
           editingSessionId={editingSessionId}
+          folders={sessionFolders}
           onSessionChange={setNewSession}
           onCycleChange={(cycle) => {
             const items = newSession.items.map((item, i) => {
@@ -900,17 +999,29 @@ export default function StrengthCatalog() {
           <div className="text-base font-semibold">Musculation</div>
           <div className="text-xs text-muted-foreground">Catalogue</div>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setEditingSessionId(null);
-            setNewSession({ title: "", description: "", cycle: "endurance", items: [] });
-            setIsCreating(true);
-          }}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" /> Nouvelle
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const name = prompt("Nom du dossier");
+              if (name?.trim()) createFolder.mutate({ name: name.trim(), type: "session" });
+            }}
+            className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
+          >
+            <FolderPlus className="h-4 w-4" /> Dossier
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingSessionId(null);
+              setNewSession({ title: "", description: "", cycle: "endurance", items: [], folder_id: null });
+              setIsCreating(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+          >
+            <Plus className="h-4 w-4" /> Nouvelle
+          </button>
+        </div>
       </div>
 
       <div className="p-4 space-y-6">
@@ -925,54 +1036,96 @@ export default function StrengthCatalog() {
           />
         </div>
 
-        {/* Sessions list */}
-        <SessionListView
-          sessions={filteredSessions}
-          isLoading={isLoadingSessions}
-          error={sessionsError}
-          renderTitle={(session) => session.title ?? "Sans titre"}
-          renderMetrics={(session) => {
-            const count = session.items?.length ?? 0;
-            const cycleBadgeClass =
-              session.cycle === "force"
-                ? "bg-red-100 text-red-800"
-                : session.cycle === "hypertrophie"
-                  ? "bg-violet-100 text-violet-800"
-                  : "bg-blue-100 text-blue-800";
-            return (
-              <>
-                <span className="inline-flex items-center gap-1">
-                  <Dumbbell className="h-3.5 w-3.5" />
-                  {count} exo{count > 1 ? "s" : ""}
-                </span>
-                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", cycleBadgeClass)}>
-                  {session.cycle}
-                </span>
-              </>
-            );
-          }}
-          onPreview={(session) => startEditSession(session)}
-          onEdit={(session) => startEditSession(session)}
-          onDelete={(session) => setPendingDeleteSession(session)}
-          canDelete={() => true}
-          isDeleting={deleteSession.isPending}
-        />
+        {/* Sessions list — grouped by folders */}
+        <div className="space-y-3">
+          {/* Unfiled sessions */}
+          <SessionListView
+            sessions={unfiledSessions}
+            isLoading={isLoadingSessions}
+            error={sessionsError}
+            renderTitle={(session) => session.title ?? "Sans titre"}
+            renderMetrics={renderSessionMetrics}
+            renderExtraActions={(session) => (
+              <MoveToFolderPopover
+                folders={sessionFolders ?? []}
+                currentFolderId={session.folder_id}
+                onMove={(folderId) => moveItem.mutate({ itemId: session.id, folderId, table: "strength_sessions" })}
+              />
+            )}
+            onPreview={(session) => startEditSession(session)}
+            onEdit={(session) => startEditSession(session)}
+            onDelete={(session) => setPendingDeleteSession(session)}
+            canDelete={() => true}
+            isDeleting={deleteSession.isPending}
+          />
 
-        {/* Exercise catalog — compact list */}
+          {/* Session folders */}
+          {sessionFolders?.map((folder) => {
+            const folderSessions = sessionsByFolder.get(folder.id) ?? [];
+            return (
+              <FolderSection
+                key={folder.id}
+                name={folder.name}
+                count={folderSessions.length}
+                onRename={(newName) => renameFolder.mutate({ id: folder.id, name: newName })}
+                onDelete={() => deleteFolderMut.mutate(folder.id)}
+              >
+                {folderSessions.length > 0 ? (
+                  <SessionListView
+                    sessions={folderSessions}
+                    renderTitle={(session) => session.title ?? "Sans titre"}
+                    renderMetrics={renderSessionMetrics}
+                    renderExtraActions={(session) => (
+                      <MoveToFolderPopover
+                        folders={sessionFolders ?? []}
+                        currentFolderId={session.folder_id}
+                        onMove={(folderId) => moveItem.mutate({ itemId: session.id, folderId, table: "strength_sessions" })}
+                      />
+                    )}
+                    onPreview={(session) => startEditSession(session)}
+                    onEdit={(session) => startEditSession(session)}
+                    onDelete={(session) => setPendingDeleteSession(session)}
+                    canDelete={() => true}
+                    isDeleting={deleteSession.isPending}
+                  />
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+                    Dossier vide
+                  </div>
+                )}
+              </FolderSection>
+            );
+          })}
+        </div>
+
+        {/* Exercise catalog — grouped by folders */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="text-sm font-semibold">Exercices ({exercises?.length ?? 0})</div>
-            <button
-              type="button"
-              onClick={() => setExerciseDialogOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
-            >
-              <Plus className="h-4 w-4" /> Ajouter
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const name = prompt("Nom du dossier");
+                  if (name?.trim()) createFolder.mutate({ name: name.trim(), type: "exercise" });
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
+              >
+                <FolderPlus className="h-4 w-4" /> Dossier
+              </button>
+              <button
+                type="button"
+                onClick={() => setExerciseDialogOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
+              >
+                <Plus className="h-4 w-4" /> Ajouter
+              </button>
+            </div>
           </div>
 
+          {/* Unfiled exercises */}
           <div className="space-y-1">
-            {exercises?.map((exercise) => (
+            {unfiledExercises.map((exercise) => (
               <div
                 key={exercise.id}
                 className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-muted/50"
@@ -997,6 +1150,11 @@ export default function StrengthCatalog() {
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
+                  <MoveToFolderPopover
+                    folders={exerciseFolders ?? []}
+                    currentFolderId={exercise.folder_id}
+                    onMove={(folderId) => moveItem.mutate({ itemId: exercise.id, folderId, table: "dim_exercices" })}
+                  />
                   <button
                     type="button"
                     onClick={() => startEditExercise(exercise)}
@@ -1017,6 +1175,78 @@ export default function StrengthCatalog() {
               </div>
             ))}
           </div>
+
+          {/* Exercise folders */}
+          {exerciseFolders?.map((folder) => {
+            const folderExercises = exercisesByFolder.get(folder.id) ?? [];
+            return (
+              <FolderSection
+                key={folder.id}
+                name={folder.name}
+                count={folderExercises.length}
+                onRename={(newName) => renameFolder.mutate({ id: folder.id, name: newName })}
+                onDelete={() => deleteFolderMut.mutate(folder.id)}
+              >
+                {folderExercises.length > 0 ? (
+                  <div className="space-y-1">
+                    {folderExercises.map((exercise) => (
+                      <div
+                        key={exercise.id}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-muted/50"
+                      >
+                        {exercise.illustration_gif ? (
+                          <img
+                            src={exercise.illustration_gif}
+                            alt={exercise.nom_exercice}
+                            className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                            <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium">{exercise.nom_exercice}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {exercise.exercise_type === "warmup" ? "Échauffement" : "Séries de travail"}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <MoveToFolderPopover
+                            folders={exerciseFolders ?? []}
+                            currentFolderId={exercise.folder_id}
+                            onMove={(folderId) => moveItem.mutate({ itemId: exercise.id, folderId, table: "dim_exercices" })}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => startEditExercise(exercise)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
+                            aria-label="Modifier"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPendingDeleteExercise(exercise)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-destructive hover:bg-destructive/10"
+                            aria-label="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+                    Dossier vide
+                  </div>
+                )}
+              </FolderSection>
+            );
+          })}
         </div>
       </div>
     </div>

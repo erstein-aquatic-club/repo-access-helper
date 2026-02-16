@@ -10,6 +10,7 @@ interface SessionListViewProps<T extends { id: number }> {
   error?: Error | null;
   renderTitle: (session: T) => string;
   renderMetrics: (session: T) => React.ReactNode;
+  renderExtraActions?: (session: T) => React.ReactNode;
   onPreview: (session: T) => void;
   onEdit: (session: T) => void;
   onArchive?: (session: T) => void;
@@ -26,6 +27,7 @@ export function SessionListView<T extends { id: number }>({
   error,
   renderTitle,
   renderMetrics,
+  renderExtraActions,
   onPreview,
   onEdit,
   onArchive,
@@ -146,6 +148,7 @@ export function SessionListView<T extends { id: number }>({
                       )}
                     </button>
                   )}
+                  {renderExtraActions?.(session)}
                   <button
                     type="button"
                     onClick={() => {

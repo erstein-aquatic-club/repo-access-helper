@@ -7,7 +7,7 @@ import { SessionMetadataForm } from "../shared/SessionMetadataForm";
 import { FormActions } from "../shared/FormActions";
 import { StrengthExerciseCard } from "./StrengthExerciseCard";
 import { cn } from "@/lib/utils";
-import type { Exercise, StrengthCycleType, StrengthSessionItem } from "@/lib/api";
+import type { Exercise, StrengthCycleType, StrengthSessionItem, StrengthFolder } from "@/lib/api";
 
 interface StrengthSessionBuilderProps {
   session: {
@@ -15,14 +15,17 @@ interface StrengthSessionBuilderProps {
     description: string;
     cycle: StrengthCycleType;
     items: StrengthSessionItem[];
+    folder_id?: number | null;
   };
   exercises: Exercise[];
   editingSessionId: number | null;
+  folders?: StrengthFolder[];
   onSessionChange: (session: {
     title: string;
     description: string;
     cycle: StrengthCycleType;
     items: StrengthSessionItem[];
+    folder_id?: number | null;
   }) => void;
   onCycleChange: (cycle: StrengthCycleType) => void;
   onSave: () => void;
@@ -46,6 +49,7 @@ export function StrengthSessionBuilder({
   session,
   exercises,
   editingSessionId,
+  folders,
   onSessionChange,
   onCycleChange,
   onSave,
@@ -107,6 +111,27 @@ export function StrengthSessionBuilder({
           }
           additionalFields={
             <>
+              {folders && folders.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground">Dossier</div>
+                  <div className="mt-1">
+                    <Select
+                      value={session.folder_id?.toString() ?? "none"}
+                      onValueChange={(v) => onSessionChange({ ...session, folder_id: v === "none" ? null : parseInt(v) })}
+                    >
+                      <SelectTrigger className="rounded-2xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucun</SelectItem>
+                        {folders.map((f) => (
+                          <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
               <div>
                 <div className="text-xs font-semibold text-muted-foreground">Cycle</div>
                 <div className="mt-1">
