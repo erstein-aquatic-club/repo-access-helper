@@ -3991,3 +3991,36 @@ La page "Records" utilisait des grids CSS 4 colonnes (`grid-cols-[minmax(0,1fr)_
 - Profil utilisateur prioritaire sur entrée manuelle
 - Double protection : contrainte DB + vérification applicative
 - Erreurs Supabase propagées proprement (pas de silent failures)
+
+## 2026-02-16 — Redesign onglet Historique Records (§41)
+
+### Contexte — Pourquoi ce patch
+
+L'onglet "Historique" de la page Records personnels affichait les performances FFN importées dans une liste plate avec un Select dropdown pour filtrer par épreuve, et un graphique standalone visible uniquement quand une épreuve était sélectionnée. L'UX était pauvre : il fallait ouvrir le dropdown, sélectionner une épreuve, regarder le graphique, puis re-sélectionner pour changer. Pas de vue d'ensemble.
+
+### Changements réalisés
+
+1. **Groupement par épreuve** : les performances sont groupées par `event_code`, triées par type de nage (NL > Dos > Brasse > Pap > 4N) puis distance croissante
+2. **Cartes dépliables** : chaque épreuve est une Card avec header cliquable (nom épreuve + meilleur temps + badge compteur). Clic pour déplier/replier
+3. **Graphique intégré** : le LineChart de progression est à l'intérieur de chaque carte dépliée (h=160px), visible si ≥2 points de données
+4. **Meilleur temps mis en valeur** : icône Trophy + fond `bg-primary/5` + texte bold primary
+5. **Suppression du Select dropdown** : plus besoin de filtrer manuellement, toutes les épreuves sont visibles d'un coup
+
+### Fichiers modifiés
+
+- `src/pages/Records.tsx` — refonte section history (état, mémos, UI)
+
+### Tests
+
+- `npx tsc --noEmit` : OK (pas d'erreurs dans Records.tsx)
+- `npm run build` : OK
+
+### Décisions prises
+
+- Un seul événement dépliable à la fois (`histExpandedEvent: string | null`) pour garder la vue compacte
+- Animations Framer Motion conservées (staggerChildren, listItem)
+- Toggle bassin, bouton import, alertes IUF inchangés
+
+### Limites / dette
+
+- Pas de filtre textuel (chercher une épreuve par nom) — acceptable car le nombre d'épreuves par nageur est limité (~10-20)

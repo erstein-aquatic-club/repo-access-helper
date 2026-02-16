@@ -183,7 +183,7 @@ export default function Records() {
 
   // History tab state
   const [histPoolLen, setHistPoolLen] = useState<25 | 50>(25);
-  const [histEventFilter, setHistEventFilter] = useState<string>("all");
+  const [histExpandedEvent, setHistExpandedEvent] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<boolean>(false);
 
   const showRecords = shouldShowRecords(role);
@@ -288,27 +288,53 @@ export default function Records() {
     },
   });
 
-  // Unique event codes from performances (for filter select)
-  const perfEventCodes = useMemo(() => {
-    if (!performances) return [];
-    const codes = new Set(performances.map((p) => p.event_code));
-    return [...codes].sort();
+  // Group performances by event_code, sorted by stroke+distance
+  const groupedPerformances = useMemo(() => {
+    if (!performances?.length) return [];
+    const map = new Map<string, SwimmerPerformance[]>();
+    for (const p of performances) {
+      const list = map.get(p.event_code) ?? [];
+      list.push(p);
+      map.set(p.event_code, list);
+    }
+
+    const norm = (s: string) => s.toLowerCase().replace(/\./g, "").replace(/\s+/g, " ").trim();
+    const strokeKey = (s: string) => {
+      const n = norm(s);
+      if (n.includes("nl") || n.includes("nage libre")) return 0;
+      if (n.includes("dos")) return 1;
+      if (n.includes("bra") || n.includes("brasse")) return 2;
+      if (n.includes("pap") || n.includes("papillon")) return 3;
+      if (n.includes("4n") || n.includes("4 n") || n.includes("4 nages")) return 4;
+      return 99;
+    };
+    const distance = (s: string) => {
+      const m = s.match(/^(\d+)/);
+      return m ? Number(m[1]) : Infinity;
+    };
+
+    return [...map.entries()]
+      .map(([eventCode, perfs]) => {
+        const sorted = [...perfs].sort(
+          (a, b) => (b.competition_date ?? "").localeCompare(a.competition_date ?? "")
+        );
+        const best = sorted.reduce((min, p) => (p.time_seconds < min.time_seconds ? p : min), sorted[0]);
+        return { eventCode, performances: sorted, bestTime: best.time_seconds, bestId: best.id };
+      })
+      .sort((a, b) => {
+        const sa = strokeKey(a.eventCode);
+        const sb = strokeKey(b.eventCode);
+        if (sa !== sb) return sa - sb;
+        return distance(a.eventCode) - distance(b.eventCode);
+      });
   }, [performances]);
 
-  // Filtered performances for selected event
-  const filteredPerformances = useMemo(() => {
-    if (!performances) return [];
-    let list = performances;
-    if (histEventFilter !== "all") {
-      list = list.filter((p) => p.event_code === histEventFilter);
-    }
-    return list;
-  }, [performances, histEventFilter]);
-
-  // Chart data for selected event (ascending date order)
+  // Chart data for expanded event (ascending date order)
   const chartData = useMemo(() => {
-    if (histEventFilter === "all" || !filteredPerformances.length) return [];
-    return [...filteredPerformances]
+    if (!histExpandedEvent) return [];
+    const group = groupedPerformances.find((g) => g.eventCode === histExpandedEvent);
+    if (!group) return [];
+    return [...group.performances]
       .filter((p) => p.competition_date)
       .sort((a, b) => (a.competition_date ?? "").localeCompare(b.competition_date ?? ""))
       .map((p) => ({
@@ -316,7 +342,7 @@ export default function Records() {
         time: p.time_seconds,
         display: p.time_display ?? formatTimeSeconds(p.time_seconds),
       }));
-  }, [filteredPerformances, histEventFilter]);
+  }, [histExpandedEvent, groupedPerformances]);
 
   const { data: oneRMs, isLoading: oneRmLoading, isError: oneRmIsError } = oneRmQuery;
   const { data: exercises, isLoading: exercisesLoading, isError: exercisesIsError } = exercisesQuery;
@@ -1005,123 +1031,169 @@ export default function Records() {
                     </Button>
                   </motion.div>
 
-                  {/* Event filter */}
-                  {perfEventCodes.length > 0 ? (
-                    <Select
-                      value={histEventFilter}
-                      onValueChange={(v) => setHistEventFilter(v)}
+                  {/* Event-grouped performance cards */}
+                  {perfLoading ? (
+                    <div className="grid gap-3">
+                      <SkeletonRow />
+                      <SkeletonRow />
+                      <SkeletonRow />
+                    </div>
+                  ) : perfIsError ? (
+                    <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+                      <p className="font-semibold">Impossible de charger les performances</p>
+                      <p className="mt-1 text-xs">
+                        {performancesQuery.error instanceof Error
+                          ? performancesQuery.error.message
+                          : "Vérifiez votre connexion internet et réessayez."}
+                      </p>
+                    </div>
+                  ) : groupedPerformances.length === 0 ? (
+                    <div className="px-4 py-6 text-sm text-muted-foreground">
+                      {userIuf
+                        ? "Aucune performance trouvée. Cliquez sur \"Importer\" pour récupérer vos données FFN."
+                        : "Ajoutez votre IUF FFN dans votre profil pour commencer."}
+                    </div>
+                  ) : (
+                    <motion.div
+                      className="space-y-2 motion-reduce:animate-none"
+                      variants={staggerChildren}
+                      initial="hidden"
+                      animate="visible"
                     >
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue placeholder="Filtrer par épreuve" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Toutes les épreuves</SelectItem>
-                        {perfEventCodes.map((code) => (
-                          <SelectItem key={code} value={code}>{code}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : null}
+                      {groupedPerformances.map((group) => {
+                        const isExpanded = histExpandedEvent === group.eventCode;
+                        const toggleExpand = () =>
+                          setHistExpandedEvent(isExpanded ? null : group.eventCode);
 
-                  {/* Chart (only when a specific event is selected) */}
-                  {histEventFilter !== "all" && chartData.length > 1 ? (
-                    <Card className="rounded-2xl">
-                      <CardContent className="pt-4 pb-2 px-2">
-                        <div className="text-xs text-muted-foreground mb-2 px-2">
-                          Progression : {histEventFilter} ({histPoolLen}m)
-                        </div>
-                        <ResponsiveContainer width="100%" height={220}>
-                          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                            <XAxis dataKey="date" tick={{ fontSize: 10 }} className="text-muted-foreground" />
-                            <YAxis
-                              domain={["auto", "auto"]}
-                              tick={{ fontSize: 10 }}
-                              className="text-muted-foreground"
-                              reversed
-                              tickFormatter={(v: number) => {
-                                const min = Math.floor(v / 60);
-                                const sec = Math.floor(v % 60);
-                                const cs = Math.round((v % 1) * 100);
-                                return min > 0 ? `${min}:${String(sec).padStart(2, "0")}` : `${sec}.${String(cs).padStart(2, "0")}`;
-                              }}
-                            />
-                            <Tooltip
-                              formatter={(value: number) => {
-                                const min = Math.floor(value / 60);
-                                const sec = Math.floor(value % 60);
-                                const cs = Math.round((value % 1) * 100);
-                                const display = min > 0
-                                  ? `${min}:${String(sec).padStart(2, "0")}.${String(cs).padStart(2, "0")}`
-                                  : `${sec}.${String(cs).padStart(2, "0")}`;
-                                return [display, "Temps"];
-                              }}
-                              labelStyle={{ fontSize: 11 }}
-                              contentStyle={{ borderRadius: 12, fontSize: 12 }}
-                            />
-                            <Line
-                              type="monotone"
-                              dataKey="time"
-                              stroke="hsl(var(--primary))"
-                              strokeWidth={2}
-                              dot={{ r: 3 }}
-                              activeDot={{ r: 5 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </CardContent>
-                    </Card>
-                  ) : null}
+                        return (
+                          <motion.div key={group.eventCode} variants={listItem}>
+                            <Card className="rounded-2xl">
+                              <CardContent className="p-0">
+                                {/* Collapsed header */}
+                                <button
+                                  type="button"
+                                  onClick={toggleExpand}
+                                  className="w-full flex items-center justify-between gap-2 px-3 py-3 text-left cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <ChevronDown
+                                      className={cx(
+                                        "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                                        isExpanded && "rotate-180"
+                                      )}
+                                    />
+                                    <span className="text-sm font-semibold truncate">
+                                      {group.eventCode}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="font-mono text-primary font-bold tabular-nums text-sm">
+                                      {formatTimeSeconds(group.bestTime)}
+                                    </span>
+                                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-muted text-xs font-semibold tabular-nums text-muted-foreground">
+                                      {group.performances.length}
+                                    </span>
+                                  </div>
+                                </button>
 
-                  {/* Performance list */}
-                  <Card className="w-full min-w-0 rounded-2xl">
-                    <CardContent className="p-0">
-                      {perfLoading ? (
-                        <div className="p-4 grid gap-3">
-                          <SkeletonRow />
-                          <SkeletonRow />
-                          <SkeletonRow />
-                        </div>
-                      ) : perfIsError ? (
-                        <div className="mx-4 my-4 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
-                          <p className="font-semibold">Impossible de charger les performances</p>
-                          <p className="mt-1 text-xs">
-                            {performancesQuery.error instanceof Error
-                              ? performancesQuery.error.message
-                              : "Vérifiez votre connexion internet et réessayez."}
-                          </p>
-                        </div>
-                      ) : filteredPerformances.length === 0 ? (
-                        <div className="px-4 py-6 text-sm text-muted-foreground">
-                          {userIuf
-                            ? "Aucune performance trouvée. Cliquez sur \"Importer\" pour récupérer vos données FFN."
-                            : "Ajoutez votre IUF FFN dans votre profil pour commencer."}
-                        </div>
-                      ) : (
-                        <div className="divide-y divide-border">
-                          {filteredPerformances.map((perf) => (
-                            <div key={perf.id} className="px-3 py-2.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm font-semibold truncate">{perf.event_code}</span>
-                                <span className="font-mono text-primary font-bold tabular-nums text-sm shrink-0">
-                                  {perf.time_display ?? formatTimeSeconds(perf.time_seconds)}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                                {perf.ffn_points != null && (
-                                  <span className="tabular-nums">{String(perf.ffn_points)} pts</span>
-                                )}
-                                <span className="tabular-nums">{formatDateShort(perf.competition_date)}</span>
-                                {perf.competition_name && (
-                                  <span className="truncate">{perf.competition_name}</span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                                {/* Expanded content */}
+                                {isExpanded ? (
+                                  <div className="border-t border-border">
+                                    {/* Chart */}
+                                    {chartData.length > 1 ? (
+                                      <div className="px-2 pt-3 pb-1">
+                                        <div className="text-xs text-muted-foreground mb-2 px-2">
+                                          Progression ({histPoolLen}m)
+                                        </div>
+                                        <ResponsiveContainer width="100%" height={160}>
+                                          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                                            <XAxis dataKey="date" tick={{ fontSize: 10 }} className="text-muted-foreground" />
+                                            <YAxis
+                                              domain={["auto", "auto"]}
+                                              tick={{ fontSize: 10 }}
+                                              className="text-muted-foreground"
+                                              reversed
+                                              tickFormatter={(v: number) => {
+                                                const min = Math.floor(v / 60);
+                                                const sec = Math.floor(v % 60);
+                                                const cs = Math.round((v % 1) * 100);
+                                                return min > 0 ? `${min}:${String(sec).padStart(2, "0")}` : `${sec}.${String(cs).padStart(2, "0")}`;
+                                              }}
+                                            />
+                                            <Tooltip
+                                              formatter={(value: number) => {
+                                                const min = Math.floor(value / 60);
+                                                const sec = Math.floor(value % 60);
+                                                const cs = Math.round((value % 1) * 100);
+                                                const display = min > 0
+                                                  ? `${min}:${String(sec).padStart(2, "0")}.${String(cs).padStart(2, "0")}`
+                                                  : `${sec}.${String(cs).padStart(2, "0")}`;
+                                                return [display, "Temps"];
+                                              }}
+                                              labelStyle={{ fontSize: 11 }}
+                                              contentStyle={{ borderRadius: 12, fontSize: 12 }}
+                                            />
+                                            <Line
+                                              type="monotone"
+                                              dataKey="time"
+                                              stroke="hsl(var(--primary))"
+                                              strokeWidth={2}
+                                              dot={{ r: 3 }}
+                                              activeDot={{ r: 5 }}
+                                            />
+                                          </LineChart>
+                                        </ResponsiveContainer>
+                                      </div>
+                                    ) : null}
+
+                                    {/* Performance list */}
+                                    <div className="divide-y divide-border">
+                                      {group.performances.map((perf) => {
+                                        const isBest = perf.id === group.bestId;
+                                        return (
+                                          <div
+                                            key={perf.id}
+                                            className={cx(
+                                              "px-3 py-2.5",
+                                              isBest && "bg-primary/5"
+                                            )}
+                                          >
+                                            <div className="flex items-center justify-between gap-2">
+                                              <div className="flex items-center gap-1.5 min-w-0">
+                                                {isBest && <Trophy className="h-3.5 w-3.5 text-primary shrink-0" />}
+                                                <span className="text-xs text-muted-foreground tabular-nums">
+                                                  {formatDateShort(perf.competition_date)}
+                                                </span>
+                                              </div>
+                                              <span className={cx(
+                                                "font-mono tabular-nums text-sm shrink-0",
+                                                isBest ? "text-primary font-bold" : "font-medium"
+                                              )}>
+                                                {perf.time_display ?? formatTimeSeconds(perf.time_seconds)}
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                                              {perf.ffn_points != null && (
+                                                <span className="tabular-nums">{String(perf.ffn_points)} pts</span>
+                                              )}
+                                              {perf.competition_name && (
+                                                <span className="truncate">{perf.competition_name}</span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ) : null}
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                    </motion.div>
+                  )}
                 </div>
               ) : null}
 
