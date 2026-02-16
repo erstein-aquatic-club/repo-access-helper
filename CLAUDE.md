@@ -102,7 +102,21 @@ Chaque session de développement doit suivre ce protocole (détail complet dans 
 
 > **Règle d'or : aucun patch sans entrée dans `implementation-log.md`.**
 
-## Cache bust (déploiement)
+## Déploiement
+
+**IMPORTANT : Ne JAMAIS déployer localement avec `npx gh-pages -d dist`.**
+
+Le déploiement se fait exclusivement via **GitHub Actions** (`.github/workflows/pages.yml`). Les credentials Supabase (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) sont stockées dans les **GitHub Secrets** et injectées au build par le workflow CI/CD. Un build local n'a pas ces variables → l'app affiche "Supabase not configured".
+
+**Comment déployer :**
+1. Pousser sur `main` → le workflow se lance automatiquement
+2. Ou déclencher manuellement : `gh workflow run "Deploy to GitHub Pages"`
+
+**Ne PAS faire :**
+- `npx gh-pages -d dist` (écrase le déploiement avec un build sans credentials)
+- `npm run build && deploy` localement (même problème)
+
+## Cache bust
 
 L'application est servie sur GitHub Pages avec les meta tags `apple-mobile-web-app-capable`. Les navigateurs (surtout Safari iOS) cachent agressivement `index.html`.
 

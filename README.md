@@ -134,11 +134,18 @@ npm run build
 
 ### GitHub Pages
 
+> **IMPORTANT : Ne JAMAIS déployer localement avec `npx gh-pages -d dist`.**
+> Le build local n'a pas les credentials Supabase → l'app affiche "Supabase not configured".
+
+Le déploiement se fait exclusivement via **GitHub Actions** :
+
 1. Configurer les secrets dans GitHub :
    - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY`
 
 2. Le workflow `.github/workflows/pages.yml` déploie automatiquement sur push vers `main`
+
+3. Déploiement manuel : `gh workflow run "Deploy to GitHub Pages"`
 
 ### Edge Functions Supabase
 
