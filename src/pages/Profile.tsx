@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import type { UserProfile as ProfileData, GroupSummary } from "@/lib/api";
@@ -299,35 +300,37 @@ export default function Profile() {
       initial="hidden"
       animate="visible"
     >
-      <h1 className="text-3xl font-display font-bold uppercase italic text-primary">Profil</h1>
+      {/* Hero Banner */}
+      <div className="rounded-xl bg-accent text-accent-foreground p-5">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-20 w-20 ring-2 ring-primary ring-offset-2 ring-offset-accent">
+            <AvatarImage src={avatarSrc} alt={user || "Profil"} />
+            <AvatarFallback className="text-lg">{(user || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-display font-bold uppercase italic text-accent-foreground truncate">{user}</h1>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <Badge variant="secondary" className="text-xs">{roleLabel}</Badge>
+              <span className="text-sm opacity-80">{groupLabel}</span>
+            </div>
+            {showRecords && String(profile?.ffn_iuf ?? "").trim() && (
+              <p className="text-xs opacity-60 mt-1">IUF {profile?.ffn_iuf}</p>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-accent-foreground hover:bg-accent-foreground/10"
+            onClick={startEdit}
+            aria-label="Modifier le profil"
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       <Card>
-        <CardHeader className="relative">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={avatarSrc} alt={user || "Profil"} />
-              <AvatarFallback>{(user || "?").slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <p className="text-xl font-semibold truncate">{user}</p>
-              <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">{roleLabel}</p>
-            </div>
-          </div>
-
-          {!isEditing && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-4 right-4"
-              onClick={startEdit}
-              aria-label="Modifier le profil"
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
-          )}
-        </CardHeader>
-
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           {isEditing ? (
             <form onSubmit={handleSaveProfile} className="space-y-4">
               <div className="grid gap-2">
