@@ -530,18 +530,18 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-muted">
-        <div className="sm:hidden fixed top-0 left-0 right-0 z-overlay border-b border-border bg-card/90 backdrop-blur">
-          <div className="mx-auto max-w-6xl px-3 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-2xl bg-muted animate-pulse" />
+        <div className="sm:hidden fixed top-0 left-0 right-0 z-overlay border-b border-primary/15 bg-background/90 backdrop-blur-md">
+          <div className="mx-auto max-w-6xl px-3 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-lg bg-primary/20 animate-pulse" />
               <div className="flex flex-col gap-1">
                 <div className="h-4 w-12 rounded bg-muted animate-pulse" />
                 <div className="h-3 w-16 rounded bg-muted animate-pulse" />
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-2xl bg-muted animate-pulse" />
-              <div className="h-9 w-9 rounded-2xl bg-muted animate-pulse" />
+              <div className="h-9 w-9 rounded-xl bg-primary/5 animate-pulse" />
+              <div className="h-9 w-9 rounded-xl bg-primary/5 animate-pulse" />
             </div>
           </div>
         </div>
@@ -590,14 +590,14 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-muted">
       {/* Mobile: persistent header */}
-      <div className="sm:hidden fixed top-0 left-0 right-0 z-overlay border-b border-border bg-card/90 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-3 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-2xl bg-card border border-border flex items-center justify-center">
-              <Waves className="h-5 w-5 text-foreground" />
+      <div className="sm:hidden fixed top-0 left-0 right-0 z-overlay border-b border-primary/15 bg-background/90 backdrop-blur-md">
+        <div className="mx-auto max-w-6xl px-3 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-primary text-primary-foreground">
+              <Waves className="h-3.5 w-3.5" />
             </div>
             <div className="flex flex-col">
-              <div className="text-sm font-semibold text-foreground">Suivi</div>
+              <div className="text-sm font-display font-bold uppercase italic tracking-tight text-primary">Suivi</div>
               <div className="text-[11px] text-muted-foreground">{globalKm} km</div>
             </div>
           </div>
@@ -606,18 +606,18 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => setInfoOpen(true)}
-              className="inline-flex items-center justify-center rounded-2xl border border-border bg-background p-2 transition hover:bg-muted"
+              className="inline-flex items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-2 transition hover:bg-primary/10"
               aria-label="Infos"
             >
-              <Info className="h-5 w-5" />
+              <Info className="h-5 w-5 text-primary" />
             </button>
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
-              className="inline-flex items-center justify-center rounded-2xl border border-border bg-background p-2 transition hover:bg-muted"
+              className="inline-flex items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-2 transition hover:bg-primary/10"
               aria-label="Paramètres"
             >
-              <Settings2 className="h-5 w-5" />
+              <Settings2 className="h-5 w-5 text-primary" />
             </button>
           </div>
         </div>
@@ -626,12 +626,12 @@ export default function Dashboard() {
       <div className="mx-auto max-w-6xl px-3 sm:px-4 pt-20 pb-5 sm:py-8">
         {/* Desktop header */}
         <div className="invisible sm:visible flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-2xl bg-card border border-border flex items-center justify-center">
-              <Waves className="h-5 w-5 text-foreground" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-primary text-primary-foreground">
+              <Waves className="h-3.5 w-3.5" />
             </div>
             <div className="flex flex-col">
-              <div className="text-sm font-semibold text-foreground">Suivi</div>
+              <div className="text-sm font-display font-bold uppercase italic tracking-tight text-primary">Suivi</div>
               <div className="text-[11px] text-muted-foreground">{globalKm} km</div>
             </div>
           </div>
@@ -640,18 +640,18 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => setInfoOpen(true)}
-              className="inline-flex items-center justify-center rounded-2xl border border-border bg-background p-2 transition hover:bg-muted"
+              className="inline-flex items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-2 transition hover:bg-primary/10"
               aria-label="Infos"
             >
-              <Info className="h-5 w-5" />
+              <Info className="h-5 w-5 text-primary" />
             </button>
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
-              className="inline-flex items-center justify-center rounded-2xl border border-border bg-background p-2 transition hover:bg-muted"
+              className="inline-flex items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-2 transition hover:bg-primary/10"
               aria-label="Paramètres"
             >
-              <Settings2 className="h-5 w-5" />
+              <Settings2 className="h-5 w-5 text-primary" />
             </button>
           </div>
         </div>
