@@ -277,34 +277,34 @@ export default function RecordsClub() {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="sticky top-0 z-overlay -mx-4 backdrop-blur bg-background/80 border-b border-border">
+        <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            <h1 className="text-xl font-display font-bold uppercase italic text-primary">
-              Records du club
-            </h1>
+            <Trophy className="h-4 w-4 text-foreground" />
+            <div>
+              <h1 className="text-lg font-display font-bold uppercase italic tracking-tight">Records du club</h1>
+              {lastImportLogs &&
+                lastImportLogs.length > 0 &&
+                lastImportLogs[0].status === "success" && (
+                  <p className="text-[10px] text-muted-foreground -mt-0.5">
+                    MAJ :{" "}
+                    {formatLastUpdate(
+                      lastImportLogs[0].completed_at ?? lastImportLogs[0].started_at,
+                    ) ?? "-"}
+                  </p>
+                )}
+            </div>
           </div>
-          {lastImportLogs &&
-            lastImportLogs.length > 0 &&
-            lastImportLogs[0].status === "success" && (
-              <p className="text-[10px] text-muted-foreground mt-0.5 ml-7">
-                MAJ :{" "}
-                {formatLastUpdate(
-                  lastImportLogs[0].completed_at ?? lastImportLogs[0].started_at,
-                ) ?? "-"}
-              </p>
-            )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPdf}
+            disabled={exporting}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            {exporting ? "..." : "PDF"}
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportPdf}
-          disabled={exporting}
-        >
-          <Download className="h-4 w-4 mr-1" />
-          {exporting ? "..." : "PDF"}
-        </Button>
       </div>
 
       {/* Filters */}

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, Dumbbell, Waves, Heart, AlertCircle } from "lucide-react";
+import { Trophy, Dumbbell, Waves, Heart, AlertCircle, Medal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HallOfFameValue } from "@/pages/hallOfFame/HallOfFameValue";
@@ -136,11 +136,16 @@ export default function HallOfFame() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-3xl font-display font-bold uppercase italic text-primary">Hall of Fame</h1>
-        <Link href="/records-club">
-          <Button variant="outline">Voir les records du club</Button>
-        </Link>
+      <div className="sticky top-0 z-overlay -mx-4 backdrop-blur bg-background/80 border-b border-border">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Medal className="h-4 w-4 text-foreground" />
+            <h1 className="text-lg font-display font-bold uppercase italic tracking-tight">Hall of Fame</h1>
+          </div>
+          <Link href="/records-club">
+            <Button variant="outline" size="sm">Records club</Button>
+          </Link>
+        </div>
       </div>
 
       <Tabs defaultValue="swim" className="w-full">

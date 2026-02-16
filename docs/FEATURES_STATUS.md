@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-16 (§39 Finalisation dashboard pointage heures)*
+*Dernière mise à jour : 2026-02-16 (§46 Harmonisation headers + Login mobile thème clair)*
 
 ## Légende
 
@@ -55,7 +55,7 @@ Tous les feature flags sont activés.
 | Historique notes techniques | ✅ | `SwimExerciseLogsHistory.tsx` | Vue chronologique groupée par date |
 | Présence/absence | ✅ | `Dashboard.tsx` | Toggle par créneau |
 | Consultation séances | ✅ | `SwimSessionView.tsx` | Liste + détail |
-| Historique/Progression | ✅ | `Progress.tsx` | Apple Health style: hero KPI + tendance, AreaChart gradient, ProgressBar ressentis, Collapsible detail, ToggleGroup période |
+| Historique/Progression | ✅ | `Progress.tsx` | Apple Health style: hero KPI + tendance, sticky header compact (§46), AreaChart gradient, ProgressBar ressentis, Collapsible detail |
 
 ### Natation — Coach
 
@@ -98,10 +98,10 @@ Tous les feature flags sont activés.
 | Sync FFN (records perso) | ✅ | Edge Function `ffn-sync` | Scrape Extranat, meilleur temps par épreuve |
 | Import toutes performances | ✅ | Edge Function `ffn-performances` | Import historique complet depuis FFN |
 | Historique performances | ✅ | `Records.tsx` | Cartes dépliables par épreuve, graphique intégré, best time Trophy (§41) |
-| Records club (consultation) | ✅ | `RecordsClub.tsx` | Card-based mobile first, scroll pills, ranking flex list (§37) |
+| Records club (consultation) | ✅ | `RecordsClub.tsx` | Card-based mobile first, scroll pills, ranking flex list, sticky header compact (§37, §46) |
 | Import records club (FFN) | ✅ | `RecordsAdmin.tsx`, Edge Function `import-club-records` | Import bulk + recalcul records club |
 | Gestion nageurs records | ✅ | `RecordsAdmin.tsx` | Ajout/édition/activation swimmers, card-based mobile first (§36) |
-| Hall of Fame | ✅ | `HallOfFame.tsx` | Podium visuel top 3 + rangs 4-5 compacts (§38) |
+| Hall of Fame | ✅ | `HallOfFame.tsx` | Podium visuel top 3 + rangs 4-5 compacts, sticky header compact (§38, §46) |
 | Gestion coach imports perfs | ✅ | `RecordsAdmin.tsx` | Import individuel par nageur + historique des imports |
 
 ### Messagerie
@@ -153,7 +153,7 @@ Tous les feature flags sont activés.
 |----------------|--------|----------|-------|
 | PWA Icons (EAC branding) | ✅ | `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`, `public/favicon.png` | 4 tailles (192, 512, 180, 128), logo EAC rouge |
 | Theme color (EAC red) | ✅ | `index.html`, `public/manifest.json` | #E30613 (was #3b82f6) |
-| Login page moderne | ✅ | `Login.tsx` | Split layout (hero + form), animations Framer Motion, password toggle |
+| Login page moderne | ✅ | `Login.tsx` | Split layout desktop, mobile thème clair avec bande rouge EAC (§46) |
 | Animations Framer Motion | ✅ | `Dashboard.tsx`, `Strength.tsx`, `Records.tsx`, `Profile.tsx`, `HallOfFame.tsx` | fadeIn, slideInFromBottom, staggerChildren, successBounce |
 | Animation library | ✅ | `src/lib/animations.ts` | 8 presets: fadeIn, slideUp, scaleIn, staggerChildren, listItem, successBounce, slideInFromBottom, slideInFromRight |
 | Button patterns standardisés | ✅ | `BUTTON_PATTERNS.md`, `Strength.tsx`, `SwimCatalog.tsx`, `StrengthCatalog.tsx`, `Admin.tsx` | h-12 mobile (48px), h-10 desktop (40px), variants (default, outline, ghost) |

@@ -29,6 +29,7 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §5 Dette UI/UX | ✅ Fait | 2026-02-08 |
 | §39 Finalisation dashboard pointage heures | ✅ Fait | 2026-02-16 |
 | §45 Audit UI/UX — header Strength + login mobile + fixes | ✅ Fait | 2026-02-16 |
+| §46 Harmonisation headers + Login mobile thème clair | ✅ Fait | 2026-02-16 |
 | §6 Fix timers PWA iOS | ✅ Fait | 2026-02-09 |
 | §7 Records admin + FFN full history + stroke KPI | ✅ Fait | 2026-02-12 |
 | §8 4 bugfixes (IUF Coach, RecordsClub, Reprendre, 1RM 404) | ✅ Fait | 2026-02-12 |
@@ -4283,3 +4284,58 @@ Audit général UI/UX pour améliorer la cohérence entre les pages, corriger le
 ### Limites / dette
 
 - Dashboard et Progress utilisent des patterns header légèrement différents (custom fixed vs sticky). Acceptable car ces pages ont des besoins spécifiques (calendrier collé en haut pour Dashboard).
+
+---
+
+## 2026-02-16 — §46 Harmonisation headers + Login mobile thème clair
+
+**Branche** : `main`
+**Chantier ROADMAP** : §17 — Harmonisation headers + Login mobile thème clair
+
+### Contexte — Pourquoi ce patch
+
+Suite à l'audit UI/UX (§45), deux retours :
+1. Le login mobile au fond noir (`from-gray-900 via-gray-950 to-black`) + `login-dark-mobile` CSS ne s'intégrait pas dans le thème clair de l'app.
+2. Les headers étaient incohérents entre pages : Strength/Records avaient le pattern sticky compact, mais Progress, HallOfFame et RecordsClub utilisaient des `text-3xl text-primary` inline statiques.
+
+### Changements réalisés
+
+1. **Login mobile — thème clair avec bande rouge EAC**
+   - Supprimé la classe `login-dark-mobile` du wrapper et le bloc CSS associé dans `index.css`
+   - Remplacé le fond noir + glows + bruit par un fond clair (`bg-gradient-to-b from-white via-background to-muted/50`)
+   - Ajouté une bande `bg-primary` de 120px en haut pour l'identité EAC
+   - Logo avec `ring-4 ring-white shadow-lg` (au lieu du halo rouge et ring-primary/30)
+   - Les composants shadcn reviennent au thème clair par défaut (plus besoin d'override CSS variables)
+
+2. **Progress header sticky compact** — Remplacé `text-3xl text-primary` statique par le pattern sticky (`sticky top-0 z-overlay backdrop-blur bg-background/80 border-b`) avec icône `BarChart3`.
+
+3. **HallOfFame header sticky compact** — Remplacé `text-3xl text-primary` + bouton `Button variant="outline"` pleine largeur par header sticky avec icône `Medal` et bouton `size="sm"` "Records club".
+
+4. **RecordsClub header sticky compact** — Remplacé le header inline (Trophy `h-5 text-primary` + `text-xl text-primary`) par le pattern sticky unifié. Conservé le sous-titre MAJ et le bouton PDF dans le header.
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/pages/Login.tsx` | Fond clair + bande rouge EAC, suppression login-dark-mobile |
+| `src/index.css` | Suppression bloc CSS `login-dark-mobile` (17 lignes) |
+| `src/pages/Progress.tsx` | Header sticky compact (import BarChart3) |
+| `src/pages/HallOfFame.tsx` | Header sticky compact (import Medal) |
+| `src/pages/RecordsClub.tsx` | Header sticky compact |
+
+### Tests
+
+- [x] `npm run build` — Build réussi, aucune erreur TypeScript
+- [x] Vérification : login desktop inchangé (layout split hero + form)
+- [x] Vérification : login mobile fond clair avec bande rouge en haut
+- [x] Vérification : Progress, HallOfFame, RecordsClub ont le sticky header compact
+
+### Décisions prises
+
+1. **Thème clair login mobile** — Le fond noir ne s'intégrait pas dans l'app qui est entièrement en thème clair. La bande rouge EAC en haut suffit à donner de la personnalité sans créer de dissonance.
+2. **Pattern sticky unifié** — `sticky top-0 z-overlay -mx-4 backdrop-blur bg-background/80 border-b border-border` est maintenant cohérent sur Strength, Records, Progress, HallOfFame et RecordsClub.
+3. **Pages non modifiées** — Dashboard (fixed custom avec stats km), Profile (hero banner intentionnel), Administratif (pill toggle tabs, déjà compact).
+
+### Limites / dette
+
+- Aucune dette identifiée. Tous les headers sont maintenant cohérents sauf Dashboard (justifié) et Profile (design intentionnel).

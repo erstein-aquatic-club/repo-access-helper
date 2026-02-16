@@ -16,12 +16,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { useToast } from "@/hooks/use-toast";
 import type { UserProfile as ProfileData, GroupSummary } from "@/lib/api";
 import { Link } from "wouter";
-import { ChevronRight, Edit2, LogOut, RefreshCw, Save, AlertCircle } from "lucide-react";
+import { ChevronRight, Edit2, LogOut, RefreshCw, Save, AlertCircle, Download } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
 import { fadeIn } from "@/lib/animations";
+
+declare const __BUILD_TIMESTAMP__: string;
 
 export const shouldShowRecords = (role: string | null) => role !== "coach" && role !== "admin" && role !== "comite";
 
@@ -96,6 +98,17 @@ export default function Profile() {
   const roleLabel = getRoleLabel(role);
 
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+
+  const handleCheckUpdate = () => {
+    setIsCheckingUpdate(true);
+    // Clear stored build timestamp so the app detects a "new" version on reload
+    localStorage.removeItem("app_build_timestamp");
+    // Small delay for visual feedback, then hard reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 600);
+  };
 
   // Profile edit form with React Hook Form + Zod
   const profileForm = useForm<ProfileEditForm>({
@@ -534,6 +547,21 @@ export default function Profile() {
           </CollapsibleContent>
         </Collapsible>
       ) : null}
+
+      <div className="space-y-2">
+        <Button
+          variant="outline"
+          onClick={handleCheckUpdate}
+          disabled={isCheckingUpdate}
+          className="w-full gap-2"
+        >
+          <Download className={["h-4 w-4", isCheckingUpdate ? "animate-bounce" : ""].join(" ")} />
+          {isCheckingUpdate ? "Recherche en cours..." : "Rechercher des mises à jour"}
+        </Button>
+        <p className="text-xs text-center text-muted-foreground">
+          Version du {new Date(__BUILD_TIMESTAMP__).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+        </p>
+      </div>
 
       <Button variant="ghost" onClick={logout} className="w-full gap-2 text-muted-foreground">
         <LogOut className="h-4 w-4" />

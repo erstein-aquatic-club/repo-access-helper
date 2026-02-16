@@ -228,24 +228,16 @@ export default function Login() {
         </motion.div>
       </motion.div>
 
-      {/* Form Section — mobile: dark creative | desktop: light classic */}
-      <div className="login-dark-mobile flex flex-col min-h-[100dvh] lg:min-h-0 relative overflow-hidden bg-background">
-        {/* Mobile decorative background */}
+      {/* Form Section — mobile: light with EAC accent | desktop: light classic */}
+      <div className="flex flex-col min-h-[100dvh] lg:min-h-0 relative overflow-hidden bg-background">
+        {/* Mobile decorative background — red accent band */}
         <div className="lg:hidden absolute inset-0 pointer-events-none" aria-hidden="true">
-          {/* Dark gradient base */}
-          <div className="absolute inset-0 bg-gradient-to-b from-gray-900 via-gray-950 to-black" />
-          {/* Red glow top-right */}
-          <div className="absolute -top-20 -right-20 w-80 h-80 bg-[radial-gradient(circle,rgba(227,6,19,0.2),transparent_70%)]" />
-          {/* Red glow bottom-left */}
-          <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-[radial-gradient(circle,rgba(227,6,19,0.1),transparent_70%)]" />
-          {/* Diagonal accent line */}
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_42%,rgba(227,6,19,0.06)_50%,transparent_58%)]" />
-          {/* Subtle noise texture */}
-          <div className="absolute inset-0 opacity-[0.03] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjc1IiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsdGVyPSJ1cmwoI2EpIi8+PC9zdmc+')]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white via-background to-muted/50" />
+          <div className="absolute top-0 inset-x-0 h-[120px] bg-primary" />
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12 relative z-10">
-          {/* Mobile logo — creative version */}
+          {/* Mobile logo — on the red band */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -253,11 +245,10 @@ export default function Login() {
             className="lg:hidden mb-10 text-center"
           >
             <div className="relative inline-block">
-              <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl scale-150" />
               <img
                 src={eacLogo}
                 alt="EAC Logo"
-                className="relative h-24 w-24 mx-auto rounded-full ring-2 ring-primary/30 shadow-[0_0_40px_rgba(227,6,19,0.3)]"
+                className="relative h-24 w-24 mx-auto rounded-full ring-4 ring-white shadow-lg"
               />
             </div>
             <h1 className="text-3xl font-display font-bold text-center mt-6 tracking-tight text-foreground">

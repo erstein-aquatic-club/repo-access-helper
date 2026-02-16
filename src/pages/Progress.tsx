@@ -31,7 +31,7 @@ import { getContrastTextColor } from "@/lib/design-tokens";
 import type { LocalStrengthRun, SetLogEntry } from "@/lib/types";
 import { motion } from "framer-motion";
 import { slideUp } from "@/lib/animations";
-import { ChevronDown, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronDown, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 
 // ─── Helper Components ──────────────────────────────────────────────────────
 
@@ -439,7 +439,12 @@ export default function Progress() {
 
   return (
     <div className="space-y-4 pb-4">
-      <h1 className="text-3xl font-display font-bold uppercase italic text-primary">Progression</h1>
+      <div className="sticky top-0 z-overlay -mx-4 backdrop-blur bg-background/80 border-b border-border">
+        <div className="px-4 py-3 flex items-center gap-2">
+          <BarChart3 className="h-4 w-4 text-foreground" />
+          <h1 className="text-lg font-display font-bold uppercase italic tracking-tight">Progression</h1>
+        </div>
+      </div>
 
       <Tabs defaultValue="swim" className="w-full">
         <TabsList className="grid w-full max-w-[280px] grid-cols-2">
