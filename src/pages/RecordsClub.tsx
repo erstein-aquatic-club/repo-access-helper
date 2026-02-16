@@ -3,15 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { api, type ClubRecord, type ClubPerformanceRanked } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, ChevronDown, ChevronUp, Download, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { exportRecordsPdf } from "@/lib/export-records-pdf";
@@ -104,6 +95,75 @@ const formatLastUpdate = (value?: string | null) => {
 
 const getStroke = (code: string) => code.replace(/^\d+_/, "");
 
+const getAgeLabel = (age: number) =>
+  age === 8 ? "≤8" : age === 17 ? "≥17" : String(age);
+
+// ── Segmented Control ──
+
+function SegmentedControl({
+  options,
+  value,
+  onChange,
+}: {
+  options: { key: string; label: string }[];
+  value: string;
+  onChange: (key: string) => void;
+}) {
+  return (
+    <div className="inline-flex rounded-lg border bg-muted p-0.5">
+      {options.map((o) => (
+        <button
+          key={o.key}
+          type="button"
+          onClick={() => onChange(o.key)}
+          className={cn(
+            "rounded-md px-3 py-1 text-sm font-medium transition-colors",
+            value === o.key
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Pill Strip (horizontal scroll) ──
+
+function PillStrip({
+  options,
+  value,
+  onChange,
+}: {
+  options: { key: string; label: string }[];
+  value: string;
+  onChange: (key: string) => void;
+}) {
+  return (
+    <div className="overflow-x-auto -mx-4 px-4 no-scrollbar">
+      <div className="flex gap-1.5 w-max">
+        {options.map((o) => (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => onChange(o.key)}
+            className={cn(
+              "shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              value === o.key
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/80",
+            )}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Component ──
 
 export default function RecordsClub() {
@@ -189,135 +249,78 @@ export default function RecordsClub() {
     return map;
   }, [filteredRecords, ageValue]);
 
-  const toggleExpand = (record: ClubRecord) => {
-    const key = `${record.event_code}__${pool}__${sex}__${record.age}`;
-    setExpandedKey((prev) => (prev === key ? null : key));
-  };
+  const toggleExpand = useCallback(
+    (record: ClubRecord) => {
+      const key = `${record.event_code}__${pool}__${sex}__${record.age}`;
+      setExpandedKey((prev) => (prev === key ? null : key));
+    },
+    [pool, sex],
+  );
 
   const handleExportPdf = useCallback(async () => {
     setExporting(true);
     try {
-      // Fetch ALL records (no filters) for the complete PDF
       const allRecords = await api.getClubRecords({});
       await exportRecordsPdf(allRecords);
     } catch {
-      // Silently fail — the user will see nothing downloaded
+      // Silently fail
     } finally {
       setExporting(false);
     }
   }, []);
 
+  const agePills = useMemo(
+    () => [{ key: "ALL", label: "Tous" }, ...AGE_YEARS],
+    [],
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="space-y-1">
-        <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
+        <div>
           <div className="flex items-center gap-2">
-            <Trophy className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-display font-bold uppercase italic text-primary">
+            <Trophy className="h-5 w-5 text-primary" />
+            <h1 className="text-xl font-display font-bold uppercase italic text-primary">
               Records du club
             </h1>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportPdf}
-            disabled={exporting}
-          >
-            <Download className="h-4 w-4 mr-1" />
-            {exporting ? "Export..." : "Export PDF"}
-          </Button>
-        </div>
-        {lastImportLogs &&
-          lastImportLogs.length > 0 &&
-          lastImportLogs[0].status === "success" && (
-            <p className="text-xs text-muted-foreground">
-              MAJ :{" "}
-              {formatLastUpdate(
-                lastImportLogs[0].completed_at ?? lastImportLogs[0].started_at,
-              ) ?? "-"}
-            </p>
-          )}
-      </div>
-
-      {/* Filters bar */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Pool toggle */}
-        <div className="inline-flex rounded-lg border bg-muted p-0.5">
-          {POOLS.map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setPool(p.key)}
-              className={cn(
-                "rounded-md px-3 py-1 text-sm font-medium transition-colors",
-                pool === p.key
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Sex toggle */}
-        <div className="inline-flex rounded-lg border bg-muted p-0.5">
-          {SEXES.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setSex(s.key)}
-              className={cn(
-                "rounded-md px-3 py-1 text-sm font-medium transition-colors",
-                sex === s.key
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Age pills */}
-        <div className="flex flex-wrap gap-1">
-          <button
-            onClick={() => setAgeFilter("ALL")}
-            className={cn(
-              "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
-              ageFilter === "ALL"
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80",
+          {lastImportLogs &&
+            lastImportLogs.length > 0 &&
+            lastImportLogs[0].status === "success" && (
+              <p className="text-[10px] text-muted-foreground mt-0.5 ml-7">
+                MAJ :{" "}
+                {formatLastUpdate(
+                  lastImportLogs[0].completed_at ?? lastImportLogs[0].started_at,
+                ) ?? "-"}
+              </p>
             )}
-          >
-            Tous
-          </button>
-          {AGE_YEARS.map((a) => (
-            <button
-              key={a.key}
-              onClick={() => setAgeFilter(a.key)}
-              className={cn(
-                "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
-                ageFilter === a.key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80",
-              )}
-            >
-              {a.label}
-            </button>
-          ))}
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportPdf}
+          disabled={exporting}
+        >
+          <Download className="h-4 w-4 mr-1" />
+          {exporting ? "..." : "PDF"}
+        </Button>
       </div>
 
-      {/* Stroke tabs */}
-      <Tabs value={strokeFilter} onValueChange={setStrokeFilter}>
-        <TabsList className="flex w-full justify-start gap-1 overflow-x-auto">
-          {STROKES.map((s) => (
-            <TabsTrigger key={s.key} value={s.key} className="shrink-0 text-xs">
-              {s.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      {/* Filters */}
+      <div className="space-y-2">
+        {/* Pool + Sex on same line */}
+        <div className="flex items-center gap-2">
+          <SegmentedControl options={POOLS} value={pool} onChange={setPool} />
+          <SegmentedControl options={SEXES} value={sex} onChange={setSex} />
+        </div>
+
+        {/* Age — horizontal scroll */}
+        <PillStrip options={agePills} value={ageFilter} onChange={setAgeFilter} />
+
+        {/* Strokes — horizontal scroll */}
+        <PillStrip options={STROKES} value={strokeFilter} onChange={setStrokeFilter} />
+      </div>
 
       {/* Content */}
       {isLoading && (
@@ -325,7 +328,7 @@ export default function RecordsClub() {
           {[1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
-              className="h-10 w-full rounded bg-muted animate-pulse motion-reduce:animate-none"
+              className="h-14 w-full rounded-xl bg-muted animate-pulse motion-reduce:animate-none"
             />
           ))}
         </div>
@@ -353,21 +356,30 @@ export default function RecordsClub() {
       {!isLoading && !error && filteredRecords.length > 0 && (
         <>
           {ageValue !== null ? (
-            /* Single age mode: flat table */
-            <RecordsTable
-              records={filteredRecords}
-              eventMap={eventMap}
-              expandedKey={expandedKey}
-              onToggle={toggleExpand}
-              pool={pool}
-              sex={sex}
-              rankingData={rankingData}
-              rankingLoading={rankingLoading}
-              showAge={false}
-            />
+            /* Single age: flat card list */
+            <div className="space-y-2">
+              {filteredRecords.map((record) => {
+                const key = `${record.event_code}__${pool}__${sex}__${record.age}`;
+                const label =
+                  record.event_label ||
+                  eventMap.get(record.event_code) ||
+                  record.event_code;
+                return (
+                  <RecordCard
+                    key={`${record.event_code}-${record.age}`}
+                    record={record}
+                    label={label}
+                    isExpanded={expandedKey === key}
+                    onToggle={toggleExpand}
+                    rankingData={expandedKey === key ? rankingData : undefined}
+                    rankingLoading={rankingLoading}
+                  />
+                );
+              })}
+            </div>
           ) : (
-            /* All ages mode: grouped by event */
-            <div className="space-y-6">
+            /* All ages: grouped by event */
+            <div className="space-y-4">
               {groupedByEvent &&
                 [...groupedByEvent.entries()].map(([eventCode, recs]) => {
                   const label =
@@ -375,23 +387,17 @@ export default function RecordsClub() {
                     eventMap.get(eventCode) ||
                     eventCode;
                   return (
-                    <div key={eventCode}>
-                      <h3 className="mb-1.5 text-sm font-semibold text-foreground">
-                        {label}
-                      </h3>
-                      <RecordsTable
-                        records={recs}
-                        eventMap={eventMap}
-                        expandedKey={expandedKey}
-                        onToggle={toggleExpand}
-                        pool={pool}
-                        sex={sex}
-                        rankingData={rankingData}
-                        rankingLoading={rankingLoading}
-                        showAge
-                        hideEventColumn
-                      />
-                    </div>
+                    <EventGroup
+                      key={eventCode}
+                      label={label}
+                      records={recs}
+                      expandedKey={expandedKey}
+                      onToggle={toggleExpand}
+                      pool={pool}
+                      sex={sex}
+                      rankingData={rankingData}
+                      rankingLoading={rankingLoading}
+                    />
                   );
                 })}
             </div>
@@ -402,88 +408,15 @@ export default function RecordsClub() {
   );
 }
 
-// ── Records Table Sub-component ──
+// ── Record Card (single-age mode) ──
 
-function RecordsTable({
-  records,
-  eventMap,
-  expandedKey,
-  onToggle,
-  pool,
-  sex,
-  rankingData,
-  rankingLoading,
-  showAge,
-  hideEventColumn,
-}: {
-  records: ClubRecord[];
-  eventMap: Map<string, string>;
-  expandedKey: string | null;
-  onToggle: (r: ClubRecord) => void;
-  pool: string;
-  sex: string;
-  rankingData?: ClubPerformanceRanked[];
-  rankingLoading: boolean;
-  showAge: boolean;
-  hideEventColumn?: boolean;
-}) {
-  return (
-    <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            {!hideEventColumn && (
-              <TableHead className="w-[110px]">Épreuve</TableHead>
-            )}
-            <TableHead className="w-[85px]">Temps</TableHead>
-            <TableHead>Détenteur</TableHead>
-            {showAge && <TableHead className="w-[50px]">Âge</TableHead>}
-            <TableHead className="hidden w-[85px] sm:table-cell">
-              Date
-            </TableHead>
-            <TableHead className="w-[32px]" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {records.map((record) => {
-            const key = `${record.event_code}__${pool}__${sex}__${record.age}`;
-            const isExpanded = expandedKey === key;
-            const label =
-              record.event_label ||
-              eventMap.get(record.event_code) ||
-              record.event_code;
-
-            return (
-              <RecordRow
-                key={`${record.event_code}-${record.age}`}
-                record={record}
-                label={label}
-                isExpanded={isExpanded}
-                onToggle={onToggle}
-                rankingData={isExpanded ? rankingData : undefined}
-                rankingLoading={rankingLoading}
-                showAge={showAge}
-                hideEventColumn={hideEventColumn}
-              />
-            );
-          })}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-
-// ── Single Record Row (with expandable ranking) ──
-
-function RecordRow({
+function RecordCard({
   record,
   label,
   isExpanded,
   onToggle,
   rankingData,
   rankingLoading,
-  showAge,
-  hideEventColumn,
 }: {
   record: ClubRecord;
   label: string;
@@ -491,113 +424,164 @@ function RecordRow({
   onToggle: (r: ClubRecord) => void;
   rankingData?: ClubPerformanceRanked[];
   rankingLoading: boolean;
-  showAge: boolean;
-  hideEventColumn?: boolean;
 }) {
-  const colSpan =
-    (hideEventColumn ? 0 : 1) + 3 + (showAge ? 1 : 0) + 1;
-
-  const ageLabel =
-    record.age === 8 ? "≤8" : record.age === 17 ? "≥17" : String(record.age);
-  const originalAgeLabel =
-    record.original_age === 8 ? "≤8" : record.original_age === 17 ? "≥17" : record.original_age ? String(record.original_age) : null;
+  const originalAgeLabel = record.original_age ? getAgeLabel(record.original_age) : null;
   const isCascaded = record.original_age != null && record.original_age !== record.age;
 
   return (
-    <>
-      <TableRow
-        className="cursor-pointer"
+    <div className="rounded-xl border border-border overflow-hidden">
+      <button
+        type="button"
         onClick={() => onToggle(record)}
+        className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors"
       >
-        {!hideEventColumn && (
-          <TableCell className="font-medium text-xs">{label}</TableCell>
-        )}
-        <TableCell className="font-mono text-primary font-semibold tabular-nums text-sm">
-          {formatTime(record.time_ms)}
-        </TableCell>
-        <TableCell className="text-sm">
-          {record.athlete_name}
-          {isCascaded && originalAgeLabel && (
-            <span className="ml-1.5 text-xs text-muted-foreground">
-              ({originalAgeLabel} ans)
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-foreground">{label}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-primary font-bold tabular-nums text-sm">
+              {formatTime(record.time_ms)}
             </span>
-          )}
-        </TableCell>
-        {showAge && (
-          <TableCell>
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-              {ageLabel}
-            </Badge>
-          </TableCell>
-        )}
-        <TableCell className="hidden text-xs text-muted-foreground sm:table-cell">
-          {formatDate(record.record_date)}
-        </TableCell>
-        <TableCell className="px-1">
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          )}
-        </TableCell>
-      </TableRow>
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-between mt-0.5">
+          <span className="text-xs text-muted-foreground truncate">
+            {record.athlete_name}
+            {isCascaded && originalAgeLabel && (
+              <span className="ml-1 opacity-70">({originalAgeLabel} ans)</span>
+            )}
+          </span>
+          <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+            {formatDate(record.record_date)}
+          </span>
+        </div>
+      </button>
 
       {isExpanded && (
-        <TableRow className="hover:bg-transparent">
-          <TableCell colSpan={colSpan} className="p-0">
-            <div className="bg-muted/30 px-4 py-3">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Classement — {label} ({ageLabel} ans)
-              </p>
+        <RankingList
+          record={record}
+          label={label}
+          rankingData={rankingData}
+          rankingLoading={rankingLoading}
+          isCascaded={isCascaded}
+          originalAgeLabel={originalAgeLabel}
+        />
+      )}
+    </div>
+  );
+}
 
-              {rankingLoading ? (
-                <div className="space-y-1.5">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="h-6 w-full rounded bg-muted animate-pulse motion-reduce:animate-none"
-                    />
-                  ))}
-                </div>
-              ) : (
-                <RankingTable
+// ── Event Group (all-ages mode) ──
+
+function EventGroup({
+  label,
+  records,
+  expandedKey,
+  onToggle,
+  pool,
+  sex,
+  rankingData,
+  rankingLoading,
+}: {
+  label: string;
+  records: ClubRecord[];
+  expandedKey: string | null;
+  onToggle: (r: ClubRecord) => void;
+  pool: string;
+  sex: string;
+  rankingData?: ClubPerformanceRanked[];
+  rankingLoading: boolean;
+}) {
+  return (
+    <div>
+      <h3 className="mb-1.5 text-sm font-semibold text-foreground">{label}</h3>
+      <div className="rounded-xl border border-border overflow-hidden divide-y divide-border">
+        {records.map((record) => {
+          const key = `${record.event_code}__${pool}__${sex}__${record.age}`;
+          const isExpanded = expandedKey === key;
+          const ageLabel = getAgeLabel(record.age);
+          const originalAgeLabel = record.original_age
+            ? getAgeLabel(record.original_age)
+            : null;
+          const isCascaded =
+            record.original_age != null && record.original_age !== record.age;
+
+          return (
+            <div key={`${record.event_code}-${record.age}`}>
+              <button
+                type="button"
+                onClick={() => onToggle(record)}
+                className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-muted/50 transition-colors"
+              >
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 min-w-[28px] text-center">
+                  {ageLabel}
+                </Badge>
+                <span className="font-mono text-primary font-semibold tabular-nums text-sm shrink-0">
+                  {formatTime(record.time_ms)}
+                </span>
+                <span className="text-sm text-foreground truncate flex-1">
+                  {record.athlete_name}
+                  {isCascaded && originalAgeLabel && (
+                    <span className="ml-1 text-xs text-muted-foreground font-normal">
+                      ({originalAgeLabel}a)
+                    </span>
+                  )}
+                </span>
+                <span className="text-[10px] text-muted-foreground shrink-0 hidden sm:inline">
+                  {formatDate(record.record_date)}
+                </span>
+                {isExpanded ? (
+                  <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                )}
+              </button>
+
+              {isExpanded && (
+                <RankingList
                   record={record}
+                  label={label}
                   rankingData={rankingData}
+                  rankingLoading={rankingLoading}
                   isCascaded={isCascaded}
                   originalAgeLabel={originalAgeLabel}
                 />
               )}
             </div>
-          </TableCell>
-        </TableRow>
-      )}
-    </>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
-// ── Ranking Table with record holder always first ──
+// ── Ranking List (replaces nested tables) ──
 
-function RankingTable({
+function RankingList({
   record,
+  label,
   rankingData,
+  rankingLoading,
   isCascaded,
   originalAgeLabel,
 }: {
   record: ClubRecord;
+  label: string;
   rankingData?: ClubPerformanceRanked[];
+  rankingLoading: boolean;
   isCascaded: boolean;
   originalAgeLabel: string | null;
 }) {
-  // Build the display list: record holder as #1, then age-specific ranking
+  const ageLabel = getAgeLabel(record.age);
+
   const rows = useMemo(() => {
     const agePerfs = rankingData ?? [];
+    if (!isCascaded) return agePerfs;
 
-    if (!isCascaded) {
-      // Not cascaded: ranking data already has the record holder
-      return agePerfs;
-    }
-
-    // Cascaded: inject record holder as synthetic #1 entry
     const recordEntry: ClubPerformanceRanked = {
       id: -1,
       athlete_name: record.athlete_name,
@@ -615,67 +599,62 @@ function RankingTable({
     return [recordEntry, ...agePerfs];
   }, [rankingData, record, isCascaded]);
 
-  if (rows.length === 0) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        Aucune donnée de classement.
-      </p>
-    );
-  }
-
   return (
-    <table className="w-full text-xs">
-      <thead>
-        <tr className="text-muted-foreground">
-          <th className="w-8 py-1 text-left">#</th>
-          <th className="py-1 text-left">Nageur</th>
-          <th className="w-[80px] py-1 text-left">Temps</th>
-          <th className="w-[40px] py-1 text-left">Âge</th>
-          <th className="hidden w-[80px] py-1 text-left sm:table-cell">
-            Date
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((perf, idx) => {
-          const isRecordHolder = idx === 0 && isCascaded && perf.id === -1;
-          return (
-            <tr
-              key={perf.id === -1 ? "record-holder" : perf.id}
-              className={cn(
-                "border-t border-border/50",
-                idx === 0 && "font-semibold text-primary",
-                isRecordHolder && "bg-primary/5",
-              )}
-            >
-              <td className="py-1">
-                {idx === 0 ? (
-                  <Trophy className="inline h-3 w-3 text-yellow-500" />
-                ) : (
-                  idx + 1
+    <div className="border-t border-border bg-muted/30 px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        Classement — {label} ({ageLabel} ans)
+      </p>
+
+      {rankingLoading ? (
+        <div className="space-y-1.5">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-5 w-full rounded bg-muted animate-pulse motion-reduce:animate-none"
+            />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Aucune donnée de classement.</p>
+      ) : (
+        <div className="space-y-0.5">
+          {rows.map((perf, idx) => {
+            const isRecordHolder = idx === 0 && isCascaded && perf.id === -1;
+            return (
+              <div
+                key={perf.id === -1 ? "record-holder" : perf.id}
+                className={cn(
+                  "flex items-center gap-2 text-xs py-1 rounded-md px-1",
+                  idx === 0 && "font-semibold text-primary",
+                  isRecordHolder && "bg-primary/5",
                 )}
-              </td>
-              <td className="py-1">
-                {perf.athlete_name}
-                {isRecordHolder && originalAgeLabel && (
-                  <span className="ml-1 text-[10px] font-normal text-muted-foreground">
-                    (record {originalAgeLabel} ans)
-                  </span>
-                )}
-              </td>
-              <td className="py-1 font-mono tabular-nums">
-                {formatTime(perf.time_ms)}
-              </td>
-              <td className="py-1 text-muted-foreground">
-                {perf.actual_age ?? perf.age}
-              </td>
-              <td className="hidden py-1 text-muted-foreground sm:table-cell">
-                {formatDate(perf.record_date)}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+              >
+                <span className="w-5 text-center shrink-0">
+                  {idx === 0 ? (
+                    <Trophy className="inline h-3 w-3 text-yellow-500" />
+                  ) : (
+                    idx + 1
+                  )}
+                </span>
+                <span className="font-mono tabular-nums w-16 shrink-0">
+                  {formatTime(perf.time_ms)}
+                </span>
+                <span className="flex-1 truncate">
+                  {perf.athlete_name}
+                  {isRecordHolder && originalAgeLabel && (
+                    <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                      (record {originalAgeLabel}a)
+                    </span>
+                  )}
+                </span>
+                <span className="text-muted-foreground shrink-0">
+                  {perf.actual_age ?? perf.age}a
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

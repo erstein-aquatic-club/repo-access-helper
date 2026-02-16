@@ -97,7 +97,7 @@ Tous les feature flags sont activés.
 | Records personnels (CRUD) | ✅ | `Records.tsx` | Saisie manuelle + toggle 25m/50m |
 | Sync FFN (records perso) | ✅ | Edge Function `ffn-sync` | Scrape Extranat, meilleur temps par épreuve |
 | Import toutes performances | ✅ | Edge Function `ffn-performances` | Import historique complet depuis FFN |
-| Records club (consultation) | ✅ | `RecordsClub.tsx` | UI avec filtres + indicateur dernière MAJ, alimentée par import |
+| Records club (consultation) | ✅ | `RecordsClub.tsx` | Card-based mobile first, scroll pills, ranking flex list (§37) |
 | Import records club (FFN) | ✅ | `RecordsAdmin.tsx`, Edge Function `import-club-records` | Import bulk + recalcul records club |
 | Gestion nageurs records | ✅ | `RecordsAdmin.tsx` | Ajout/édition/activation swimmers, card-based mobile first (§36) |
 | Hall of Fame | ✅ | `HallOfFame.tsx` | Top 5 nage + muscu |

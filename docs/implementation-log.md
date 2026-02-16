@@ -57,6 +57,7 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §34 Feature: dossiers/sous-dossiers + archive persistante catalogue nage | ✅ Fait | 2026-02-15 |
 | §35 Redesign: dashboard coach (mobile first, KPI unifié, cards nageurs) | ✅ Fait | 2026-02-16 |
 | §36 Redesign: RecordsAdmin mobile first (cards, SwimmerCard DRY) | ✅ Fait | 2026-02-16 |
+| §37 Redesign: RecordsClub mobile first (cards, scroll pills, no tables) | ✅ Fait | 2026-02-16 |
 
 ---
 
@@ -3745,3 +3746,53 @@ La page "Administration des records" (`RecordsAdmin.tsx`) utilisait 3 composants
 
 - Pas de recherche/filtre sur la liste des nageurs — acceptable tant que le nombre reste <50
 - Le formulaire d'ajout n'a pas de validation inline (les champs IUF/sexe/année sont optionnels côté BDD)
+
+---
+
+## 2026-02-16 — Redesign RecordsClub mobile first (§37)
+
+**Branche** : `main`
+
+### Contexte — Pourquoi ce patch
+
+La page "Records du club" utilisait des composants `<Table>` HTML (5-6 colonnes) et des `<Tabs>` Radix pour les filtres. Sur mobile : colonnes serrées, age pills wrapping sur 3+ lignes avant les données, tables de ranking imbriquées dans des `<TableRow colSpan>`.
+
+### Changements réalisés
+
+1. **Suppression Table/Tabs** — Plus aucun composant `<Table>` ni `<Tabs>` Radix dans la page
+2. **Composants extraits** :
+   - `SegmentedControl` — Toggle réutilisable (pool 25/50m, sexe G/F)
+   - `PillStrip` — Bande de pills scrollable horizontalement (`overflow-x-auto`, `no-scrollbar`)
+   - `RecordCard` — Card pour le mode "âge unique" (épreuve, temps, détenteur, date, expand)
+   - `EventGroup` — Groupe d'épreuve pour le mode "tous âges" (header + rows avec Badge âge)
+   - `RankingList` — Classement en flex divs (remplace `<table>` imbriquée)
+3. **Filtres compacts** :
+   - Pool + Sex sur la même ligne (2 SegmentedControl côte à côte)
+   - Âges en PillStrip horizontale scrollable (11 pills, sans wrap)
+   - Nages en PillStrip horizontale scrollable (6 pills)
+4. **Utilitaire CSS `.no-scrollbar`** — Ajouté dans `index.css` pour masquer la scrollbar tout en gardant le scroll tactile
+5. **Helper `getAgeLabel`** — Factorise la logique ≤8/≥17/n en un seul endroit
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/pages/RecordsClub.tsx` | Refonte complète : Tables→cards, Tabs→pills, ranking→flex list (682→661 lignes) |
+| `src/index.css` | Ajout utilitaire `.no-scrollbar` |
+
+### Tests
+
+- [x] `npx tsc --noEmit` — Aucune erreur
+- [x] `npm run build` — Build production OK
+
+### Décisions prises
+
+1. **PillStrip scrollable vs wrap** — Les 11 pills d'âge qui wrappaient sur 3 lignes occupaient plus d'espace que le contenu. Le scroll horizontal est standard sur mobile (cf. App Store, Spotify)
+2. **SegmentedControl dédié** — Réutilisé 2 fois (pool, sex), plus propre qu'un inline `div>button` répété
+3. **Suppression Tabs Radix** — Pour 6 boutons simples, le overhead de Tabs (a11y, state management) n'apporte rien. Les PillStrip sont cohérentes avec le filtre d'âge
+4. **`no-scrollbar` CSS** — Utilitaire global dans `index.css`, disponible pour tout le projet
+
+### Limites / dette
+
+- Les PillStrip n'ont pas d'indicateur visuel de scrollabilité (gradient fade) — acceptable car le comportement est intuitif sur mobile
+- La classe `no-scrollbar` est une utility CSS custom plutôt qu'un plugin Tailwind — suffisant pour un usage limité
