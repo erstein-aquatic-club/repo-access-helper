@@ -83,6 +83,7 @@ Lire ces fichiers dans cet ordre pour reprendre le contexte :
 | 6 | Fix timers mode focus (PWA iOS background) | Haute | Fait (§14) |
 | 10 | Notes techniques par exercice natation | Moyenne | Fait |
 | 12 | Redesign dashboard coach (mobile first) | Haute | Fait (§35) |
+| 13 | Redesign Profil + Hall of Fame (mobile first) | Moyenne | Fait (§38) |
 
 Détail complet dans `docs/ROADMAP.md`.
 

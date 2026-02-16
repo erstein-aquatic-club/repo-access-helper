@@ -100,7 +100,7 @@ Tous les feature flags sont activés.
 | Records club (consultation) | ✅ | `RecordsClub.tsx` | Card-based mobile first, scroll pills, ranking flex list (§37) |
 | Import records club (FFN) | ✅ | `RecordsAdmin.tsx`, Edge Function `import-club-records` | Import bulk + recalcul records club |
 | Gestion nageurs records | ✅ | `RecordsAdmin.tsx` | Ajout/édition/activation swimmers, card-based mobile first (§36) |
-| Hall of Fame | ✅ | `HallOfFame.tsx` | Top 5 nage + muscu |
+| Hall of Fame | ✅ | `HallOfFame.tsx` | Podium visuel top 3 + rangs 4-5 compacts (§38) |
 | Gestion coach imports perfs | ✅ | `RecordsAdmin.tsx` | Import individuel par nageur + historique des imports |
 
 ### Messagerie
@@ -136,9 +136,10 @@ Tous les feature flags sont activés.
 
 | Fonctionnalité | Statut | Fichiers | Notes |
 |----------------|--------|----------|-------|
-| Affichage infos | ✅ | `Profile.tsx` | Nom, anniversaire, groupe, objectifs, bio |
-| Édition profil | ✅ | `Profile.tsx` | Avatar, objectifs, groupe, FFN IUF |
-| Changement mot de passe | ✅ | `Profile.tsx` | Via Supabase Auth |
+| Affichage infos | ✅ | `Profile.tsx` | Hero banner bg-accent, avatar ring, badge rôle (§38) |
+| Édition profil | ✅ | `Profile.tsx` | Sheet bottom mobile-friendly, formulaire complet (§38) |
+| Changement mot de passe | ✅ | `Profile.tsx` | Collapsible "Sécurité" fermé par défaut (§38) |
+| FFN & Records | ✅ | `Profile.tsx` | Card fusionnée sync FFN + lien records (§38) |
 
 ### UI/UX & Design System (Phase 6)
 

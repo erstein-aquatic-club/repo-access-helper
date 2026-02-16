@@ -58,6 +58,7 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §35 Redesign: dashboard coach (mobile first, KPI unifié, cards nageurs) | ✅ Fait | 2026-02-16 |
 | §36 Redesign: RecordsAdmin mobile first (cards, SwimmerCard DRY) | ✅ Fait | 2026-02-16 |
 | §37 Redesign: RecordsClub mobile first (cards, scroll pills, no tables) | ✅ Fait | 2026-02-16 |
+| §38 Redesign: Profil + Hall of Fame (mobile first, hero banner, podium) | ✅ Fait | 2026-02-16 |
 
 ---
 
@@ -3796,3 +3797,56 @@ La page "Records du club" utilisait des composants `<Table>` HTML (5-6 colonnes)
 
 - Les PillStrip n'ont pas d'indicateur visuel de scrollabilité (gradient fade) — acceptable car le comportement est intuitif sur mobile
 - La classe `no-scrollbar` est une utility CSS custom plutôt qu'un plugin Tailwind — suffisant pour un usage limité
+
+---
+
+## 2026-02-16 — §38 Redesign Profil + Hall of Fame (mobile first)
+
+**Branche** : `main`
+**Chantier ROADMAP** : §38 — Redesign Profil + Hall of Fame
+
+### Contexte
+
+Les vues Profil et Hall of Fame avaient un design plat et utilitaire. Le Profil utilisait une simple Card avec avatar 16x16 et un formulaire inline. Le Hall of Fame affichait les classements en listes plates sans mise en scène. Objectif : rendre ces vues cohérentes avec le style "sportif bold" du dashboard coach redesigné (Oswald, EAC Red, cards).
+
+### Changements réalisés
+
+1. **Composant Podium** (`hallOfFame/Podium.tsx`) — Nouveau composant réutilisable affichant le top 3 en style podium olympique (colonne #2 gauche, #1 centre surélevée, #3 droite). Chaque colonne : icône rang (Crown/Medal), avatar initiales, nom, badge KPI coloré, socle gradient. Gère 0, 1, 2 ou 3 entrées.
+
+2. **Hall of Fame avec podium** — Les 5 catégories (Distance, Intensité, Engagement, Tonnage, Volume) utilisent le Podium pour le top 3. Les rangs 4-5 restent en lignes compactes. Suppression du RankIcon inline.
+
+3. **Profil — Hero banner** — Remplacement du `<h1>Profil</h1>` + CardHeader par un banner `bg-accent` (fond noir) avec avatar 80px ring EAC Red, nom Oswald XXL, badge rôle + groupe. Bouton edit intégré.
+
+4. **Profil — Sheet d'édition** — Formulaire d'édition déplacé dans un Sheet Shadcn (side="bottom", max-h 85vh, scrollable). La grille d'infos est toujours visible, le formulaire s'ouvre en overlay.
+
+5. **Profil — Collapsible sécurité** — Section mot de passe dans un Collapsible fermé par défaut (trigger "Sécurité" avec chevron rotatif). Cards FFN et Records fusionnées en une seule "FFN & Records". Bouton déconnexion déplacé en bas de page (ghost).
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/pages/hallOfFame/Podium.tsx` | Nouveau composant Podium (top 3 visuel) |
+| `src/pages/__tests__/Podium.test.tsx` | 4 tests : ordre DOM, 2 entrées, 1 entrée, état vide |
+| `src/pages/HallOfFame.tsx` | Intégration Podium, suppression RankIcon, refacto 5 catégories |
+| `src/pages/Profile.tsx` | Hero banner, Sheet édition, Collapsible MdP, merge FFN/Records, logout bottom |
+
+### Tests
+
+- [x] `npm test -- Podium.test.tsx` — 4/4 PASS
+- [x] `npm test -- ProfileLogic.test.ts` — 2/2 PASS
+- [x] `npm test -- HallOfFameValue.test.tsx` — 3/3 PASS
+- [x] `npx tsc --noEmit` — Aucune erreur nouvelle
+- [x] `npm run build` — Build production OK
+
+### Décisions prises
+
+1. **Podium CSS vs DOM order** — Le DOM rend dans l'ordre #2-#1-#3 ET utilise des classes CSS `order-*`. Redondant mais garantit le rendu correct dans tous les contextes.
+2. **Sheet bottom vs right** — `side="bottom"` pour le mobile, plus naturel qu'un panneau latéral sur petit écran.
+3. **Collapsible vs Accordion** — Collapsible Radix suffit pour une seule section pliable, pas besoin d'un Accordion.
+4. **Merge FFN + Records** — Deux cards séparées pour un seul sujet (records/FFN) était redondant. Une seule card regroupe sync + lien.
+5. **Chevron rotation** — Utilise `group` + `group-data-[state=open]:rotate-90` (syntaxe Tailwind correcte pour data attributes).
+
+### Limites / dette
+
+- Le skeleton de chargement du Profil utilise encore l'ancien pattern CardHeader (cosmétique, non bloquant)
+- Le Podium n'a pas d'animation staggered (les colonnes apparaissent ensemble) — pourrait être ajouté en follow-up

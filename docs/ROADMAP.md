@@ -22,6 +22,7 @@ Ce document décrit les fonctionnalités à implémenter. Il sert de référence
 | 10 | Notes techniques par exercice de natation | Moyenne | Moyenne | Fait |
 | 11 | Refonte builder séances natation coach | Haute | Moyenne | Fait |
 | 12 | Redesign dashboard coach (mobile first) | Haute | Moyenne | Fait |
+| 13 | Redesign Profil + Hall of Fame (mobile first) | Moyenne | Moyenne | Fait |
 
 ---
 
