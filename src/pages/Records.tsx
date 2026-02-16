@@ -537,9 +537,7 @@ export default function Records() {
     cancelOneRmEdit();
   };
 
-  const SwimColsTraining = "grid-cols-[minmax(0,1fr)_3.75rem_3.75rem_2.25rem] sm:grid-cols-[minmax(0,1fr)_4.75rem_4.75rem_2.5rem]";
-  const SwimColsComp = "grid-cols-[minmax(0,1fr)_3.75rem_2.75rem_3.75rem] sm:grid-cols-[minmax(0,1fr)_4.75rem_3.75rem_4.75rem]";
-  const swimCols = swimMode === "training" ? SwimColsTraining : SwimColsComp;
+  // Grid columns removed — using flex card layout instead
 
   if (!showRecords) {
     return (
@@ -709,7 +707,7 @@ export default function Records() {
                 </div>
               ) : null}
 
-              <Card className="w-full min-w-0 overflow-x-auto rounded-2xl">
+              <Card className="w-full min-w-0 rounded-2xl">
                 <CardContent className="p-0">
                   {swimLoading ? (
                     <div className="p-4 grid gap-3">
@@ -726,98 +724,66 @@ export default function Records() {
                       Aucun record en bassin {poolLen}m.
                     </div>
                   ) : (
-                    <div className="w-full">
-                      {/* Table header */}
-                      <div className="px-3 sm:px-4 py-2 text-[11px] text-muted-foreground border-b border-border">
-                        <div className={cx("grid items-center gap-2", swimCols)}>
-                          <div className="truncate justify-self-start">Épreuve</div>
-                          <div className="whitespace-nowrap justify-self-end">Temps</div>
-                          {swimMode === "comp" ? (
-                            <div className="whitespace-nowrap justify-self-end">Pts</div>
-                          ) : (
-                            <div className="whitespace-nowrap justify-self-end">Date</div>
-                          )}
-                          {swimMode === "comp" ? (
-                            <div className="whitespace-nowrap justify-self-end">Date</div>
-                          ) : (
-                            <div className="sr-only">Actions</div>
-                          )}
-                        </div>
-                      </div>
+                    <motion.div
+                      className="divide-y divide-border motion-reduce:animate-none"
+                      variants={staggerChildren}
+                      initial="hidden"
+                      animate="visible"
+                    >
+                      {filteredSwimRecords.map((record) => {
+                        const isEditing = swimEditorOpenFor === record.id;
+                        const time = formatTimeSeconds(record.time_seconds);
+                        const date = formatDateShort(record.record_date);
+                        const notes = (record.notes ?? "").trim();
 
-                      <motion.div
-                        className="divide-y divide-border motion-reduce:animate-none"
-                        variants={staggerChildren}
-                        initial="hidden"
-                        animate="visible"
-                      >
-                        {filteredSwimRecords.map((record) => {
-                          const isEditing = swimEditorOpenFor === record.id;
-                          const time = formatTimeSeconds(record.time_seconds);
-                          const date = formatDateShort(record.record_date);
-                          const notes = (record.notes ?? "").trim();
+                        const rawPts =
+                          record?.ffn_points ??
+                          record?.ffnPoints ??
+                          record?.points ??
+                          record?.pts ??
+                          null;
 
-                          const rawPts =
-                            record?.ffn_points ??
-                            record?.ffnPoints ??
-                            record?.points ??
-                            record?.pts ??
-                            null;
+                        const ptsNum =
+                          rawPts === null || rawPts === undefined ? NaN : Number(rawPts);
 
-                          const ptsNum =
-                            rawPts === null || rawPts === undefined ? NaN : Number(rawPts);
+                        const points = Number.isFinite(ptsNum) ? ptsNum : parseFfnPointsFromNotes(record?.notes);
 
-                          const points = Number.isFinite(ptsNum) ? ptsNum : parseFfnPointsFromNotes(record?.notes);
+                        const meet =
+                          (record?.meet ?? record?.meet_name ?? record?.meetName ?? record?.competition ?? "").trim?.() ??
+                          "";
 
-                          const meet =
-                            (record?.meet ?? record?.meet_name ?? record?.meetName ?? record?.competition ?? "").trim?.() ??
-                            "";
-
-                          return (
-                            <motion.div key={record.id} className="px-3 sm:px-4 py-3 motion-reduce:animate-none" variants={listItem}>
-                              <div className={cx("grid items-center gap-2", swimCols)}>
-                                <div className="min-w-0 justify-self-start">
-                                  <div className="text-sm font-semibold truncate">{record.event_name}</div>
-                                </div>
-
-                                <div className="justify-self-end text-sm font-semibold tabular-nums whitespace-nowrap overflow-hidden font-mono">
+                        return (
+                          <motion.div key={record.id} className="px-3 py-2.5 motion-reduce:animate-none" variants={listItem}>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-semibold truncate">{record.event_name}</span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="font-mono text-primary font-bold tabular-nums text-sm">
                                   {time}
-                                </div>
-
-                                {swimMode === "comp" ? (
-                                  <div className="justify-self-end text-sm tabular-nums text-muted-foreground whitespace-nowrap overflow-hidden">
-                                    {points == null ? "—" : String(points)}
-                                  </div>
-                                ) : (
-                                  <div className="justify-self-end text-sm tabular-nums text-muted-foreground whitespace-nowrap overflow-hidden">
-                                    {date}
-                                  </div>
-                                )}
-
-                                {swimMode === "comp" ? (
-                                  <div className="justify-self-end text-sm tabular-nums text-muted-foreground whitespace-nowrap overflow-hidden">
-                                    {date}
-                                  </div>
-                                ) : (
+                                </span>
+                                {swimMode === "training" && (
                                   <button
                                     type="button"
                                     onClick={() => startSwimEdit(record)}
-                                    className="justify-self-end inline-flex items-center justify-center h-9 w-9 rounded-xl bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring/20"
+                                    className="inline-flex items-center justify-center h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition"
                                     aria-label={`Modifier ${record.event_name}`}
-                                    title="Modifier"
                                   >
-                                    <Edit2 className="h-4 w-4" />
+                                    <Edit2 className="h-3.5 w-3.5" />
                                   </button>
                                 )}
                               </div>
-
-                              {swimMode === "comp" && meet ? (
-                                <div className="mt-1 text-xs text-muted-foreground truncate">{meet}</div>
-                              ) : null}
-
-                              {swimMode === "training" && notes ? (
-                                <div className="mt-1 text-xs text-muted-foreground truncate">{notes}</div>
-                              ) : null}
+                            </div>
+                            <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                              {swimMode === "comp" && points != null && (
+                                <span className="tabular-nums">{String(points)} pts</span>
+                              )}
+                              <span className="tabular-nums">{date}</span>
+                              {swimMode === "comp" && meet && (
+                                <span className="truncate">{meet}</span>
+                              )}
+                              {swimMode === "training" && notes && (
+                                <span className="truncate italic">{notes}</span>
+                              )}
+                            </div>
 
                               {swimMode === "training" && isEditing ? (
                                 <motion.div
@@ -887,10 +853,9 @@ export default function Records() {
                                 </motion.div>
                               ) : null}
                             </motion.div>
-                          );
-                        })}
-                      </motion.div>
-                    </div>
+                        );
+                      })}
+                    </motion.div>
                   )}
                 </CardContent>
               </Card>
@@ -1109,7 +1074,7 @@ export default function Records() {
                   ) : null}
 
                   {/* Performance list */}
-                  <Card className="w-full min-w-0 overflow-x-auto rounded-2xl">
+                  <Card className="w-full min-w-0 rounded-2xl">
                     <CardContent className="p-0">
                       {perfLoading ? (
                         <div className="p-4 grid gap-3">
@@ -1133,38 +1098,26 @@ export default function Records() {
                             : "Ajoutez votre IUF FFN dans votre profil pour commencer."}
                         </div>
                       ) : (
-                        <div className="w-full">
-                          <div className="px-3 sm:px-4 py-2 text-[11px] text-muted-foreground border-b border-border">
-                            <div className="grid items-center gap-2 grid-cols-[minmax(0,1fr)_3.75rem_2.75rem_3.75rem] sm:grid-cols-[minmax(0,1fr)_4.75rem_3.75rem_4.75rem]">
-                              <div className="truncate justify-self-start">Épreuve</div>
-                              <div className="whitespace-nowrap justify-self-end">Temps</div>
-                              <div className="whitespace-nowrap justify-self-end">Pts</div>
-                              <div className="whitespace-nowrap justify-self-end">Date</div>
-                            </div>
-                          </div>
-                          <div className="divide-y divide-border">
-                            {filteredPerformances.map((perf) => (
-                              <div key={perf.id} className="px-3 sm:px-4 py-3">
-                                <div className="grid items-center gap-2 grid-cols-[minmax(0,1fr)_3.75rem_2.75rem_3.75rem] sm:grid-cols-[minmax(0,1fr)_4.75rem_3.75rem_4.75rem]">
-                                  <div className="min-w-0 justify-self-start">
-                                    <div className="text-sm font-semibold truncate">{perf.event_code}</div>
-                                  </div>
-                                  <div className="justify-self-end text-sm font-semibold tabular-nums whitespace-nowrap overflow-hidden font-mono">
-                                    {perf.time_display ?? formatTimeSeconds(perf.time_seconds)}
-                                  </div>
-                                  <div className="justify-self-end text-sm tabular-nums text-muted-foreground whitespace-nowrap overflow-hidden">
-                                    {perf.ffn_points != null ? String(perf.ffn_points) : "—"}
-                                  </div>
-                                  <div className="justify-self-end text-sm tabular-nums text-muted-foreground whitespace-nowrap overflow-hidden">
-                                    {formatDateShort(perf.competition_date)}
-                                  </div>
-                                </div>
-                                {perf.competition_name ? (
-                                  <div className="mt-1 text-xs text-muted-foreground truncate">{perf.competition_name}</div>
-                                ) : null}
+                        <div className="divide-y divide-border">
+                          {filteredPerformances.map((perf) => (
+                            <div key={perf.id} className="px-3 py-2.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-semibold truncate">{perf.event_code}</span>
+                                <span className="font-mono text-primary font-bold tabular-nums text-sm shrink-0">
+                                  {perf.time_display ?? formatTimeSeconds(perf.time_seconds)}
+                                </span>
                               </div>
-                            ))}
-                          </div>
+                              <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                                {perf.ffn_points != null && (
+                                  <span className="tabular-nums">{String(perf.ffn_points)} pts</span>
+                                )}
+                                <span className="tabular-nums">{formatDateShort(perf.competition_date)}</span>
+                                {perf.competition_name && (
+                                  <span className="truncate">{perf.competition_name}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </CardContent>
@@ -1185,7 +1138,7 @@ export default function Records() {
                 </div>
               </div>
 
-              <Card className="w-full min-w-0 overflow-x-auto rounded-2xl">
+              <Card className="w-full min-w-0 rounded-2xl">
                 <CardContent className="p-0">
                   {oneRmLoading || exercisesLoading ? (
                     <div className="p-4 grid gap-3">
