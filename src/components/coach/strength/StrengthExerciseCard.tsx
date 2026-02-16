@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ArrowDown, ArrowUp, ChevronDown, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ExercisePickerDrawer } from "./ExercisePickerDrawer";
 import type { Exercise, StrengthSessionItem } from "@/lib/api";
 
 interface StrengthExerciseCardProps {
@@ -149,28 +149,11 @@ export function StrengthExerciseCard({
 
             <div className="space-y-1">
               <Label className="text-xs">Exercice</Label>
-              <Select
-                value={exercise.exercise_id.toString()}
-                onValueChange={(v) => onChange("exercise_id", parseInt(v))}
-              >
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredExercises.length ? (
-                    filteredExercises.map((ex) => (
-                      <SelectItem key={ex.id} value={ex.id.toString()}>
-                        {ex.nom_exercice}
-                        {ex.exercise_type === "warmup" ? " · Échauffement" : ""}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-exercise" disabled>
-                      Aucun exercice disponible
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <ExercisePickerDrawer
+                exercises={filteredExercises}
+                selectedId={exercise.exercise_id}
+                onSelect={(id) => onChange("exercise_id", id)}
+              />
             </div>
 
             <div className="space-y-1">
