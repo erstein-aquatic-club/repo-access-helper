@@ -82,6 +82,7 @@ Lire ces fichiers dans cet ordre pour reprendre le contexte :
 | 5 | Dette technique UI/UX | Basse | Fait |
 | 6 | Fix timers mode focus (PWA iOS background) | Haute | Fait (§14) |
 | 10 | Notes techniques par exercice natation | Moyenne | Fait |
+| 12 | Redesign dashboard coach (mobile first) | Haute | Fait (§35) |
 
 Détail complet dans `docs/ROADMAP.md`.
 

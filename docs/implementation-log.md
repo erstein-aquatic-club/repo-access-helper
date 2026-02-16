@@ -55,6 +55,7 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §32 Fix: items natation dupliqués à chaque édition (FK + error handling) | ✅ Fait | 2026-02-15 |
 | §33 Feature: intensité Progressif (Prog) dans échelle natation | ✅ Fait | 2026-02-15 |
 | §34 Feature: dossiers/sous-dossiers + archive persistante catalogue nage | ✅ Fait | 2026-02-15 |
+| §35 Redesign: dashboard coach (mobile first, KPI unifié, cards nageurs) | ✅ Fait | 2026-02-16 |
 
 ---
 
@@ -3593,3 +3594,61 @@ Le catalogue musculation coach n'avait aucune organisation en dossiers. Avec le 
 - Pas de drag & drop entre dossiers (déplacement via popover uniquement)
 - Création de dossier via `prompt()` natif (pas de dialog custom)
 - Pas de tri personnalisé des dossiers (sort_order existe en BDD mais pas utilisé dans l'UI)
+
+---
+
+## 2026-02-16 — Redesign: dashboard coach mobile first (§35)
+
+**Branche** : `main`
+
+### Contexte — Pourquoi ce patch
+
+Le dashboard coach (`Coach.tsx`) présentait plusieurs problèmes UX identifiés lors d'un audit :
+- **Deux implémentations KPI divergentes** : une carte dark pour mobile (`sm:hidden`) sans toggle période, une carte light pour desktop (`hidden sm:block`) avec toggle
+- **Deux composants d'actions rapides** : "Par où commencer" (3 cartes touch, mobile only) et "Actions rapides" (card + 2 boutons, desktop only)
+- **Table `<Table>` pour les nageurs** : overflow horizontal sur mobile (`overflow-x-auto`)
+- **Navigation cards statiques** : 4 cards identiques sans données contextuelles (compteurs)
+- **Carte Records surchargée** : 2 boutons empilés dans un seul card
+- **Header générique** : "Espace Coach" sans contexte temporel
+
+### Changements réalisés
+
+1. **Greeting contextuel** — Remplace "Espace Coach" par un greeting adapté à l'heure ("Bonjour/Bon après-midi/Bonsoir, Coach") avec la date du jour
+2. **KPI strip unifié** — Fusionne les 2 implémentations (mobile dark / desktop light) en un seul composant compact avec toggle période (7j/30j/1an) visible sur tous les écrans. Teinture rouge conditionnelle quand il y a des alertes fatigue
+3. **Quick actions unifiées** — Remplace les 2 composants divergents par une row de pills : "Assigner" (primary rouge) + "Message" (outline)
+4. **Grille navigation 2x2** — Remplace les 4 `<Card>` (avec description + bouton chacune) par des boutons-cartes touch-friendly avec compteurs live (nombre de séances, nombre de nageurs)
+5. **Records simplifié** — 1 carte nav vers records-admin + 1 lien texte "Voir les records du club"
+6. **Liste nageurs card-based** — Remplace le `<Table>` par une stack de cards avec nom (truncate), badge groupe, IUF, boutons actions. Zéro scroll horizontal
+7. **Anniversaires compactifiés** — Section inline sans wrapper `<Card>`
+8. **Chargement catalogs sur home** — Ajout `shouldLoadCatalogs` pour charger swim/strength catalogs sur la section home (compteurs dans la grille nav)
+9. **Nettoyage** — Suppression `CoachQuickActions`, import `Table` inutilisé, variable `selectedAthleteId` non utilisée
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/pages/Coach.tsx` | Réécriture CoachHome + swimmers section (682 → 591 lignes) |
+
+### Tests
+
+- [x] `npx tsc --noEmit` — aucune erreur Coach.tsx
+- [x] `npm run build` — succès (14s)
+- [ ] Test manuel : vérifier greeting contextuel (matin/après-midi/soir)
+- [ ] Test manuel : vérifier KPI strip avec toggle période sur mobile
+- [ ] Test manuel : vérifier compteurs séances dans grille nav
+- [ ] Test manuel : vérifier liste nageurs sans overflow horizontal
+- [ ] Test manuel : vérifier navigation vers toutes les sections
+
+### Décisions prises
+
+1. **Un seul layout mobile/desktop** — Plutôt que `sm:hidden` / `hidden sm:block`, un composant unique qui fonctionne partout. Moins de code, moins de divergence
+2. **Grille 2x2 plutôt que 3 colonnes** — Plus équilibré visuellement et meilleur usage de l'espace mobile
+3. **Cards au lieu de Table pour nageurs** — Les tables HTML ne sont pas adaptées au mobile ; les cards permettent un layout vertical naturel
+4. **Catalogs chargés sur home** — Trade-off acceptable (données légères) pour avoir les compteurs live dans la grille nav
+5. **Records card → records-admin** — L'action principale du coach est l'import/gestion, pas la consultation. Lien secondaire pour "voir les records"
+
+### Limites / dette
+
+- Le routing interne reste basé sur `useState` (pas d'URL sub-routes) — le bouton back du navigateur ne fonctionne pas entre sections coach
+- Les compteurs de séances sont basés sur les catalogs complets chargés — pas de requête "count only"
+- Pas d'animation de transition entre les sections

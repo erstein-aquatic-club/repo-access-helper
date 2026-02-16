@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-16 (§32 Dossiers musculation)*
+*Dernière mise à jour : 2026-02-16 (§35 Redesign dashboard coach)*
 
 ## Légende
 
@@ -88,6 +88,7 @@ Tous les feature flags sont activés.
 | Dossiers séances | ✅ | `StrengthCatalog.tsx`, `FolderSection.tsx`, `MoveToFolderPopover.tsx` | 1 niveau, renommage inline, suppression, déplacement (§32) |
 | Dossiers exercices | ✅ | `StrengthCatalog.tsx`, `FolderSection.tsx`, `MoveToFolderPopover.tsx` | Même système que séances, types séparés (§32) |
 | Assignation | ✅ | `CoachAssignScreen.tsx` | Via écran d'assignation partagé |
+| Dashboard coach | ✅ | `Coach.tsx` | Mobile first, KPI unifié, grille 2x2 avec compteurs, cards nageurs (§35) |
 
 ### Records & FFN
 

@@ -1,6 +1,6 @@
 # Roadmap de Développement
 
-*Dernière mise à jour : 2026-02-15*
+*Dernière mise à jour : 2026-02-16*
 
 Ce document décrit les fonctionnalités à implémenter. Il sert de référence pour reprendre le développement dans une future conversation.
 
@@ -21,6 +21,7 @@ Ce document décrit les fonctionnalités à implémenter. Il sert de référence
 | 9 | Design System Documentation (Phase 8) | Basse | Moyenne | Fait |
 | 10 | Notes techniques par exercice de natation | Moyenne | Moyenne | Fait |
 | 11 | Refonte builder séances natation coach | Haute | Moyenne | Fait |
+| 12 | Redesign dashboard coach (mobile first) | Haute | Moyenne | Fait |
 
 ---
 

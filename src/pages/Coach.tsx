@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Bell, Download, Dumbbell, HeartPulse, MessageSquare, Trophy, Users, Waves } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import CoachSectionHeader from "./coach/CoachSectionHeader";
@@ -25,32 +24,10 @@ const SwimCatalog = lazy(() => import("./coach/SwimCatalog"));
 type CoachSection = "home" | "swim" | "strength" | "swimmers" | "assignments" | "messaging";
 type KpiLookbackPeriod = 7 | 30 | 365;
 
-type CoachQuickActionsProps = {
-  onNavigate: (section: CoachSection) => void;
-};
-
-const CoachQuickActions = ({ onNavigate }: CoachQuickActionsProps) => (
-  <Card className="border-l-4 border-l-primary">
-    <CardHeader>
-      <CardTitle>Actions rapides</CardTitle>
-      <CardDescription>Accélérez vos tâches les plus fréquentes.</CardDescription>
-    </CardHeader>
-    <CardContent className="grid gap-3 sm:grid-cols-2">
-      <Button className="justify-start" variant="outline" onClick={() => onNavigate("assignments")}>
-        <Bell className="mr-2 h-4 w-4" />
-        Assigner une séance
-      </Button>
-      <Button className="justify-start" variant="outline" onClick={() => onNavigate("messaging")}>
-        <MessageSquare className="mr-2 h-4 w-4" />
-        Message rapide
-      </Button>
-    </CardContent>
-  </Card>
-);
-
 type CoachHomeProps = {
   onNavigate: (section: CoachSection) => void;
   onOpenRecordsAdmin: () => void;
+  onOpenRecordsClub: () => void;
   athletes: Array<{ id: number | null; display_name: string; group_label?: string | null; ffn_iuf?: string | null }>;
   athletesLoading: boolean;
   upcomingBirthdays?: Array<{ id: number; display_name: string; next_birthday: string; days_until: number }>;
@@ -60,11 +37,14 @@ type CoachHomeProps = {
   onKpiPeriodChange: (period: KpiLookbackPeriod) => void;
   fatigueAlerts: Array<{ athleteName: string; rating: number }>;
   mostLoadedAthlete?: { athleteName: string; loadScore: number } | null;
+  swimSessionCount?: number;
+  strengthSessionCount?: number;
 };
 
 const CoachHome = ({
   onNavigate,
   onOpenRecordsAdmin,
+  onOpenRecordsClub,
   athletes,
   athletesLoading,
   upcomingBirthdays,
@@ -74,262 +54,204 @@ const CoachHome = ({
   onKpiPeriodChange,
   fatigueAlerts,
   mostLoadedAthlete,
-}: CoachHomeProps) => (
-  <div className="space-y-6">
-    <div className="space-y-1">
-      <h1 className="text-3xl font-display font-bold uppercase italic text-primary">Espace Coach</h1>
-      <p className="text-sm text-muted-foreground">
-        Votre tableau de bord pour gérer les séances, les nageurs et la communication.
-      </p>
-    </div>
+  swimSessionCount,
+  strengthSessionCount,
+}: CoachHomeProps) => {
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
+  const today = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  const hasFatigueAlerts = fatigueAlerts.length > 0;
 
-    <div className="space-y-3 sm:hidden">
+  return (
+    <div className="space-y-5">
+      {/* Greeting */}
       <div>
-        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Par où commencer
-        </h2>
+        <h1 className="text-2xl font-display font-bold uppercase italic">
+          {greeting}, <span className="text-primary">Coach</span>
+        </h1>
+        <p className="text-sm text-muted-foreground capitalize">{today}</p>
       </div>
-      <div className="grid gap-3">
-        <button
-          type="button"
-          onClick={() => onNavigate("swim")}
-          className="rounded-xl border bg-white p-4 text-left shadow-sm transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold">Créer une séance natation</p>
-              <p className="text-xs text-muted-foreground">Structurer un nouveau plan.</p>
+
+      {/* KPI Strip — unified mobile/desktop */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            Signaux · {kpiPeriod}j
+          </h2>
+          <ToggleGroup
+            type="single"
+            size="sm"
+            variant="outline"
+            value={String(kpiPeriod)}
+            onValueChange={(v) => {
+              if (v) onKpiPeriodChange(Number(v) as KpiLookbackPeriod);
+            }}
+          >
+            <ToggleGroupItem value="7" className="h-7 px-2 text-xs" aria-label="7 jours">
+              7j
+            </ToggleGroupItem>
+            <ToggleGroupItem value="30" className="h-7 px-2 text-xs" aria-label="30 jours">
+              30j
+            </ToggleGroupItem>
+            <ToggleGroupItem value="365" className="h-7 px-2 text-xs" aria-label="1 an">
+              1an
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div
+            className={`rounded-xl border p-3 ${
+              hasFatigueAlerts ? "border-destructive/30 bg-destructive/5" : "bg-muted/30"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] text-muted-foreground">Fatigue 5/5</span>
+              <HeartPulse
+                className={`h-3.5 w-3.5 ${hasFatigueAlerts ? "text-destructive" : "text-muted-foreground"}`}
+              />
             </div>
-            <Waves className="h-5 w-5 text-primary" />
+            <p className="text-xl font-bold tabular-nums">
+              {kpiLoading ? "–" : fatigueAlerts.length}
+            </p>
+            <p className="text-[11px] text-muted-foreground truncate">
+              {kpiLoading
+                ? "Chargement…"
+                : hasFatigueAlerts
+                  ? fatigueAlerts.slice(0, 2).map((a) => a.athleteName.split(" ")[0]).join(", ")
+                  : "Aucune alerte"}
+            </p>
           </div>
-        </button>
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] text-muted-foreground">Plus chargé</span>
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+            <p className="text-xl font-bold truncate">
+              {kpiLoading ? "–" : mostLoadedAthlete?.athleteName?.split(" ")[0] ?? "–"}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {kpiLoading
+                ? "Calcul…"
+                : mostLoadedAthlete
+                  ? `Charge ${Math.round(mostLoadedAthlete.loadScore)}`
+                  : "Pas de données"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="flex gap-2">
         <button
           type="button"
           onClick={() => onNavigate("assignments")}
-          className="rounded-xl border bg-white p-4 text-left shadow-sm transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold active:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold">Assigner une séance</p>
-              <p className="text-xs text-muted-foreground">Envoyer une séance à un nageur.</p>
-            </div>
-            <Bell className="h-5 w-5 text-primary" />
-          </div>
+          <Bell className="h-3.5 w-3.5" />
+          Assigner
         </button>
         <button
           type="button"
           onClick={() => onNavigate("messaging")}
-          className="rounded-xl border bg-white p-4 text-left shadow-sm transition hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold">Envoyer un message</p>
-              <p className="text-xs text-muted-foreground">Relancer ou féliciter un nageur.</p>
-            </div>
-            <MessageSquare className="h-5 w-5 text-primary" />
-          </div>
+          <MessageSquare className="h-3.5 w-3.5" />
+          Message
         </button>
       </div>
-    </div>
 
-    <div className="hidden sm:block">
-      <CoachQuickActions onNavigate={onNavigate} />
-    </div>
+      {/* Navigation Grid 2x2 */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => onNavigate("swim")}
+          className="rounded-xl border bg-card p-4 text-left shadow-sm active:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Waves className="h-5 w-5 text-primary mb-2" />
+          <p className="text-sm font-bold">Natation</p>
+          <p className="text-xs text-muted-foreground">
+            {swimSessionCount != null
+              ? `${swimSessionCount} séance${swimSessionCount !== 1 ? "s" : ""}`
+              : "Bibliothèque"}
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigate("strength")}
+          className="rounded-xl border bg-card p-4 text-left shadow-sm active:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Dumbbell className="h-5 w-5 text-primary mb-2" />
+          <p className="text-sm font-bold">Musculation</p>
+          <p className="text-xs text-muted-foreground">
+            {strengthSessionCount != null
+              ? `${strengthSessionCount} séance${strengthSessionCount !== 1 ? "s" : ""}`
+              : "Bibliothèque"}
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigate("swimmers")}
+          className="rounded-xl border bg-card p-4 text-left shadow-sm active:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Users className="h-5 w-5 text-primary mb-2" />
+          <p className="text-sm font-bold">Nageurs</p>
+          <p className="text-xs text-muted-foreground">
+            {athletesLoading
+              ? "Chargement…"
+              : `${athletes.length} nageur${athletes.length !== 1 ? "s" : ""}`}
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={onOpenRecordsAdmin}
+          className="rounded-xl border bg-card p-4 text-left shadow-sm active:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Trophy className="h-5 w-5 text-primary mb-2" />
+          <p className="text-sm font-bold">Records club</p>
+          <p className="text-xs text-muted-foreground">Import & administration</p>
+        </button>
+      </div>
 
-    <div className="grid gap-4 md:grid-cols-3">
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Waves className="h-5 w-5 text-primary" />
-            Natation
-          </CardTitle>
-          <CardDescription>Consultez et créez des séances natation.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button className="w-full" onClick={() => onNavigate("swim")}>
-            Accéder à la bibliothèque
-          </Button>
-        </CardContent>
-      </Card>
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Dumbbell className="h-5 w-5 text-primary" />
-            Musculation
-          </CardTitle>
-          <CardDescription>Préparez les plans muscu et les suivis.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button className="w-full" onClick={() => onNavigate("strength")}>
-            Accéder à la bibliothèque
-          </Button>
-        </CardContent>
-      </Card>
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            Mes nageurs
-          </CardTitle>
-          <CardDescription>Accédez aux fiches individuelles et aux groupes.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button className="w-full" onClick={() => onNavigate("swimmers")}>
-            Voir les nageurs
-          </Button>
-        </CardContent>
-      </Card>
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            Records club
-          </CardTitle>
-          <CardDescription>Importer les performances FFN et reconstruire les records.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button className="w-full" variant="outline" onClick={onOpenRecordsAdmin}>
-            Administration des records
-          </Button>
-          <Button className="w-full mt-2" variant="outline" onClick={() => { window.location.hash = "#/records-club"; }}>
-            Voir les records du club
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+      {/* Records club shortcut */}
+      <button
+        type="button"
+        onClick={onOpenRecordsClub}
+        className="w-full text-center text-sm text-primary font-semibold py-1 active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+      >
+        Voir les records du club
+      </button>
 
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Card className="sm:hidden bg-primary text-primary-foreground">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-base">Indicateurs clés</CardTitle>
-          <CardDescription className="text-primary-foreground/70">Synthèse rapide pour aujourd'hui.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-lg border border-primary-foreground/10 bg-primary-foreground/5 p-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-primary-foreground/70">Fatigue 5/5</p>
-              <p className="text-2xl font-semibold">{kpiLoading ? "…" : fatigueAlerts.length}</p>
-              <p className="text-xs text-primary-foreground/70">
-                {kpiLoading
-                  ? "Chargement..."
-                  : fatigueAlerts.length
-                    ? fatigueAlerts.slice(0, 2).map((alert) => alert.athleteName).join(", ")
-                    : "Aucune alerte"}
-              </p>
-            </div>
-            <HeartPulse className="h-5 w-5 text-primary-foreground/70" />
-          </div>
-          <div className="flex items-center justify-between rounded-lg border border-primary-foreground/10 bg-primary-foreground/5 p-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-primary-foreground/70">Nageur le plus chargé</p>
-              <p className="text-lg font-semibold">
-                {kpiLoading ? "…" : mostLoadedAthlete?.athleteName ?? "-"}
-              </p>
-              <p className="text-xs text-primary-foreground/70">
-                {kpiLoading
-                  ? "Calcul en cours"
-                  : mostLoadedAthlete
-                    ? `Charge ${Math.round(mostLoadedAthlete.loadScore)}`
-                    : "Pas de données récentes"}
-              </p>
-            </div>
-            <Users className="h-5 w-5 text-primary-foreground/70" />
-          </div>
-        </CardContent>
-      </Card>
-      <Card className="hidden sm:block">
-        <CardHeader className="space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-1">
-              <CardTitle>Signaux clés</CardTitle>
-              <CardDescription>Vue d'ensemble rapide de votre groupe.</CardDescription>
-            </div>
-            <ToggleGroup
-              type="single"
-              size="sm"
-              variant="outline"
-              value={String(kpiPeriod)}
-              onValueChange={(value) => {
-                if (!value) return;
-                onKpiPeriodChange(Number(value) as KpiLookbackPeriod);
-              }}
-            >
-              <ToggleGroupItem value="7" aria-label="Période 7 jours" aria-pressed={kpiPeriod === 7}>
-                7j
-              </ToggleGroupItem>
-              <ToggleGroupItem value="30" aria-label="Période 30 jours" aria-pressed={kpiPeriod === 30}>
-                30j
-              </ToggleGroupItem>
-              <ToggleGroupItem value="365" aria-label="Période 365 jours" aria-pressed={kpiPeriod === 365}>
-                365j
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Fatigue 5/5 ({kpiPeriod}j)</p>
-              <p className="text-xl font-semibold">
-                {kpiLoading ? "…" : fatigueAlerts.length}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {kpiLoading
-                  ? "Chargement..."
-                  : fatigueAlerts.length
-                    ? fatigueAlerts.slice(0, 2).map((alert) => alert.athleteName).join(", ")
-                    : "Aucune alerte"}
-              </p>
-            </div>
-            <HeartPulse className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Nageur le plus chargé ({kpiPeriod}j)</p>
-              <p className="text-xl font-semibold">
-                {kpiLoading ? "…" : mostLoadedAthlete?.athleteName ?? "-"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {kpiLoading
-                  ? "Calcul en cours"
-                  : mostLoadedAthlete
-                    ? `Charge ${Math.round(mostLoadedAthlete.loadScore)}`
-                    : "Pas de données récentes"}
-              </p>
-            </div>
-            <Users className="h-5 w-5 text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Anniversaires à venir</CardTitle>
-          <CardDescription>Les 30 prochains jours.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {birthdaysLoading ? (
-            <p className="text-sm text-muted-foreground">Chargement...</p>
-          ) : upcomingBirthdays && upcomingBirthdays.length > 0 ? (
-            upcomingBirthdays.slice(0, 3).map((birthday) => (
-              <div key={birthday.id} className="flex items-center justify-between rounded-lg border p-3">
+      {/* Birthdays */}
+      {!birthdaysLoading && upcomingBirthdays && upcomingBirthdays.length > 0 ? (
+        <div className="space-y-2">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            Anniversaires
+          </h2>
+          <div className="space-y-1.5">
+            {upcomingBirthdays.slice(0, 3).map((b) => (
+              <div
+                key={b.id}
+                className="flex items-center justify-between rounded-lg border px-3 py-2"
+              >
                 <div>
-                  <p className="text-sm font-medium">{birthday.display_name}</p>
-                  <p className="text-xs text-muted-foreground">{formatDate(birthday.next_birthday)}</p>
+                  <span className="text-sm font-medium">{b.display_name}</span>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    {formatDate(b.next_birthday)}
+                  </span>
                 </div>
-                <span className="text-xs font-semibold text-primary">J-{birthday.days_until}</span>
+                <span className="text-xs font-bold text-primary">J-{b.days_until}</span>
               </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">Aucun anniversaire dans les 30 prochains jours.</p>
-          )}
-          <Button variant="outline" className="w-full" onClick={() => onNavigate("swimmers")}>
-            Voir tous les nageurs
-          </Button>
-        </CardContent>
-      </Card>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
-  </div>
-);
+  );
+};
 
 const formatDate = (value?: string | null) => {
   if (!value) return "-";
@@ -350,7 +272,6 @@ const buildFatigueRating = (values: number[]) => {
 
 export default function Coach() {
   const role = useAuth((state) => state.role);
-  const selectedAthleteId = useAuth((state) => state.selectedAthleteId);
   const setSelectedAthlete = useAuth((state) => state.setSelectedAthlete);
   const [, navigate] = useLocation();
   const [activeSection, setActiveSection] = useState<CoachSection>("home");
@@ -358,6 +279,7 @@ export default function Coach() {
 
   const coachAccess = role === "coach" || role === "admin";
   const shouldLoadAssignments = activeSection === "assignments";
+  const shouldLoadCatalogs = activeSection === "home" || activeSection === "assignments";
   const shouldLoadAthletes =
     activeSection === "home" ||
     activeSection === "assignments" ||
@@ -370,12 +292,12 @@ export default function Coach() {
   const { data: swimSessions } = useQuery({
     queryKey: ["swim_catalog"],
     queryFn: () => api.getSwimCatalog(),
-    enabled: coachAccess && shouldLoadAssignments,
+    enabled: coachAccess && shouldLoadCatalogs,
   });
   const { data: strengthSessions } = useQuery({
     queryKey: ["strength_catalog"],
     queryFn: () => api.getStrengthSessions(),
-    enabled: coachAccess && shouldLoadAssignments,
+    enabled: coachAccess && shouldLoadCatalogs,
   });
   const { data: athletes = [], isLoading: athletesLoading } = useQuery({
     queryKey: ["athletes"],
@@ -512,6 +434,7 @@ export default function Coach() {
         <CoachHome
           onNavigate={setActiveSection}
           onOpenRecordsAdmin={() => navigate("/records-admin")}
+          onOpenRecordsClub={() => navigate("/records-club")}
           athletes={athletes}
           athletesLoading={athletesLoading}
           upcomingBirthdays={upcomingBirthdays}
@@ -521,6 +444,8 @@ export default function Coach() {
           onKpiPeriodChange={setKpiPeriod}
           fatigueAlerts={coachKpisQuery.data?.fatigueAlerts ?? []}
           mostLoadedAthlete={coachKpisQuery.data?.mostLoadedAthlete ?? null}
+          swimSessionCount={swimSessions?.length}
+          strengthSessionCount={strengthSessions?.length}
         />
       ) : null}
 
@@ -580,91 +505,76 @@ export default function Coach() {
       ) : null}
 
       {activeSection === "swimmers" ? (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <CoachSectionHeader
             title="Nageurs"
-            description="Accédez aux fiches individuelles des nageurs."
+            description={
+              athletesLoading
+                ? "Chargement…"
+                : `${athletes.length} nageur${athletes.length !== 1 ? "s" : ""} inscrit${athletes.length !== 1 ? "s" : ""}`
+            }
             onBack={() => setActiveSection("home")}
             actions={
-              <Button variant="outline" onClick={() => setActiveSection("messaging")}>
+              <Button variant="outline" size="sm" onClick={() => setActiveSection("messaging")}>
                 <MessageSquare className="mr-2 h-4 w-4" />
-                Message rapide
+                Message
               </Button>
             }
           />
-          <Card>
-            <CardHeader>
-              <CardTitle>Suivi des Nageurs</CardTitle>
-              <CardDescription>Accédez aux fiches individuelles des nageurs.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {athletesLoading ? (
-                <div className="space-y-3 p-2">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <div className="h-4 w-1/3 rounded-lg bg-muted animate-pulse motion-reduce:animate-none" />
-                      <div className="h-4 w-1/4 rounded-lg bg-muted animate-pulse motion-reduce:animate-none" />
-                      <div className="ml-auto h-8 w-16 rounded-lg bg-muted animate-pulse motion-reduce:animate-none" />
+          {athletesLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="rounded-xl border p-3 animate-pulse motion-reduce:animate-none">
+                  <div className="flex items-center gap-3">
+                    <div className="h-4 w-32 rounded bg-muted" />
+                    <div className="ml-auto h-8 w-16 rounded bg-muted" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : athletes.length ? (
+            <div className="space-y-2">
+              {athletes.map((athlete) => (
+                <div
+                  key={athlete.id ?? athlete.display_name}
+                  className="flex items-center gap-3 rounded-xl border bg-card p-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold truncate">{athlete.display_name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {athlete.group_label ? (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {athlete.group_label}
+                        </Badge>
+                      ) : null}
+                      {athlete.ffn_iuf ? (
+                        <span className="text-[10px] font-mono text-muted-foreground">{athlete.ffn_iuf}</span>
+                      ) : null}
                     </div>
-                  ))}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {athlete.ffn_iuf ? (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        disabled={importSingle.isPending}
+                        onClick={() => importSingle.mutate({ iuf: athlete.ffn_iuf!, name: athlete.display_name })}
+                        title="Importer performances FFN"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                    <Button size="sm" variant="outline" onClick={() => handleOpenAthlete(athlete)}>
+                      Fiche
+                    </Button>
+                  </div>
                 </div>
-              ) : athletes.length ? (
-                <div className="w-full overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nageur</TableHead>
-                        <TableHead>Groupe</TableHead>
-                        <TableHead>IUF</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {athletes.map((athlete) => (
-                        <TableRow key={athlete.id ?? athlete.display_name}>
-                          <TableCell className="font-medium">{athlete.display_name}</TableCell>
-                          <TableCell>
-                            {athlete.group_label ? (
-                              <Badge variant="secondary">{athlete.group_label}</Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Sans groupe</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {athlete.ffn_iuf ? (
-                              <span className="text-xs font-mono text-muted-foreground">{athlete.ffn_iuf}</span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {athlete.ffn_iuf ? (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  disabled={importSingle.isPending}
-                                  onClick={() => importSingle.mutate({ iuf: athlete.ffn_iuf!, name: athlete.display_name })}
-                                  title="Importer performances FFN"
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              ) : null}
-                              <Button size="sm" variant="outline" onClick={() => handleOpenAthlete(athlete)}>
-                                Voir la fiche
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Aucun nageur disponible.</p>
-              )}
-            </CardContent>
-          </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">Aucun nageur disponible.</p>
+          )}
         </div>
       ) : null}
 
