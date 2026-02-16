@@ -55,7 +55,7 @@ Tous les feature flags sont activés.
 | Historique notes techniques | ✅ | `SwimExerciseLogsHistory.tsx` | Vue chronologique groupée par date |
 | Présence/absence | ✅ | `Dashboard.tsx` | Toggle par créneau |
 | Consultation séances | ✅ | `SwimSessionView.tsx` | Liste + détail |
-| Historique/Progression | ✅ | `Progress.tsx` | KPIs, graphiques Recharts, filtrage période |
+| Historique/Progression | ✅ | `Progress.tsx` | Apple Health style: hero KPI + tendance, AreaChart gradient, ProgressBar ressentis, Collapsible detail, ToggleGroup période |
 
 ### Natation — Coach
 

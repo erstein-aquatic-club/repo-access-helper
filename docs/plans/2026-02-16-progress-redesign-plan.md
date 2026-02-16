@@ -1,8 +1,31 @@
+# Progress Page Redesign — Implementation Plan
 
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** Redesign the Progression page from a dense dashboard into an Apple Health-style minimal layout with hero KPIs, gradient charts, horizontal progress bars, and collapsible detail sections.
+
+**Architecture:** Pure UI refactor of `src/pages/Progress.tsx` — same data/queries, new render. Replace `Select` period picker with `ToggleGroup`, replace KPI card grids with hero numbers + inline pills, replace bar charts with gradient line charts, replace 4 metric charts with horizontal progress bars, wrap detail sections in `Collapsible`. Add framer-motion stagger animations.
+
+**Tech Stack:** React, Recharts (LineChart, ComposedChart, BarChart, PieChart with `<defs>` gradients), framer-motion, Radix Collapsible, Radix ToggleGroup, Tailwind CSS 4.
+
+**Design doc:** `docs/plans/2026-02-16-progress-redesign-design.md`
+
+---
+
+## Task 1: Update imports and remove unused components
+
+**Files:**
+- Modify: `src/pages/Progress.tsx:1-35` (imports + kpiBadgeClass)
+
+**Step 1: Update the import block**
+
+Replace the current imports with:
+
+```tsx
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import React, { useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -14,6 +37,7 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  LineChart,
   Line,
   ComposedChart,
   Cell,
@@ -27,12 +51,76 @@ import { endOfDay, format, startOfDay, subDays } from "date-fns";
 import { useAuth } from "@/lib/auth";
 import { scoreToColor } from "@/lib/score";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { getContrastTextColor } from "@/lib/design-tokens";
 import type { LocalStrengthRun, SetLogEntry } from "@/lib/types";
 import { motion } from "framer-motion";
-import { slideUp } from "@/lib/animations";
+import { slideUp, fadeIn } from "@/lib/animations";
 import { ChevronDown, TrendingUp, TrendingDown } from "lucide-react";
+```
 
+Notes:
+- Removed: `CartesianGrid`, `Input`, `Select/SelectContent/SelectItem/SelectTrigger/SelectValue`
+- Added: `ToggleGroup`, `ToggleGroupItem`, `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent`, `Area`, `AreaChart`, `motion`, `slideUp`, `fadeIn`, `ChevronDown`, `TrendingUp`, `TrendingDown`
+
+**Step 2: Remove `kpiBadgeClass` and `SwimKpiCompactGrid`**
+
+Delete the `kpiBadgeClass` constant (line 34) and the entire `SwimKpiCompactGrid` component (lines 36-82) and `ChartSkeleton` (lines 84-96). Replace `ChartSkeleton` with a simpler inline skeleton.
+
+**Step 3: Update the test file**
+
+Modify `src/pages/__tests__/Progress.test.tsx` — replace the `SwimKpiCompactGrid` test with a test for the new `ProgressBar` helper:
+
+```tsx
+import React from "react";
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { renderToStaticMarkup } from "react-dom/server";
+import { ProgressBar } from "@/pages/Progress";
+
+test("ProgressBar renders with correct width and label", () => {
+  const markup = renderToStaticMarkup(
+    <ProgressBar label="Difficulte" value={3.2} max={5} />,
+  );
+
+  assert.ok(markup.includes("Difficulte"));
+  assert.ok(markup.includes("3.2"));
+});
+
+test("ProgressBar handles null value", () => {
+  const markup = renderToStaticMarkup(
+    <ProgressBar label="Performance" value={null} max={5} />,
+  );
+
+  assert.ok(markup.includes("Performance"));
+  assert.ok(markup.includes("-"));
+});
+```
+
+**Step 4: Run tests**
+
+Run: `npm test -- --reporter=verbose 2>&1 | head -30`
+Expected: Tests may fail since implementation is not done yet — that's fine.
+
+**Step 5: Commit**
+
+```bash
+git add src/pages/Progress.tsx src/pages/__tests__/Progress.test.tsx
+git commit -m "refactor(progress): update imports and remove SwimKpiCompactGrid for redesign"
+```
+
+---
+
+## Task 2: Add helper components (ProgressBar, HeroKpi, TrendBadge, MetricPill)
+
+**Files:**
+- Modify: `src/pages/Progress.tsx` — add helper components before the `Progress` default export
+
+**Step 1: Add the `ProgressBar` component**
+
+Insert after imports, before the `Progress` function:
+
+```tsx
 // ─── Helper Components ──────────────────────────────────────────────────────
 
 type ProgressBarProps = {
@@ -143,154 +231,36 @@ function CollapsibleSection({ title, children }: { title: string; children: Reac
     </Collapsible>
   );
 }
+```
 
-const tooltipStyle = { borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" };
+**Step 2: Run tests**
 
-// ─── Main Component ─────────────────────────────────────────────────────────
+Run: `npm test -- --reporter=verbose 2>&1 | head -30`
+Expected: The ProgressBar tests from Task 1 should now PASS.
 
-export default function Progress() {
-  const { user, userId, role, selectedAthleteId, selectedAthleteName } = useAuth();
-  const hasCoachSelection =
-    (role === "coach" || role === "admin") &&
-    (selectedAthleteId !== null || !!selectedAthleteName);
-  const athleteName = hasCoachSelection ? selectedAthleteName : user;
-  const athleteId = hasCoachSelection ? selectedAthleteId : userId;
-  const athleteKey = athleteId ?? athleteName;
-  const [historyStatus] = useState("all");
-  const [historyFrom] = useState("");
-  const [historyTo] = useState("");
-  const [swimPeriodDays, setSwimPeriodDays] = useState(30);
-  const [strengthPeriodDays, setStrengthPeriodDays] = useState(30);
+**Step 3: Commit**
 
-  // ─── Queries ────────────────────────────────────────────────────────────────
+```bash
+git add src/pages/Progress.tsx
+git commit -m "feat(progress): add helper components (HeroKpi, ProgressBar, MetricPill, CollapsibleSection)"
+```
 
-  const { data: sessions, isLoading: isSwimLoading } = useQuery({
-    queryKey: ["sessions", athleteKey],
-    queryFn: () => api.getSessions(athleteName!, athleteId),
-    enabled: !!athleteName,
-  });
+---
 
-  const strengthHistoryQuery = useInfiniteQuery({
-    queryKey: ["strength_history", athleteKey, "progress", historyStatus, historyFrom, historyTo],
-    queryFn: ({ pageParam = 0 }) =>
-      api.getStrengthHistory(athleteName!, {
-        athleteId,
-        limit: 10,
-        offset: pageParam,
-        order: "desc",
-        status: historyStatus === "all" ? undefined : historyStatus,
-        from: historyFrom || undefined,
-        to: historyTo || undefined,
-      }),
-    enabled: !!athleteName,
-    getNextPageParam: (lastPage) => {
-      const nextOffset = lastPage.pagination.offset + lastPage.pagination.limit;
-      return nextOffset < lastPage.pagination.total ? nextOffset : undefined;
-    },
-    initialPageParam: 0,
-  });
-  const strengthRuns = strengthHistoryQuery.data?.pages.flatMap((page) => page.runs) ?? [];
+## Task 3: Add trend calculation utility
 
-  const strengthRangeFrom = startOfDay(subDays(new Date(), strengthPeriodDays)).toISOString();
-  const strengthRangeTo = endOfDay(new Date()).toISOString();
+**Files:**
+- Modify: `src/pages/Progress.tsx` — add `computeTrend` function inside the `Progress` component, after the existing data processing
 
-  const { data: strengthHistorySummary, isLoading: isStrengthSummaryLoading } = useQuery({
-    queryKey: ["strength_history_summary", athleteKey, "progress", strengthPeriodDays, strengthRangeFrom, strengthRangeTo],
-    queryFn: () =>
-      api.getStrengthHistory(athleteName!, {
-        athleteId,
-        limit: 200,
-        order: "desc",
-        from: strengthRangeFrom,
-        to: strengthRangeTo,
-      }),
-    enabled: !!athleteName,
-  });
+**Step 1: Add trend calculation**
 
-  const { data: strengthAggregate, isLoading: isStrengthAggregateLoading } = useQuery({
-    queryKey: ["strength_history_aggregate", athleteKey, "progress", strengthPeriodDays, strengthRangeFrom, strengthRangeTo],
-    queryFn: () =>
-      api.getStrengthHistoryAggregate(athleteName!, {
-        athleteId,
-        period: "day",
-        limit: 200,
-        order: "asc",
-        from: strengthRangeFrom,
-        to: strengthRangeTo,
-      }),
-    enabled: !!athleteName,
-  });
+Inside the `Progress()` function, after `const swimData = processData(swimPeriodDays);` (around line 297), add:
 
-  const isStrengthLoading = isStrengthSummaryLoading || isStrengthAggregateLoading;
-  const strengthRunsPeriod = strengthHistorySummary?.runs ?? [];
-  const exerciseSummary = strengthHistorySummary?.exercise_summary ?? [];
-  const strengthAggregatePeriods = strengthAggregate?.periods ?? [];
-
-  // ─── Swim Data Processing ──────────────────────────────────────────────────
-
-  const processData = (days: number) => {
-    if (!sessions) return [];
-    const cutoff = subDays(new Date(), days);
-    const filtered = sessions.filter(s => new Date(s.date) >= cutoff).reverse();
-
-    const grouped = new Map();
-    filtered.forEach(s => {
-      const dateStr = format(new Date(s.date), "dd/MM");
-      if (!grouped.has(dateStr)) {
-        grouped.set(dateStr, {
-          date: dateStr, distance: 0, effort: 0, rpe: 0, performance: 0,
-          engagement: 0, fatigue: 0, count: 0, rpeCount: 0,
-          performanceCount: 0, engagementCount: 0, fatigueCount: 0,
-        });
-      }
-      const entry = grouped.get(dateStr);
-      entry.distance += s.distance;
-      entry.effort += s.effort;
-      entry.count += 1;
-      if (s.rpe !== null && s.rpe !== undefined) { entry.rpe += s.rpe; entry.rpeCount += 1; }
-      if (s.performance !== null && s.performance !== undefined) { entry.performance += s.performance; entry.performanceCount += 1; }
-      if (s.engagement !== null && s.engagement !== undefined) { entry.engagement += s.engagement; entry.engagementCount += 1; }
-      if (s.fatigue !== null && s.fatigue !== undefined) { entry.fatigue += s.fatigue; entry.fatigueCount += 1; }
-    });
-
-    return Array.from(grouped.values()).map(item => ({
-      ...item,
-      effort: Math.round(item.effort / item.count * 10) / 10,
-      rpe: item.rpeCount ? Math.round(item.rpe / item.rpeCount * 10) / 10 : null,
-      performance: item.performanceCount ? Math.round(item.performance / item.performanceCount * 10) / 10 : null,
-      engagement: item.engagementCount ? Math.round(item.engagement / item.engagementCount * 10) / 10 : null,
-      fatigue: item.fatigueCount ? Math.round(item.fatigue / item.fatigueCount * 10) / 10 : null,
-    }));
-  };
-
-  const swimSessionsPeriod = sessions
-    ? sessions.filter((session) => new Date(session.date) >= subDays(new Date(), swimPeriodDays))
-    : [];
-  const swimSessionsCount = swimSessionsPeriod.length;
-  const swimSessionsTotals = swimSessionsPeriod.reduce(
-    (acc, session) => {
-      acc.distance += session.distance;
-      acc.duration += session.duration;
-      if (session.rpe !== null && session.rpe !== undefined) { acc.rpeSum += session.rpe; acc.rpeCount += 1; }
-      if (session.performance !== null && session.performance !== undefined) { acc.performanceSum += session.performance; acc.performanceCount += 1; }
-      if (session.engagement !== null && session.engagement !== undefined) { acc.engagementSum += session.engagement; acc.engagementCount += 1; }
-      if (session.fatigue !== null && session.fatigue !== undefined) { acc.fatigueSum += session.fatigue; acc.fatigueCount += 1; }
-      return acc;
-    },
-    { distance: 0, duration: 0, rpeSum: 0, rpeCount: 0, performanceSum: 0, performanceCount: 0, engagementSum: 0, engagementCount: 0, fatigueSum: 0, fatigueCount: 0 },
-  );
-  const swimSessionsAvgRpe = swimSessionsTotals.rpeCount ? swimSessionsTotals.rpeSum / swimSessionsTotals.rpeCount : null;
-  const swimSessionsAvgPerformance = swimSessionsTotals.performanceCount ? swimSessionsTotals.performanceSum / swimSessionsTotals.performanceCount : null;
-  const swimSessionsAvgEngagement = swimSessionsTotals.engagementCount ? swimSessionsTotals.engagementSum / swimSessionsTotals.engagementCount : null;
-  const swimSessionsAvgFatigue = swimSessionsTotals.fatigueCount ? swimSessionsTotals.fatigueSum / swimSessionsTotals.fatigueCount : null;
-  const swimSessionsAvgDuration = swimSessionsCount ? swimSessionsTotals.duration / swimSessionsCount : 0;
-  const swimSessionsAvgDistance = swimSessionsCount ? swimSessionsTotals.distance / swimSessionsCount : 0;
-
-  const swimData = processData(swimPeriodDays);
-
-  // Trend: compare current period vs previous equal period
+```tsx
+  // Compute trend: compare current period vs previous equal period
   const computeTrend = (currentTotal: number, allSessions: Array<{ date: string; distance?: number }>, periodDays: number, metric: "distance" | "count") => {
     const now = new Date();
+    const periodStart = subDays(now, periodDays);
     const prevStart = subDays(now, periodDays * 2);
     const prevEnd = subDays(now, periodDays);
     const prev = allSessions.filter((s) => {
@@ -307,102 +277,14 @@ export default function Progress() {
   const swimVolumeTrend = sessions
     ? computeTrend(swimSessionsTotals.distance, sessions, swimPeriodDays, "distance")
     : null;
+```
 
-  // Stroke breakdown data
-  const STROKE_KEYS = ["NL", "DOS", "BR", "PAP", "QN"] as const;
-  const STROKE_LABELS: Record<string, string> = { NL: "NL", DOS: "Dos", BR: "Brasse", PAP: "Pap", QN: "4N" };
-  const STROKE_COLORS: Record<string, string> = {
-    NL: "hsl(210, 80%, 55%)", DOS: "hsl(160, 60%, 45%)", BR: "hsl(35, 85%, 55%)",
-    PAP: "hsl(280, 60%, 55%)", QN: "hsl(340, 70%, 55%)",
-  };
+Also add strength trend after the strength data processing:
 
-  const strokeBreakdown = useMemo(() => {
-    if (!swimSessionsPeriod.length) return { pie: [], daily: [], hasData: false };
-    const totals: Record<string, number> = { NL: 0, DOS: 0, BR: 0, PAP: 0, QN: 0 };
-    let hasAny = false;
-    const dailyMap = new Map<string, Record<string, number>>();
-
-    for (const s of swimSessionsPeriod) {
-      const sd = s.stroke_distances;
-      if (!sd) continue;
-      const dateStr = format(new Date(s.date), "dd/MM");
-      if (!dailyMap.has(dateStr)) dailyMap.set(dateStr, { NL: 0, DOS: 0, BR: 0, PAP: 0, QN: 0 });
-      const dayEntry = dailyMap.get(dateStr)!;
-      for (const k of STROKE_KEYS) {
-        const val = (sd as Record<string, number | undefined>)[k];
-        if (val && val > 0) { totals[k] += val; dayEntry[k] += val; hasAny = true; }
-      }
-    }
-
-    const pie = STROKE_KEYS
-      .filter((k) => totals[k] > 0)
-      .map((k) => ({ name: STROKE_LABELS[k], value: totals[k], fill: STROKE_COLORS[k] }));
-    const daily = Array.from(dailyMap.entries()).map(([date, vals]) => ({ date, ...vals }));
-    return { pie, daily, hasData: hasAny };
-  }, [swimSessionsPeriod]);
-
-  // ─── Strength Data Processing ─────────────────────────────────────────────
-
-  const getRunRpeValue = (run: LocalStrengthRun) => {
-    const logs = Array.isArray(run?.logs) ? run.logs : [];
-    const rpeValues: number[] = logs
-      .map((log: SetLogEntry) => (log?.rpe !== null && log?.rpe !== undefined ? Number(log.rpe) : null))
-      .filter((value: number | null): value is number => value !== null && Number.isFinite(value));
-    if (rpeValues.length > 0) {
-      return rpeValues.reduce((acc, value) => acc + value, 0) / rpeValues.length;
-    }
-    const fallback = run?.feeling ?? run?.rpe ?? null;
-    const fallbackValue = fallback !== null && fallback !== undefined ? Number(fallback) : null;
-    return fallbackValue !== null && Number.isFinite(fallbackValue) ? fallbackValue : null;
-  };
-
-  const formatRunRpe = (value: number | null) => {
-    if (value === null || value === undefined || Number.isNaN(value)) return "-";
-    return value.toFixed(1);
-  };
-
-  const strengthData = [...strengthRunsPeriod]
-    .sort((a, b) => {
-      const aDate = new Date(a.started_at || a.date || a.created_at || 0).getTime();
-      const bDate = new Date(b.started_at || b.date || b.created_at || 0).getTime();
-      return aDate - bDate;
-    })
-    .map((run) => ({
-      date: format(new Date(run.started_at || run.date || run.created_at || new Date()), "dd/MM"),
-      feeling: getRunRpeValue(run),
-    }));
-
-  const strengthAggregateData = strengthAggregatePeriods.map((item) => ({
-    date: item.period,
-    label: format(new Date(item.period), "dd/MM"),
-    tonnage: Math.round(item.tonnage ?? 0),
-    volume: Math.round(item.volume ?? 0),
-  }));
-
-  const strengthTonnagePeriod = strengthAggregatePeriods.reduce((acc, item) => acc + (item.tonnage ?? 0), 0);
-  const strengthVolumePeriod = strengthAggregatePeriods.reduce((acc, item) => acc + (item.volume ?? 0), 0);
-  const strengthSessionsCount = strengthRunsPeriod.length;
-  const strengthRpeValues = strengthRunsPeriod
-    .map((run) => getRunRpeValue(run))
-    .filter((value): value is number => value !== null && Number.isFinite(value));
-  const strengthAvgFeeling = strengthRpeValues.length
-    ? strengthRpeValues.reduce((acc, value) => acc + value, 0) / strengthRpeValues.length
-    : null;
-
-  const exerciseVolumeData = [...exerciseSummary]
-    .map((entry) => ({
-      exerciseId: Number(entry.exercise_id),
-      name: entry.exercise_name || `Exercice ${entry.exercise_id}`,
-      totalSets: Number(entry.total_sets ?? 0),
-      totalReps: Number(entry.total_reps ?? 0),
-      totalVolume: Number(entry.total_volume ?? 0),
-      maxWeight: entry.max_weight !== null && entry.max_weight !== undefined ? Number(entry.max_weight) : null,
-      lastPerformedAt: entry.last_performed_at ?? null,
-    }))
-    .sort((a, b) => b.totalVolume - a.totalVolume);
-
+```tsx
   const strengthTonnageTrend = (() => {
     if (!strengthAggregatePeriods.length) return null;
+    // We'd need previous period data — use a simple heuristic: compare first half vs second half
     const half = Math.floor(strengthAggregatePeriods.length / 2);
     if (half === 0) return null;
     const firstHalf = strengthAggregatePeriods.slice(0, half).reduce((acc, i) => acc + (i.tonnage ?? 0), 0);
@@ -410,30 +292,63 @@ export default function Progress() {
     if (firstHalf === 0) return null;
     return ((secondHalf - firstHalf) / firstHalf) * 100;
   })();
+```
 
-  const topExerciseVolume = exerciseVolumeData.slice(0, 8);
+**Step 2: Commit**
 
-  const formatExerciseDate = (dateValue: string | null) => {
-    if (!dateValue) return "-";
-    const parsed = new Date(dateValue);
-    if (Number.isNaN(parsed.getTime())) return "-";
-    return format(parsed, "dd/MM/yyyy");
-  };
+```bash
+git add src/pages/Progress.tsx
+git commit -m "feat(progress): add trend calculation for hero KPIs"
+```
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+---
 
+## Task 4: Redesign the header and period selector
+
+**Files:**
+- Modify: `src/pages/Progress.tsx` — the return JSX, starting at `return (` (around line 409)
+
+**Step 1: Replace the header and tabs**
+
+Replace the current return block header (lines 409-418) with:
+
+```tsx
   return (
     <div className="space-y-8 pb-8">
-      <h1 className="text-3xl font-display font-bold uppercase italic text-primary">Progression</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-display font-bold uppercase italic text-primary">Progression</h1>
+      </div>
 
       <Tabs defaultValue="swim" className="w-full">
-        <TabsList className="grid w-full max-w-[280px] grid-cols-2">
-          <TabsTrigger value="swim">Natation</TabsTrigger>
-          <TabsTrigger value="strength">Musculation</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-4">
+          <TabsList className="grid w-full max-w-[240px] grid-cols-2">
+            <TabsTrigger value="swim">Natation</TabsTrigger>
+            <TabsTrigger value="strength">Musculation</TabsTrigger>
+          </TabsList>
+        </div>
+```
 
-        {/* ── Natation ──────────────────────────────────────────────────────── */}
+Note: The period `ToggleGroup` will be placed inside each tab content (since swim and strength have independent period states).
 
+**Step 2: Commit**
+
+```bash
+git add src/pages/Progress.tsx
+git commit -m "refactor(progress): redesign header with tabs"
+```
+
+---
+
+## Task 5: Redesign the Natation tab content
+
+**Files:**
+- Modify: `src/pages/Progress.tsx` — replace the entire `<TabsContent value="swim">` block
+
+**Step 1: Replace natation tab content**
+
+Replace the current swim `TabsContent` (everything between `<TabsContent value="swim"` and its closing `</TabsContent>`) with:
+
+```tsx
         <TabsContent value="swim" className="space-y-8 mt-6">
           {/* Period selector */}
           <div className="flex justify-end">
@@ -457,12 +372,12 @@ export default function Progress() {
             unit="m"
             label={`volume sur ${swimPeriodDays} jours`}
             trend={swimVolumeTrend}
-            trendLabel="vs période préc."
+            trendLabel="vs periode prec."
           />
 
           {/* Mini metrics pills */}
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <MetricPill value={`${swimSessionsCount} séances`} />
+            <MetricPill value={`${swimSessionsCount} seances`} />
             <MetricPill value={`${Math.round(swimSessionsAvgDistance).toLocaleString()}m moy`} />
             <MetricPill value={`${Math.round(swimSessionsAvgDuration)}min moy`} />
           </div>
@@ -475,7 +390,7 @@ export default function Progress() {
                   <ChartSkeleton />
                 ) : swimData.length === 0 ? (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    Aucune donnée disponible.
+                    Aucune donnee disponible.
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
@@ -488,7 +403,7 @@ export default function Progress() {
                       </defs>
                       <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} />
                       <Tooltip
-                        contentStyle={tooltipStyle}
+                        contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
                         formatter={(value: number) => [`${value.toLocaleString()}m`, "Volume"]}
                       />
                       <Area
@@ -508,9 +423,14 @@ export default function Progress() {
           </motion.div>
 
           {/* Ressentis — horizontal progress bars */}
-          <motion.div className="space-y-3" variants={slideUp} initial="hidden" animate="visible">
+          <motion.div
+            className="space-y-3"
+            variants={slideUp}
+            initial="hidden"
+            animate="visible"
+          >
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ressentis moyens</h3>
-            <ProgressBar label="Difficulté" value={swimSessionsAvgRpe} max={5} invert />
+            <ProgressBar label="Difficulte" value={swimSessionsAvgRpe} max={5} invert />
             <ProgressBar label="Performance" value={swimSessionsAvgPerformance} max={5} />
             <ProgressBar label="Engagement" value={swimSessionsAvgEngagement} max={5} />
             <ProgressBar label="Fatigue" value={swimSessionsAvgFatigue} max={5} invert />
@@ -518,7 +438,7 @@ export default function Progress() {
 
           {/* Stroke breakdown — collapsible */}
           {strokeBreakdown.hasData && (
-            <CollapsibleSection title={`Répartition par nage (${swimPeriodDays}j)`}>
+            <CollapsibleSection title={`Repartition par nage (${swimPeriodDays}j)`}>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="h-[280px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -558,9 +478,32 @@ export default function Progress() {
             </CollapsibleSection>
           )}
         </TabsContent>
+```
 
-        {/* ── Musculation ───────────────────────────────────────────────────── */}
+**Step 2: Verify the build**
 
+Run: `npx tsc --noEmit 2>&1 | head -30`
+Expected: No new errors (pre-existing story errors OK).
+
+**Step 3: Commit**
+
+```bash
+git add src/pages/Progress.tsx
+git commit -m "feat(progress): redesign natation tab — hero KPI, gradient curve, progress bars"
+```
+
+---
+
+## Task 6: Redesign the Musculation tab content
+
+**Files:**
+- Modify: `src/pages/Progress.tsx` — replace the entire `<TabsContent value="strength">` block
+
+**Step 1: Replace musculation tab content**
+
+Replace the current strength `TabsContent` with:
+
+```tsx
         <TabsContent value="strength" className="space-y-8 mt-6">
           {/* Period selector */}
           <div className="flex justify-end">
@@ -589,7 +532,7 @@ export default function Progress() {
 
           {/* Mini metrics pills */}
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <MetricPill value={`${strengthSessionsCount} séances`} />
+            <MetricPill value={`${strengthSessionsCount} seances`} />
             <MetricPill value={`${Math.round(strengthVolumePeriod).toLocaleString()} reps`} />
             <MetricPill
               value={`RPE ${strengthAvgFeeling !== null ? strengthAvgFeeling.toFixed(1) : "-"}/10`}
@@ -607,13 +550,21 @@ export default function Progress() {
                   <ChartSkeleton />
                 ) : strengthAggregateData.length === 0 ? (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    Aucune donnée disponible.
+                    Aucune donnee disponible.
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={strengthAggregateData}>
+                      <defs>
+                        <linearGradient id="strengthTonnageGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
+                          <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
                       <XAxis dataKey="label" fontSize={10} tickLine={false} axisLine={false} />
-                      <Tooltip contentStyle={tooltipStyle} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                      />
                       <Bar dataKey="tonnage" name="Tonnage (kg)" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} opacity={0.7} />
                       <Line type="monotone" dataKey="volume" name="Volume (reps)" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
                     </ComposedChart>
@@ -625,13 +576,13 @@ export default function Progress() {
 
           {/* Feeling chart */}
           <motion.div variants={slideUp} initial="hidden" animate="visible">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Ressenti par séance</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Ressenti par seance</h3>
             <div className="h-[180px] w-full">
               {isStrengthLoading ? (
                 <ChartSkeleton />
               ) : strengthData.length === 0 ? (
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                  Aucune donnée disponible.
+                  Aucune donnee disponible.
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -645,7 +596,7 @@ export default function Progress() {
                     <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} />
                     <YAxis domain={[0, 10]} hide />
                     <Tooltip
-                      contentStyle={tooltipStyle}
+                      contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
                       formatter={(value: number) => [value !== null ? value.toFixed(1) : "-", "RPE"]}
                     />
                     <Area
@@ -664,12 +615,13 @@ export default function Progress() {
           </motion.div>
 
           {/* Exercise detail — collapsible */}
-          <CollapsibleSection title="Détail par exercice">
+          <CollapsibleSection title="Detail par exercice">
             <div className="space-y-4">
+              {/* Top exercises bar chart */}
               <div className="h-[220px] w-full">
                 {topExerciseVolume.length === 0 ? (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    Aucun exercice enregistré.
+                    Aucun exercice enregistre.
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
@@ -677,7 +629,7 @@ export default function Progress() {
                       <XAxis type="number" fontSize={10} tickLine={false} axisLine={false} />
                       <YAxis type="category" dataKey="name" fontSize={10} tickLine={false} axisLine={false} width={100} />
                       <Tooltip
-                        contentStyle={tooltipStyle}
+                        contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
                         formatter={(value: number) => [`${value.toLocaleString()} kg`, "Volume"]}
                       />
                       <Bar dataKey="totalVolume" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
@@ -686,6 +638,7 @@ export default function Progress() {
                 )}
               </div>
 
+              {/* Exercise stats table */}
               <div className="w-full overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -700,16 +653,22 @@ export default function Progress() {
                     {exerciseVolumeData.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
-                          Aucun exercice enregistré.
+                          Aucun exercice enregistre.
                         </TableCell>
                       </TableRow>
                     ) : (
                       exerciseVolumeData.map((entry) => (
                         <TableRow key={entry.exerciseId}>
                           <TableCell className="font-medium text-sm">{entry.name}</TableCell>
-                          <TableCell className="text-right font-mono text-sm">{entry.totalVolume.toLocaleString()} kg</TableCell>
-                          <TableCell className="text-right font-mono text-sm">{entry.maxWeight !== null ? `${entry.maxWeight} kg` : "-"}</TableCell>
-                          <TableCell className="text-right text-xs text-muted-foreground">{formatExerciseDate(entry.lastPerformedAt)}</TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            {entry.totalVolume.toLocaleString()} kg
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            {entry.maxWeight !== null ? `${entry.maxWeight} kg` : "-"}
+                          </TableCell>
+                          <TableCell className="text-right text-xs text-muted-foreground">
+                            {formatExerciseDate(entry.lastPerformedAt)}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -720,7 +679,7 @@ export default function Progress() {
           </CollapsibleSection>
 
           {/* Recent history — collapsible */}
-          <CollapsibleSection title="Historique récent">
+          <CollapsibleSection title="Historique recent">
             <div className="space-y-3">
               {strengthRuns.length === 0 && (
                 <div className="text-center text-sm text-muted-foreground py-6">
@@ -734,7 +693,7 @@ export default function Progress() {
                       {format(new Date(run.started_at || run.date || run.created_at || new Date()), "dd/MM/yyyy")}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {run.status || "Séance"}
+                      {run.status || "Seance"}
                     </div>
                   </div>
                   <div className="text-sm font-mono font-semibold">
@@ -756,7 +715,143 @@ export default function Progress() {
             </div>
           </CollapsibleSection>
         </TabsContent>
+```
+
+**Step 2: Close the JSX properly**
+
+Ensure the closing tags are:
+```tsx
       </Tabs>
     </div>
   );
 }
+```
+
+**Step 3: Verify build**
+
+Run: `npx tsc --noEmit 2>&1 | head -40`
+Expected: No new errors.
+
+**Step 4: Run tests**
+
+Run: `npm test -- --reporter=verbose 2>&1 | head -30`
+Expected: All Progress tests pass.
+
+**Step 5: Commit**
+
+```bash
+git add src/pages/Progress.tsx
+git commit -m "feat(progress): redesign musculation tab — hero tonnage, gradient charts, collapsible sections"
+```
+
+---
+
+## Task 7: Clean up unused code and remove filter controls
+
+**Files:**
+- Modify: `src/pages/Progress.tsx`
+
+**Step 1: Remove unused state and variables**
+
+The old `historyStatus`, `historyFrom`, `historyTo` filter state variables and the `Input` import were used for strength history filtering controls that no longer appear in the UI. Check if they're still referenced (they are — in the query). Keep the query params but remove the state if no UI exposes them.
+
+Actually — leave `historyStatus`, `historyFrom`, `historyTo` as they control the infinite query. Just verify no dead imports remain (`Select`, `SelectContent`, etc., `CartesianGrid`, `Input`).
+
+**Step 2: Verify the final file compiles and tests pass**
+
+Run: `npx tsc --noEmit 2>&1 | head -30 && npm test -- --reporter=verbose 2>&1 | head -30`
+
+**Step 3: Commit**
+
+```bash
+git add src/pages/Progress.tsx
+git commit -m "chore(progress): remove unused imports and dead code"
+```
+
+---
+
+## Task 8: Visual QA and final polish
+
+**Files:**
+- Modify: `src/pages/Progress.tsx` (minor tweaks)
+
+**Step 1: Run dev server and verify visually**
+
+Run: `npm run dev`
+Check at http://localhost:8080/#/progress
+
+Verify:
+- [ ] Title "Progression" displays correctly
+- [ ] ToggleGroup period selector works (7j / 30j / 1 an)
+- [ ] Natation tab: hero volume + pills + gradient curve + progress bars + collapsible nages
+- [ ] Musculation tab: hero tonnage + pills + composed chart + feeling curve + collapsible exercices + collapsible historique
+- [ ] Animations play on tab switch
+- [ ] Mobile responsive (< 640px): single column, pills wrap, charts scale
+
+**Step 2: Fix any visual issues found during QA**
+
+Common adjustments:
+- Chart heights may need tuning
+- Pill wrapping on very small screens
+- ToggleGroup might need `w-fit` for alignment
+
+**Step 3: Final commit**
+
+```bash
+git add src/pages/Progress.tsx
+git commit -m "feat(progress): visual polish after QA"
+```
+
+---
+
+## Task 9: Update documentation
+
+**Files:**
+- Modify: `docs/implementation-log.md`
+- Modify: `docs/ROADMAP.md`
+- Modify: `docs/FEATURES_STATUS.md`
+
+**Step 1: Add entry to implementation-log.md**
+
+Add a new section:
+
+```markdown
+## §41 — Redesign page Progression (2026-02-16)
+
+### Contexte
+La page Progression etait surchargee (6+ graphiques par onglet, grilles denses de cards KPI). Redesign en style Apple Health : minimaliste, hero KPIs, courbes gradient, barres de progression horizontales, sections repliables.
+
+### Changements
+- `src/pages/Progress.tsx` : Refonte complete du rendu (meme logique/queries)
+  - Hero KPI avec tendance % et animation
+  - Pills inline au lieu de cards KPI
+  - AreaChart avec gradient au lieu de BarChart
+  - ProgressBar horizontales pour ressentis (remplace SwimKpiCompactGrid)
+  - Sections detail (nages, exercices, historique) dans des Collapsible
+  - ToggleGroup au lieu de Select pour la periode
+  - Animations framer-motion (slideUp stagger)
+- `src/pages/__tests__/Progress.test.tsx` : Tests mis a jour (ProgressBar au lieu de SwimKpiCompactGrid)
+
+### Fichiers modifies
+- `src/pages/Progress.tsx`
+- `src/pages/__tests__/Progress.test.tsx`
+
+### Decisions
+- Pas de nouveaux appels API — pur refactor UI
+- SwimKpiCompactGrid supprime (n'etait utilise que dans Progress)
+- Tendance calculee cote client (compare periode N vs N-1 pour natation, premiere moitie vs seconde pour muscu)
+
+### Limites
+- Tendance muscu approximative (premiere/seconde moitie de la periode selectionnee)
+```
+
+**Step 2: Update ROADMAP.md** — add chantier "Redesign Progression" as Fait.
+
+**Step 3: Update FEATURES_STATUS.md** — mark Progression page as redesigned.
+
+**Step 4: Commit documentation**
+
+```bash
+git add docs/implementation-log.md docs/ROADMAP.md docs/FEATURES_STATUS.md
+git commit -m "docs: add Progression redesign to implementation log and roadmap"
+```

@@ -4098,3 +4098,51 @@ La section musculation (onglet "Muscu" des Records personnels) manquait de clart
 ### Limites / dette
 
 - Les notes 1RM sont limitées à une ligne (Input). Si des notes plus longues sont nécessaires, il faudra un dialogue dédié
+
+## 2026-02-16 — Redesign page Progression — Apple Health style (§44)
+
+**Branche** : `main`
+**Chantier ROADMAP** : §15 — Redesign page Progression
+
+### Contexte — Pourquoi ce patch
+
+La page Progression (780 lignes) était surchargée : 6+ graphiques par onglet empilés verticalement, grilles denses de cards KPI identiques, pas de hiérarchie visuelle ni storytelling. Le nageur ne comprenait pas rapidement s'il progressait ou stagnait. Style "dashboard admin" générique.
+
+### Changements réalisés
+
+1. **Hero KPI animé** — Grand chiffre centré (text-4xl font-mono) avec tendance % (badge vert/rouge + icône TrendingUp/Down). Compare la période sélectionnée vs même durée précédente.
+2. **MetricPills inline** — 3 pills compactes (bg-muted rounded-full) remplacent les 3 cards KPI par onglet. Densité réduite, lecture rapide.
+3. **AreaChart gradient** — Courbe volume avec gradient fill (linearGradient sous la courbe, pas de CartesianGrid). Style Apple Health minimal.
+4. **ProgressBar horizontales** — 4 barres de progression animées (framer-motion width 0→pct%) pour les ressentis natation (RPE, Performance, Engagement, Fatigue). Remplacent les 4 BarCharts séparés.
+5. **ToggleGroup** — Remplace les Select dropdowns par des ToggleGroup compacts (7j / 30j / 1 an).
+6. **Collapsible sections** — Répartition par nage, détail par exercice, historique récent sont maintenant dans des CollapsibleSection (fermées par défaut, chevron animé).
+7. **Bar chart horizontal** — Top 8 exercices en layout vertical (barres horizontales) au lieu de barres verticales avec noms tronqués.
+8. **Tableau simplifié** — Stats exercices : 4 colonnes (nom, volume, max, dernier) au lieu de 6.
+9. **Animations framer-motion** — slideUp stagger sur toutes les sections.
+10. **AreaChart ressenti muscu** — LineChart remplacé par AreaChart avec gradient et dots stylisés.
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/pages/Progress.tsx` | Refonte complète du rendu (780→763 lignes, même logique/queries) |
+| `src/pages/__tests__/Progress.test.tsx` | Tests mis à jour (ProgressBar au lieu de SwimKpiCompactGrid) |
+
+### Tests
+
+- [x] `npx tsc --noEmit` — Aucune erreur nouvelle (pré-existantes stories OK)
+- [x] `npm test -- Progress.test.tsx` — 2/2 PASS
+- [x] `npm run build` — à vérifier
+
+### Décisions prises
+
+1. **SwimKpiCompactGrid supprimé** — N'était utilisé que dans Progress.tsx + son test. Remplacé par ProgressBar.
+2. **Tendance natation** : comparaison période N vs N-1 (ex: 30j actuels vs 30j précédents)
+3. **Tendance muscu** : approximation première moitié vs seconde moitié de la période (pas d'API pour la période précédente)
+4. **Pas de nouvelles API** — Pur refactor UI, mêmes queries React Query
+5. **historyStatus/From/To conservés** en const — alimentent le infinite query mais n'ont plus de UI de filtre
+
+### Limites / dette
+
+- Tendance muscu approximative (première/seconde moitié de la période)
+- Pas d'animation de transition entre onglets natation/musculation
