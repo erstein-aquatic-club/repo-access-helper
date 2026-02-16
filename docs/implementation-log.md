@@ -3652,3 +3652,51 @@ Le dashboard coach (`Coach.tsx`) présentait plusieurs problèmes UX identifiés
 - Le routing interne reste basé sur `useState` (pas d'URL sub-routes) — le bouton back du navigateur ne fonctionne pas entre sections coach
 - Les compteurs de séances sont basés sur les catalogs complets chargés — pas de requête "count only"
 - Pas d'animation de transition entre les sections
+
+---
+
+## 2026-02-16 — Édition des notes techniques depuis l'historique
+
+**Branche** : `main`
+**Chantier ROADMAP** : §10 — Notes techniques par exercice natation (amélioration)
+
+### Contexte — Pourquoi ce patch
+
+Les nageurs pouvaient ajouter des notes techniques (ressentis, temps, tempo, coups de bras) après une séance de natation, mais ne pouvaient pas les modifier ensuite. La vue historique était en lecture seule. Besoin d'éditer/supprimer des notes depuis l'historique.
+
+### Changements réalisés
+
+1. **Nouvelle fonction API `updateSwimExerciseLog`** — Permet la mise à jour partielle d'un log individuel via `UPDATE` SQL (au lieu du pattern delete+insert utilisé par `saveSwimExerciseLogs`)
+2. **Export et façade** — Ajout de la fonction dans `api/index.ts` et dans la façade `api.ts`
+3. **Édition inline dans l'historique** — Refonte de `SwimExerciseLogsHistory.tsx` :
+   - Bouton crayon (toujours visible, adapté mobile) sur chaque entrée pour passer en mode édition
+   - Mode édition inline avec tous les champs : tempo, temps de passage, coups de bras, notes libres
+   - Boutons valider (check) / annuler (X) / supprimer (poubelle)
+   - Mutations React Query avec invalidation automatique du cache après sauvegarde ou suppression
+   - Les espaces sont acceptés dans les notes et labels (pas de trim sur la saisie, trim uniquement à l'enregistrement)
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/lib/api/swim-logs.ts` | Ajout `updateSwimExerciseLog()` |
+| `src/lib/api/index.ts` | Export de la nouvelle fonction |
+| `src/lib/api.ts` | Stub de délégation dans la façade `api` |
+| `src/components/dashboard/SwimExerciseLogsHistory.tsx` | Refonte : ajout mode édition inline, mutations, suppression |
+
+### Tests
+
+- [x] `npx tsc --noEmit` — Aucune erreur dans les fichiers modifiés
+- [x] `npm run build` — Build production OK
+- [x] Déployé sur GitHub Pages
+
+### Décisions prises
+
+1. **UPDATE individuel plutôt que delete+insert** — Pour l'édition depuis l'historique, on modifie un log à la fois. Le pattern delete+insert de `saveSwimExerciseLogs` est conservé pour la saisie initiale (remplacement batch)
+2. **Bouton édition toujours visible** — Pas de `opacity-0 group-hover:opacity-100` car l'app est une PWA mobile-first, le hover n'existe pas sur tactile
+3. **RLS compatible** — La politique existante `"Users manage own exercise logs" FOR ALL USING (user_id = auth.uid())` couvre déjà les UPDATE
+
+### Limites / dette
+
+- L'édition se fait champ par champ dans chaque entrée de l'historique — pas de modification batch sur une journée entière
+- Pas de confirmation avant suppression d'une entrée
