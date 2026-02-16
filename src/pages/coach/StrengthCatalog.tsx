@@ -288,6 +288,8 @@ export default function StrengthCatalog() {
   const [editWarmupMode, setEditWarmupMode] = useState<"reps" | "duration">("reps");
   const [gifUploading, setGifUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [catalogTab, setCatalogTab] = useState<"sessions" | "exercises">("sessions");
+  const [enlargedGif, setEnlargedGif] = useState<{ url: string; name: string } | null>(null);
 
   const handleGifUpload = async (file: File, setter: (url: string) => void) => {
     const maxSize = 10 * 1024 * 1024;
@@ -986,12 +988,86 @@ export default function StrengthCatalog() {
     );
   }
 
+  const renderExerciseRow = (exercise: Exercise) => (
+    <div
+      key={exercise.id}
+      className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-muted/50"
+    >
+      {exercise.illustration_gif ? (
+        <button
+          type="button"
+          className="shrink-0 rounded-lg overflow-hidden border border-border bg-muted"
+          onClick={() => setEnlargedGif({ url: exercise.illustration_gif!, name: exercise.nom_exercice })}
+        >
+          <img
+            src={exercise.illustration_gif}
+            alt={exercise.nom_exercice}
+            className="h-10 w-10 object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </button>
+      ) : (
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <Dumbbell className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium">{exercise.nom_exercice}</div>
+        <div className="text-xs text-muted-foreground">
+          {exercise.exercise_type === "warmup" ? "Échauffement" : "Séries de travail"}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <MoveToFolderPopover
+          folders={exerciseFolders ?? []}
+          currentFolderId={exercise.folder_id}
+          onMove={(folderId) => moveItem.mutate({ itemId: exercise.id, folderId, table: "dim_exercices" })}
+        />
+        <button
+          type="button"
+          onClick={() => startEditExercise(exercise)}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
+          aria-label="Modifier"
+        >
+          <Edit2 className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setPendingDeleteExercise(exercise)}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-destructive hover:bg-destructive/10"
+          aria-label="Supprimer"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div>
       {exerciseCreateDialog}
       {exerciseEditDialog}
       {deleteSessionDialog}
       {deleteExerciseDialog}
+
+      {/* GIF enlarge dialog */}
+      <Dialog open={!!enlargedGif} onOpenChange={(open) => { if (!open) setEnlargedGif(null); }}>
+        <DialogContent className="sm:max-w-md p-2">
+          <div className="flex flex-col items-center gap-2">
+            {enlargedGif && (
+              <>
+                <img
+                  src={enlargedGif.url}
+                  alt={enlargedGif.name}
+                  className="w-full max-h-[70vh] object-contain rounded-lg"
+                />
+                <p className="text-sm font-medium text-center">{enlargedGif.name}</p>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -1004,250 +1080,151 @@ export default function StrengthCatalog() {
             type="button"
             onClick={() => {
               const name = prompt("Nom du dossier");
-              if (name?.trim()) createFolder.mutate({ name: name.trim(), type: "session" });
+              if (name?.trim()) createFolder.mutate({ name: name.trim(), type: catalogTab === "sessions" ? "session" : "exercise" });
             }}
             className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
           >
             <FolderPlus className="h-4 w-4" /> Dossier
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setEditingSessionId(null);
-              setNewSession({ title: "", description: "", cycle: "endurance", items: [], folder_id: null });
-              setIsCreating(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
-          >
-            <Plus className="h-4 w-4" /> Nouvelle
-          </button>
+          {catalogTab === "sessions" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingSessionId(null);
+                setNewSession({ title: "", description: "", cycle: "endurance", items: [], folder_id: null });
+                setIsCreating(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+            >
+              <Plus className="h-4 w-4" /> Nouvelle
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setExerciseDialogOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+            >
+              <Plus className="h-4 w-4" /> Ajouter
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="p-4 space-y-6">
-        {/* Search */}
-        <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            placeholder="Rechercher une séance"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <div className="p-4 space-y-4">
+        {/* Tabs */}
+        <Tabs value={catalogTab} onValueChange={(v) => setCatalogTab(v as "sessions" | "exercises")}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="sessions">Séances</TabsTrigger>
+            <TabsTrigger value="exercises">Exercices ({exercises?.length ?? 0})</TabsTrigger>
+          </TabsList>
 
-        {/* Sessions list — grouped by folders */}
-        <div className="space-y-3">
-          {/* Unfiled sessions */}
-          <SessionListView
-            sessions={unfiledSessions}
-            isLoading={isLoadingSessions}
-            error={sessionsError}
-            renderTitle={(session) => session.title ?? "Sans titre"}
-            renderMetrics={renderSessionMetrics}
-            renderExtraActions={(session) => (
-              <MoveToFolderPopover
-                folders={sessionFolders ?? []}
-                currentFolderId={session.folder_id}
-                onMove={(folderId) => moveItem.mutate({ itemId: session.id, folderId, table: "strength_sessions" })}
+          {/* === SESSIONS TAB === */}
+          <TabsContent value="sessions" className="space-y-4 mt-4">
+            {/* Search */}
+            <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <input
+                className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                placeholder="Rechercher une séance"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
-            )}
-            onPreview={(session) => startEditSession(session)}
-            onEdit={(session) => startEditSession(session)}
-            onDelete={(session) => setPendingDeleteSession(session)}
-            canDelete={() => true}
-            isDeleting={deleteSession.isPending}
-          />
-
-          {/* Session folders */}
-          {sessionFolders?.map((folder) => {
-            const folderSessions = sessionsByFolder.get(folder.id) ?? [];
-            return (
-              <FolderSection
-                key={folder.id}
-                name={folder.name}
-                count={folderSessions.length}
-                onRename={(newName) => renameFolder.mutate({ id: folder.id, name: newName })}
-                onDelete={() => deleteFolderMut.mutate(folder.id)}
-              >
-                {folderSessions.length > 0 ? (
-                  <SessionListView
-                    sessions={folderSessions}
-                    renderTitle={(session) => session.title ?? "Sans titre"}
-                    renderMetrics={renderSessionMetrics}
-                    renderExtraActions={(session) => (
-                      <MoveToFolderPopover
-                        folders={sessionFolders ?? []}
-                        currentFolderId={session.folder_id}
-                        onMove={(folderId) => moveItem.mutate({ itemId: session.id, folderId, table: "strength_sessions" })}
-                      />
-                    )}
-                    onPreview={(session) => startEditSession(session)}
-                    onEdit={(session) => startEditSession(session)}
-                    onDelete={(session) => setPendingDeleteSession(session)}
-                    canDelete={() => true}
-                    isDeleting={deleteSession.isPending}
-                  />
-                ) : (
-                  <div className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
-                    Dossier vide
-                  </div>
-                )}
-              </FolderSection>
-            );
-          })}
-        </div>
-
-        {/* Exercise catalog — grouped by folders */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold">Exercices ({exercises?.length ?? 0})</div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const name = prompt("Nom du dossier");
-                  if (name?.trim()) createFolder.mutate({ name: name.trim(), type: "exercise" });
-                }}
-                className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
-              >
-                <FolderPlus className="h-4 w-4" /> Dossier
-              </button>
-              <button
-                type="button"
-                onClick={() => setExerciseDialogOpen(true)}
-                className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
-              >
-                <Plus className="h-4 w-4" /> Ajouter
-              </button>
             </div>
-          </div>
 
-          {/* Unfiled exercises */}
-          <div className="space-y-1">
-            {unfiledExercises.map((exercise) => (
-              <div
-                key={exercise.id}
-                className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-muted/50"
-              >
-                {exercise.illustration_gif ? (
-                  <img
-                    src={exercise.illustration_gif}
-                    alt={exercise.nom_exercice}
-                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                    <Dumbbell className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{exercise.nom_exercice}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {exercise.exercise_type === "warmup" ? "Échauffement" : "Séries de travail"}
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
+            <div className="space-y-3">
+              {/* Unfiled sessions */}
+              <SessionListView
+                sessions={unfiledSessions}
+                isLoading={isLoadingSessions}
+                error={sessionsError}
+                renderTitle={(session) => session.title ?? "Sans titre"}
+                renderMetrics={renderSessionMetrics}
+                renderExtraActions={(session) => (
                   <MoveToFolderPopover
-                    folders={exerciseFolders ?? []}
-                    currentFolderId={exercise.folder_id}
-                    onMove={(folderId) => moveItem.mutate({ itemId: exercise.id, folderId, table: "dim_exercices" })}
+                    folders={sessionFolders ?? []}
+                    currentFolderId={session.folder_id}
+                    onMove={(folderId) => moveItem.mutate({ itemId: session.id, folderId, table: "strength_sessions" })}
                   />
-                  <button
-                    type="button"
-                    onClick={() => startEditExercise(exercise)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
-                    aria-label="Modifier"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPendingDeleteExercise(exercise)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full text-destructive hover:bg-destructive/10"
-                    aria-label="Supprimer"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Exercise folders */}
-          {exerciseFolders?.map((folder) => {
-            const folderExercises = exercisesByFolder.get(folder.id) ?? [];
-            return (
-              <FolderSection
-                key={folder.id}
-                name={folder.name}
-                count={folderExercises.length}
-                onRename={(newName) => renameFolder.mutate({ id: folder.id, name: newName })}
-                onDelete={() => deleteFolderMut.mutate(folder.id)}
-              >
-                {folderExercises.length > 0 ? (
-                  <div className="space-y-1">
-                    {folderExercises.map((exercise) => (
-                      <div
-                        key={exercise.id}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-muted/50"
-                      >
-                        {exercise.illustration_gif ? (
-                          <img
-                            src={exercise.illustration_gif}
-                            alt={exercise.nom_exercice}
-                            className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        ) : (
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                            <Dumbbell className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium">{exercise.nom_exercice}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {exercise.exercise_type === "warmup" ? "Échauffement" : "Séries de travail"}
-                          </div>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <MoveToFolderPopover
-                            folders={exerciseFolders ?? []}
-                            currentFolderId={exercise.folder_id}
-                            onMove={(folderId) => moveItem.mutate({ itemId: exercise.id, folderId, table: "dim_exercices" })}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => startEditExercise(exercise)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
-                            aria-label="Modifier"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPendingDeleteExercise(exercise)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-destructive hover:bg-destructive/10"
-                            aria-label="Supprimer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
-                    Dossier vide
-                  </div>
                 )}
-              </FolderSection>
-            );
-          })}
-        </div>
+                onPreview={(session) => startEditSession(session)}
+                onEdit={(session) => startEditSession(session)}
+                onDelete={(session) => setPendingDeleteSession(session)}
+                canDelete={() => true}
+                isDeleting={deleteSession.isPending}
+              />
+
+              {/* Session folders */}
+              {sessionFolders?.map((folder) => {
+                const folderSessions = sessionsByFolder.get(folder.id) ?? [];
+                return (
+                  <FolderSection
+                    key={folder.id}
+                    name={folder.name}
+                    count={folderSessions.length}
+                    onRename={(newName) => renameFolder.mutate({ id: folder.id, name: newName })}
+                    onDelete={() => deleteFolderMut.mutate(folder.id)}
+                  >
+                    {folderSessions.length > 0 ? (
+                      <SessionListView
+                        sessions={folderSessions}
+                        renderTitle={(session) => session.title ?? "Sans titre"}
+                        renderMetrics={renderSessionMetrics}
+                        renderExtraActions={(session) => (
+                          <MoveToFolderPopover
+                            folders={sessionFolders ?? []}
+                            currentFolderId={session.folder_id}
+                            onMove={(folderId) => moveItem.mutate({ itemId: session.id, folderId, table: "strength_sessions" })}
+                          />
+                        )}
+                        onPreview={(session) => startEditSession(session)}
+                        onEdit={(session) => startEditSession(session)}
+                        onDelete={(session) => setPendingDeleteSession(session)}
+                        canDelete={() => true}
+                        isDeleting={deleteSession.isPending}
+                      />
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+                        Dossier vide
+                      </div>
+                    )}
+                  </FolderSection>
+                );
+              })}
+            </div>
+          </TabsContent>
+
+          {/* === EXERCISES TAB === */}
+          <TabsContent value="exercises" className="space-y-3 mt-4">
+            {/* Unfiled exercises */}
+            <div className="space-y-1">
+              {unfiledExercises.map(renderExerciseRow)}
+            </div>
+
+            {/* Exercise folders */}
+            {exerciseFolders?.map((folder) => {
+              const folderExercises = exercisesByFolder.get(folder.id) ?? [];
+              return (
+                <FolderSection
+                  key={folder.id}
+                  name={folder.name}
+                  count={folderExercises.length}
+                  onRename={(newName) => renameFolder.mutate({ id: folder.id, name: newName })}
+                  onDelete={() => deleteFolderMut.mutate(folder.id)}
+                >
+                  {folderExercises.length > 0 ? (
+                    <div className="space-y-1">
+                      {folderExercises.map(renderExerciseRow)}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+                      Dossier vide
+                    </div>
+                  )}
+                </FolderSection>
+              );
+            })}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
