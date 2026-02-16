@@ -163,6 +163,7 @@ export {
   getSwimExerciseLogs,
   getSwimExerciseLogsHistory,
   saveSwimExerciseLogs,
+  updateSwimExerciseLog,
   deleteSwimExerciseLog,
 } from './swim-logs';
 

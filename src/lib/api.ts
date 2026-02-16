@@ -138,6 +138,7 @@ import {
   getSwimExerciseLogs as _getSwimExerciseLogs,
   getSwimExerciseLogsHistory as _getSwimExerciseLogsHistory,
   saveSwimExerciseLogs as _saveSwimExerciseLogs,
+  updateSwimExerciseLog as _updateSwimExerciseLog,
   deleteSwimExerciseLog as _deleteSwimExerciseLog,
 } from "./api/swim-logs";
 
@@ -413,6 +414,7 @@ export const api = {
   async getSwimExerciseLogs(sessionId: number) { return _getSwimExerciseLogs(sessionId); },
   async getSwimExerciseLogsHistory(userId: string, limit?: number) { return _getSwimExerciseLogsHistory(userId, limit); },
   async saveSwimExerciseLogs(sessionId: number, userId: string, logs: Parameters<typeof _saveSwimExerciseLogs>[2]) { return _saveSwimExerciseLogs(sessionId, userId, logs); },
+  async updateSwimExerciseLog(logId: string, patch: Parameters<typeof _updateSwimExerciseLog>[1]) { return _updateSwimExerciseLog(logId, patch); },
   async deleteSwimExerciseLog(logId: string) { return _deleteSwimExerciseLog(logId); },
 
   // ══════════════════════════════════════════════════════════════════

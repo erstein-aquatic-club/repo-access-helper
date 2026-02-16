@@ -70,6 +70,27 @@ export async function saveSwimExerciseLogs(
   if (error) throw new Error(error.message);
 }
 
+export async function updateSwimExerciseLog(
+  logId: string,
+  patch: Partial<SwimExerciseLogInput>,
+): Promise<void> {
+  if (!canUseSupabase()) return;
+
+  const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (patch.exercise_label !== undefined) row.exercise_label = patch.exercise_label;
+  if (patch.split_times !== undefined) row.split_times = patch.split_times;
+  if (patch.tempo !== undefined) row.tempo = patch.tempo;
+  if (patch.stroke_count !== undefined) row.stroke_count = patch.stroke_count;
+  if (patch.notes !== undefined) row.notes = patch.notes;
+
+  const { error } = await supabase
+    .from('swim_exercise_logs')
+    .update(row)
+    .eq('id', logId);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteSwimExerciseLog(logId: string): Promise<void> {
   if (!canUseSupabase()) return;
 
