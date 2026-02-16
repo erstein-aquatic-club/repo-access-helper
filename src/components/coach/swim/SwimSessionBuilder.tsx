@@ -44,6 +44,7 @@ interface SwimSessionDraft {
   name: string;
   description: string;
   estimatedDuration: number;
+  folder: string | null;
   blocks: SwimBlock[];
 }
 
