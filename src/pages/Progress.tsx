@@ -76,7 +76,7 @@ type HeroKpiProps = {
 function HeroKpi({ value, unit, label, trend, trendLabel }: HeroKpiProps) {
   return (
     <motion.div
-      className="flex flex-col items-center gap-1 py-4"
+      className="flex flex-col items-center gap-0.5 py-2"
       variants={slideUp}
       initial="hidden"
       animate="visible"
@@ -423,7 +423,7 @@ export default function Progress() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-8 pb-8">
+    <div className="space-y-4 pb-4">
       <h1 className="text-3xl font-display font-bold uppercase italic text-primary">Progression</h1>
 
       <Tabs defaultValue="swim" className="w-full">
@@ -434,7 +434,7 @@ export default function Progress() {
 
         {/* ── Natation ──────────────────────────────────────────────────────── */}
 
-        <TabsContent value="swim" className="space-y-8 mt-6">
+        <TabsContent value="swim" className="space-y-4 mt-4">
           {/* Period selector */}
           <div className="flex justify-end">
             <ToggleGroup
@@ -470,7 +470,7 @@ export default function Progress() {
           {/* Volume curve with gradient */}
           <motion.div variants={slideUp} initial="hidden" animate="visible">
             <Card className="border-0 shadow-none bg-transparent">
-              <CardContent className="p-0 h-[200px] w-full">
+              <CardContent className="p-0 h-[140px] w-full">
                 {isSwimLoading ? (
                   <ChartSkeleton />
                 ) : swimData.length === 0 ? (
@@ -561,7 +561,7 @@ export default function Progress() {
 
         {/* ── Musculation ───────────────────────────────────────────────────── */}
 
-        <TabsContent value="strength" className="space-y-8 mt-6">
+        <TabsContent value="strength" className="space-y-4 mt-4">
           {/* Period selector */}
           <div className="flex justify-end">
             <ToggleGroup
@@ -584,7 +584,7 @@ export default function Progress() {
             unit="kg"
             label={`tonnage sur ${strengthPeriodDays} jours`}
             trend={strengthTonnageTrend}
-            trendLabel="tendance"
+            trendLabel="2e moitié vs 1re"
           />
 
           {/* Mini metrics pills */}
@@ -602,7 +602,7 @@ export default function Progress() {
           {/* Tonnage & Volume chart */}
           <motion.div variants={slideUp} initial="hidden" animate="visible">
             <Card className="border-0 shadow-none bg-transparent">
-              <CardContent className="p-0 h-[200px] w-full">
+              <CardContent className="p-0 h-[140px] w-full">
                 {isStrengthLoading ? (
                   <ChartSkeleton />
                 ) : strengthAggregateData.length === 0 ? (
@@ -626,7 +626,7 @@ export default function Progress() {
           {/* Feeling chart */}
           <motion.div variants={slideUp} initial="hidden" animate="visible">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Ressenti par séance</h3>
-            <div className="h-[180px] w-full">
+            <div className="h-[130px] w-full">
               {isStrengthLoading ? (
                 <ChartSkeleton />
               ) : strengthData.length === 0 ? (
