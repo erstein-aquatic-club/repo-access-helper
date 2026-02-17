@@ -1,17 +1,30 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, type ClubRecord, type ClubPerformanceRanked } from "@/lib/api";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ChevronDown, ChevronUp, Download, Trophy } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertCircle,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Download,
+  Trophy,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { exportRecordsPdf } from "@/lib/export-records-pdf";
 
 // ── Constants ──
 
 const POOLS = [
-  { key: "25", label: "25 m" },
-  { key: "50", label: "50 m" },
+  { key: "25", label: "25m" },
+  { key: "50", label: "50m" },
 ];
 
 const SEXES = [
@@ -19,47 +32,69 @@ const SEXES = [
   { key: "F", label: "F" },
 ];
 
-const AGE_YEARS = [
-  { key: "8", label: "8-" },
-  { key: "9", label: "9" },
-  { key: "10", label: "10" },
-  { key: "11", label: "11" },
-  { key: "12", label: "12" },
-  { key: "13", label: "13" },
-  { key: "14", label: "14" },
-  { key: "15", label: "15" },
-  { key: "16", label: "16" },
-  { key: "17", label: "17+" },
+const AGE_OPTIONS = [
+  { key: "ALL", label: "Tous les âges" },
+  { key: "8", label: "≤ 8 ans" },
+  { key: "9", label: "9 ans" },
+  { key: "10", label: "10 ans" },
+  { key: "11", label: "11 ans" },
+  { key: "12", label: "12 ans" },
+  { key: "13", label: "13 ans" },
+  { key: "14", label: "14 ans" },
+  { key: "15", label: "15 ans" },
+  { key: "16", label: "16 ans" },
+  { key: "17", label: "≥ 17 ans" },
 ];
 
-const STROKES = [
-  { key: "ALL", label: "Toutes" },
-  { key: "FREE", label: "NL" },
-  { key: "BACK", label: "Dos" },
-  { key: "BREAST", label: "Brasse" },
-  { key: "FLY", label: "Pap" },
-  { key: "IM", label: "4N" },
-];
-
-const EVENTS = [
-  { id: "50_FREE", label: "50 NL", stroke: "FREE" },
-  { id: "100_FREE", label: "100 NL", stroke: "FREE" },
-  { id: "200_FREE", label: "200 NL", stroke: "FREE" },
-  { id: "400_FREE", label: "400 NL", stroke: "FREE" },
-  { id: "800_FREE", label: "800 NL", stroke: "FREE" },
-  { id: "1500_FREE", label: "1500 NL", stroke: "FREE" },
-  { id: "50_BACK", label: "50 Dos", stroke: "BACK" },
-  { id: "100_BACK", label: "100 Dos", stroke: "BACK" },
-  { id: "200_BACK", label: "200 Dos", stroke: "BACK" },
-  { id: "50_BREAST", label: "50 Br", stroke: "BREAST" },
-  { id: "100_BREAST", label: "100 Br", stroke: "BREAST" },
-  { id: "200_BREAST", label: "200 Br", stroke: "BREAST" },
-  { id: "50_FLY", label: "50 Pap", stroke: "FLY" },
-  { id: "100_FLY", label: "100 Pap", stroke: "FLY" },
-  { id: "200_FLY", label: "200 Pap", stroke: "FLY" },
-  { id: "100_IM", label: "100 4N", stroke: "IM" },
-  { id: "200_IM", label: "200 4N", stroke: "IM" },
-  { id: "400_IM", label: "400 4N", stroke: "IM" },
+const STROKE_SECTIONS = [
+  {
+    key: "FREE",
+    label: "Nage Libre",
+    events: [
+      { id: "50_FREE", label: "50 NL" },
+      { id: "100_FREE", label: "100 NL" },
+      { id: "200_FREE", label: "200 NL" },
+      { id: "400_FREE", label: "400 NL" },
+      { id: "800_FREE", label: "800 NL" },
+      { id: "1500_FREE", label: "1500 NL" },
+    ],
+  },
+  {
+    key: "BACK",
+    label: "Dos",
+    events: [
+      { id: "50_BACK", label: "50 Dos" },
+      { id: "100_BACK", label: "100 Dos" },
+      { id: "200_BACK", label: "200 Dos" },
+    ],
+  },
+  {
+    key: "BREAST",
+    label: "Brasse",
+    events: [
+      { id: "50_BREAST", label: "50 Br" },
+      { id: "100_BREAST", label: "100 Br" },
+      { id: "200_BREAST", label: "200 Br" },
+    ],
+  },
+  {
+    key: "FLY",
+    label: "Papillon",
+    events: [
+      { id: "50_FLY", label: "50 Pap" },
+      { id: "100_FLY", label: "100 Pap" },
+      { id: "200_FLY", label: "200 Pap" },
+    ],
+  },
+  {
+    key: "IM",
+    label: "4 Nages",
+    events: [
+      { id: "100_IM", label: "100 4N" },
+      { id: "200_IM", label: "200 4N" },
+      { id: "400_IM", label: "400 4N" },
+    ],
+  },
 ];
 
 // ── Helpers ──
@@ -93,8 +128,6 @@ const formatLastUpdate = (value?: string | null) => {
   );
 };
 
-const getStroke = (code: string) => code.replace(/^\d+_/, "");
-
 const getAgeLabel = (age: number) =>
   age === 8 ? "≤8" : age === 17 ? "≥17" : String(age);
 
@@ -117,7 +150,7 @@ function SegmentedControl({
           type="button"
           onClick={() => onChange(o.key)}
           className={cn(
-            "rounded-md px-3 py-1 text-sm font-medium transition-colors",
+            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
             value === o.key
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -130,51 +163,36 @@ function SegmentedControl({
   );
 }
 
-// ── Pill Strip (horizontal scroll) ──
-
-function PillStrip({
-  options,
-  value,
-  onChange,
-}: {
-  options: { key: string; label: string }[];
-  value: string;
-  onChange: (key: string) => void;
-}) {
-  return (
-    <div className="overflow-x-auto -mx-4 px-4 no-scrollbar">
-      <div className="flex gap-1.5 w-max">
-        {options.map((o) => (
-          <button
-            key={o.key}
-            type="button"
-            onClick={() => onChange(o.key)}
-            className={cn(
-              "shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors",
-              value === o.key
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80",
-            )}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Component ──
+// ── Main Component ──
 
 export default function RecordsClub() {
   const [pool, setPool] = useState("25");
   const [sex, setSex] = useState("M");
   const [ageFilter, setAgeFilter] = useState("ALL");
-  const [strokeFilter, setStrokeFilter] = useState("ALL");
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+  const [expandedAgeKey, setExpandedAgeKey] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const ageValue = ageFilter === "ALL" ? null : Number(ageFilter);
+
+  // Reset expansion on filter change
+  const handlePoolChange = useCallback((val: string) => {
+    setPool(val);
+    setExpandedEvent(null);
+    setExpandedAgeKey(null);
+  }, []);
+
+  const handleSexChange = useCallback((val: string) => {
+    setSex(val);
+    setExpandedEvent(null);
+    setExpandedAgeKey(null);
+  }, []);
+
+  const handleAgeChange = useCallback((val: string) => {
+    setAgeFilter(val);
+    setExpandedEvent(null);
+    setExpandedAgeKey(null);
+  }, []);
 
   // Last import log
   const { data: lastImportLogs } = useQuery({
@@ -182,7 +200,7 @@ export default function RecordsClub() {
     queryFn: () => api.getImportLogs({ limit: 1 }),
   });
 
-  // Records (best per event/pool/sex/age)
+  // Records
   const {
     data: records = [],
     isLoading,
@@ -198,61 +216,70 @@ export default function RecordsClub() {
       }),
   });
 
-  // Ranking for expanded row
+  // Ranking query key — depends on mode
+  const expandedRankingKey = useMemo(() => {
+    if (!expandedEvent) return null;
+    // Specific age: ranking for the expanded event + current age
+    if (ageValue !== null) {
+      return `${expandedEvent}__${pool}__${sex}__${ageFilter}`;
+    }
+    // All ages: ranking for drilled-down age row
+    return expandedAgeKey;
+  }, [expandedEvent, ageValue, expandedAgeKey, pool, sex, ageFilter]);
+
   const { data: rankingData, isFetching: rankingLoading } = useQuery({
-    queryKey: ["club-ranking", expandedKey],
+    queryKey: ["club-ranking", expandedRankingKey],
     queryFn: () => {
-      if (!expandedKey) return [] as ClubPerformanceRanked[];
-      const [eventCode, poolM, sexVal, ageVal] = expandedKey.split("__");
+      if (!expandedRankingKey) return [] as ClubPerformanceRanked[];
+      const parts = expandedRankingKey.split("__");
       return api.getClubRanking({
-        event_code: eventCode,
-        pool_m: Number(poolM),
-        sex: sexVal,
-        age: ageVal === "ALL" ? null : Number(ageVal),
+        event_code: parts[0],
+        pool_m: Number(parts[1]),
+        sex: parts[2],
+        age: Number(parts[3]),
       });
     },
-    enabled: !!expandedKey,
+    enabled: !!expandedRankingKey,
   });
 
-  const eventMap = useMemo(
-    () => new Map(EVENTS.map((e) => [e.id, e.label])),
-    [],
-  );
-  const eventOrder = useMemo(
-    () => new Map(EVENTS.map((e, i) => [e.id, i])),
-    [],
-  );
-
-  const filteredRecords = useMemo(() => {
-    const base =
-      strokeFilter === "ALL"
-        ? records
-        : records.filter((r) => getStroke(r.event_code) === strokeFilter);
-    return [...base].sort((a, b) => {
-      const oA = eventOrder.get(a.event_code) ?? 999;
-      const oB = eventOrder.get(b.event_code) ?? 999;
-      if (oA !== oB) return oA - oB;
-      if (a.age !== b.age) return a.age - b.age;
-      return a.time_ms - b.time_ms;
-    });
-  }, [records, strokeFilter, eventOrder]);
-
-  // Group records by event for "toutes catégories" (ALL ages)
-  const groupedByEvent = useMemo(() => {
-    if (ageValue !== null) return null;
+  // Group records by event, sorted by age
+  const recordsByEvent = useMemo(() => {
     const map = new Map<string, ClubRecord[]>();
-    for (const r of filteredRecords) {
+    for (const r of records) {
       const list = map.get(r.event_code) ?? [];
       list.push(r);
       map.set(r.event_code, list);
     }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.age - b.age);
+    }
     return map;
-  }, [filteredRecords, ageValue]);
+  }, [records]);
 
-  const toggleExpand = useCallback(
+  // Best record per event (fastest time)
+  const bestByEvent = useMemo(() => {
+    const map = new Map<string, ClubRecord>();
+    for (const [eventCode, list] of recordsByEvent) {
+      let best = list[0];
+      for (const r of list) {
+        if (r.time_ms < best.time_ms) best = r;
+      }
+      map.set(eventCode, best);
+    }
+    return map;
+  }, [recordsByEvent]);
+
+  const toggleEventExpand = useCallback((eventCode: string) => {
+    setExpandedEvent((prev) => {
+      setExpandedAgeKey(null);
+      return prev === eventCode ? null : eventCode;
+    });
+  }, []);
+
+  const toggleAgeRanking = useCallback(
     (record: ClubRecord) => {
       const key = `${record.event_code}__${pool}__${sex}__${record.age}`;
-      setExpandedKey((prev) => (prev === key ? null : key));
+      setExpandedAgeKey((prev) => (prev === key ? null : key));
     },
     [pool, sex],
   );
@@ -269,9 +296,14 @@ export default function RecordsClub() {
     }
   }, []);
 
-  const agePills = useMemo(
-    () => [{ key: "ALL", label: "Tous" }, ...AGE_YEARS],
-    [],
+  // Sections that have data
+  const activeSections = useMemo(
+    () =>
+      STROKE_SECTIONS.map((section) => ({
+        ...section,
+        activeEvents: section.events.filter((e) => recordsByEvent.has(e.id)),
+      })).filter((s) => s.activeEvents.length > 0),
+    [recordsByEvent],
   );
 
   return (
@@ -284,17 +316,18 @@ export default function RecordsClub() {
               <Trophy className="h-3.5 w-3.5" />
             </div>
             <div>
-              <h1 className="text-lg font-display font-bold uppercase italic tracking-tight text-primary">Records du club</h1>
-              {lastImportLogs &&
-                lastImportLogs.length > 0 &&
-                lastImportLogs[0].status === "success" && (
-                  <p className="text-[10px] text-muted-foreground -mt-0.5">
-                    MAJ :{" "}
-                    {formatLastUpdate(
-                      lastImportLogs[0].completed_at ?? lastImportLogs[0].started_at,
-                    ) ?? "-"}
-                  </p>
-                )}
+              <h1 className="text-lg font-display font-bold uppercase italic tracking-tight text-primary">
+                Records du club
+              </h1>
+              {lastImportLogs?.[0]?.status === "success" && (
+                <p className="text-[10px] text-muted-foreground -mt-0.5">
+                  MAJ :{" "}
+                  {formatLastUpdate(
+                    lastImportLogs[0].completed_at ??
+                      lastImportLogs[0].started_at,
+                  ) ?? "-"}
+                </p>
+              )}
             </div>
           </div>
           <Button
@@ -310,24 +343,35 @@ export default function RecordsClub() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="space-y-2">
-        {/* Pool + Sex on same line */}
-        <div className="flex items-center gap-2">
-          <SegmentedControl options={POOLS} value={pool} onChange={setPool} />
-          <SegmentedControl options={SEXES} value={sex} onChange={setSex} />
-        </div>
-
-        {/* Age — horizontal scroll */}
-        <PillStrip options={agePills} value={ageFilter} onChange={setAgeFilter} />
-
-        {/* Strokes — horizontal scroll */}
-        <PillStrip options={STROKES} value={strokeFilter} onChange={setStrokeFilter} />
+      {/* Filter bar — single compact row */}
+      <div className="flex items-center gap-2">
+        <SegmentedControl
+          options={POOLS}
+          value={pool}
+          onChange={handlePoolChange}
+        />
+        <SegmentedControl
+          options={SEXES}
+          value={sex}
+          onChange={handleSexChange}
+        />
+        <Select value={ageFilter} onValueChange={handleAgeChange}>
+          <SelectTrigger className="h-8 flex-1 min-w-0 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {AGE_OPTIONS.map((o) => (
+              <SelectItem key={o.key} value={o.key}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Content */}
+      {/* Loading */}
       {isLoading && (
-        <div className="space-y-2">
+        <div className="space-y-2 pt-2">
           {[1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
@@ -337,12 +381,15 @@ export default function RecordsClub() {
         </div>
       )}
 
+      {/* Error */}
       {error && (
         <div className="flex flex-col items-center justify-center p-8 text-center">
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
           <h3 className="font-semibold">Impossible de charger les données</h3>
           <p className="text-sm text-muted-foreground mt-2">
-            {error instanceof Error ? error.message : "Une erreur s'est produite"}
+            {error instanceof Error
+              ? error.message
+              : "Une erreur s'est produite"}
           </p>
           <Button onClick={() => refetch()} className="mt-4">
             Réessayer
@@ -350,100 +397,123 @@ export default function RecordsClub() {
         </div>
       )}
 
-      {!isLoading && !error && filteredRecords.length === 0 && (
+      {/* Empty */}
+      {!isLoading && !error && records.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">
           Aucun record pour ces filtres.
         </p>
       )}
 
-      {!isLoading && !error && filteredRecords.length > 0 && (
-        <>
-          {ageValue !== null ? (
-            /* Single age: flat card list */
-            <div className="space-y-2">
-              {filteredRecords.map((record) => {
-                const key = `${record.event_code}__${pool}__${sex}__${record.age}`;
-                const label =
-                  record.event_label ||
-                  eventMap.get(record.event_code) ||
-                  record.event_code;
-                return (
-                  <RecordCard
-                    key={`${record.event_code}-${record.age}`}
-                    record={record}
-                    label={label}
-                    isExpanded={expandedKey === key}
-                    onToggle={toggleExpand}
-                    rankingData={expandedKey === key ? rankingData : undefined}
-                    rankingLoading={rankingLoading}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            /* All ages: grouped by event */
-            <div className="space-y-4">
-              {groupedByEvent &&
-                [...groupedByEvent.entries()].map(([eventCode, recs]) => {
-                  const label =
-                    recs[0]?.event_label ||
-                    eventMap.get(eventCode) ||
-                    eventCode;
+      {/* Content — stroke sections */}
+      {!isLoading && !error && activeSections.length > 0 && (
+        <div className="space-y-5 pb-4">
+          {activeSections.map((section) => (
+            <div key={section.key}>
+              {/* Section header */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-4 w-1 rounded-full bg-primary" />
+                <h2 className="text-xs font-display font-bold uppercase tracking-wider text-muted-foreground">
+                  {section.label}
+                </h2>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              {/* Event cards */}
+              <div className="space-y-1.5">
+                {section.activeEvents.map((event) => {
+                  const best = bestByEvent.get(event.id)!;
+                  const ageRecords = recordsByEvent.get(event.id) ?? [];
+                  const isExpanded = expandedEvent === event.id;
+
                   return (
-                    <EventGroup
-                      key={eventCode}
-                      label={label}
-                      records={recs}
-                      expandedKey={expandedKey}
-                      onToggle={toggleExpand}
-                      pool={pool}
-                      sex={sex}
+                    <EventCard
+                      key={event.id}
+                      eventLabel={event.label}
+                      bestRecord={best}
+                      ageRecords={ageRecords}
+                      isExpanded={isExpanded}
+                      isAllAges={ageValue === null}
+                      onToggle={() => toggleEventExpand(event.id)}
+                      onAgeRowTap={toggleAgeRanking}
+                      expandedAgeKey={expandedAgeKey}
                       rankingData={rankingData}
                       rankingLoading={rankingLoading}
+                      pool={pool}
+                      sex={sex}
                     />
                   );
                 })}
+              </div>
             </div>
-          )}
-        </>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
-// ── Record Card (single-age mode) ──
+// ── Event Card ──
 
-function RecordCard({
-  record,
-  label,
+function EventCard({
+  eventLabel,
+  bestRecord,
+  ageRecords,
   isExpanded,
+  isAllAges,
   onToggle,
+  onAgeRowTap,
+  expandedAgeKey,
   rankingData,
   rankingLoading,
+  pool,
+  sex,
 }: {
-  record: ClubRecord;
-  label: string;
+  eventLabel: string;
+  bestRecord: ClubRecord;
+  ageRecords: ClubRecord[];
   isExpanded: boolean;
-  onToggle: (r: ClubRecord) => void;
+  isAllAges: boolean;
+  onToggle: () => void;
+  onAgeRowTap: (record: ClubRecord) => void;
+  expandedAgeKey: string | null;
   rankingData?: ClubPerformanceRanked[];
   rankingLoading: boolean;
+  pool: string;
+  sex: string;
 }) {
-  const originalAgeLabel = record.original_age ? getAgeLabel(record.original_age) : null;
-  const isCascaded = record.original_age != null && record.original_age !== record.age;
-
   return (
-    <div className="rounded-xl border border-border overflow-hidden">
+    <div
+      className={cn(
+        "rounded-xl border overflow-hidden transition-colors",
+        isExpanded ? "border-primary/25 shadow-sm" : "border-border",
+      )}
+    >
+      {/* Main row */}
       <button
         type="button"
-        onClick={() => onToggle(record)}
-        className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors"
+        onClick={onToggle}
+        className="w-full text-left px-3.5 py-3 hover:bg-muted/50 transition-colors"
       >
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-foreground">{label}</span>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-primary font-bold tabular-nums text-sm">
-              {formatTime(record.time_ms)}
-            </span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-semibold text-foreground">
+            {eventLabel}
+          </span>
+          <div className="flex items-center gap-2.5">
+            <div className="text-right">
+              <span className="font-mono text-primary font-bold tabular-nums text-[15px] leading-none">
+                {formatTime(bestRecord.time_ms)}
+              </span>
+              <div className="flex items-center justify-end gap-1 mt-0.5">
+                <span className="text-[11px] text-muted-foreground truncate max-w-[120px]">
+                  {bestRecord.athlete_name}
+                </span>
+                {isAllAges && (
+                  <span className="text-[10px] text-muted-foreground/60">
+                    {getAgeLabel(bestRecord.original_age ?? bestRecord.age)}a
+                  </span>
+                )}
+              </div>
+            </div>
             {isExpanded ? (
               <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
             ) : (
@@ -451,134 +521,239 @@ function RecordCard({
             )}
           </div>
         </div>
-        <div className="flex items-center justify-between mt-0.5">
-          <span className="text-xs text-muted-foreground truncate">
-            {record.athlete_name}
-            {isCascaded && originalAgeLabel && (
-              <span className="ml-1 opacity-70">({originalAgeLabel} ans)</span>
-            )}
-          </span>
-          <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
-            {formatDate(record.record_date)}
-          </span>
-        </div>
       </button>
 
+      {/* Expanded content */}
       {isExpanded && (
-        <RankingList
-          record={record}
-          label={label}
-          rankingData={rankingData}
-          rankingLoading={rankingLoading}
-          isCascaded={isCascaded}
-          originalAgeLabel={originalAgeLabel}
-        />
+        <div className="border-t border-border">
+          {isAllAges ? (
+            <AgeBreakdown
+              records={ageRecords}
+              bestTime={bestRecord.time_ms}
+              onAgeRowTap={onAgeRowTap}
+              expandedAgeKey={expandedAgeKey}
+              rankingData={rankingData}
+              rankingLoading={rankingLoading}
+              pool={pool}
+              sex={sex}
+            />
+          ) : (
+            <RankingPanel
+              record={bestRecord}
+              eventLabel={eventLabel}
+              rankingData={rankingData}
+              rankingLoading={rankingLoading}
+            />
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-// ── Event Group (all-ages mode) ──
+// ── Age Breakdown (all-ages mode expansion) ──
 
-function EventGroup({
-  label,
+function AgeBreakdown({
   records,
-  expandedKey,
-  onToggle,
-  pool,
-  sex,
+  bestTime,
+  onAgeRowTap,
+  expandedAgeKey,
   rankingData,
   rankingLoading,
+  pool,
+  sex,
 }: {
-  label: string;
   records: ClubRecord[];
-  expandedKey: string | null;
-  onToggle: (r: ClubRecord) => void;
-  pool: string;
-  sex: string;
+  bestTime: number;
+  onAgeRowTap: (record: ClubRecord) => void;
+  expandedAgeKey: string | null;
   rankingData?: ClubPerformanceRanked[];
   rankingLoading: boolean;
+  pool: string;
+  sex: string;
 }) {
   return (
-    <div>
-      <h3 className="mb-1.5 text-sm font-semibold text-foreground">{label}</h3>
-      <div className="rounded-xl border border-border overflow-hidden divide-y divide-border">
-        {records.map((record) => {
-          const key = `${record.event_code}__${pool}__${sex}__${record.age}`;
-          const isExpanded = expandedKey === key;
-          const ageLabel = getAgeLabel(record.age);
-          const originalAgeLabel = record.original_age
-            ? getAgeLabel(record.original_age)
-            : null;
-          const isCascaded =
-            record.original_age != null && record.original_age !== record.age;
+    <div className="divide-y divide-border/50">
+      {records.map((record) => {
+        const isBest = record.time_ms === bestTime;
+        const key = `${record.event_code}__${pool}__${sex}__${record.age}`;
+        const isAgeExpanded = expandedAgeKey === key;
+        const isCascaded =
+          record.original_age != null && record.original_age !== record.age;
+        const originalAgeLabel = record.original_age
+          ? getAgeLabel(record.original_age)
+          : null;
 
-          return (
-            <div key={`${record.event_code}-${record.age}`}>
-              <button
-                type="button"
-                onClick={() => onToggle(record)}
-                className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-muted/50 transition-colors"
-              >
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 min-w-[28px] text-center">
-                  {ageLabel}
-                </Badge>
-                <span className="font-mono text-primary font-semibold tabular-nums text-sm shrink-0">
-                  {formatTime(record.time_ms)}
-                </span>
-                <span className="text-sm text-foreground truncate flex-1">
-                  {record.athlete_name}
-                  {isCascaded && originalAgeLabel && (
-                    <span className="ml-1 text-xs text-muted-foreground font-normal">
-                      ({originalAgeLabel}a)
-                    </span>
-                  )}
-                </span>
-                <span className="text-[10px] text-muted-foreground shrink-0 hidden sm:inline">
-                  {formatDate(record.record_date)}
-                </span>
-                {isExpanded ? (
-                  <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                ) : (
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                )}
-              </button>
-
-              {isExpanded && (
-                <RankingList
-                  record={record}
-                  label={label}
-                  rankingData={rankingData}
-                  rankingLoading={rankingLoading}
-                  isCascaded={isCascaded}
-                  originalAgeLabel={originalAgeLabel}
-                />
+        return (
+          <div key={record.age}>
+            <button
+              type="button"
+              onClick={() => onAgeRowTap(record)}
+              className={cn(
+                "w-full text-left px-3.5 py-2 flex items-center gap-2.5 hover:bg-muted/40 transition-colors",
+                isBest && "bg-primary/[0.03]",
               )}
-            </div>
-          );
-        })}
-      </div>
+            >
+              <span
+                className={cn(
+                  "text-[11px] font-semibold w-7 text-center shrink-0 tabular-nums",
+                  isBest ? "text-primary" : "text-muted-foreground",
+                )}
+              >
+                {getAgeLabel(record.age)}a
+              </span>
+              <span
+                className={cn(
+                  "font-mono tabular-nums text-sm shrink-0",
+                  isBest
+                    ? "text-primary font-bold"
+                    : "text-foreground font-medium",
+                )}
+              >
+                {formatTime(record.time_ms)}
+              </span>
+              <span className="text-xs text-muted-foreground flex-1 truncate">
+                {record.athlete_name}
+                {isCascaded && originalAgeLabel && (
+                  <span className="ml-1 opacity-70">({originalAgeLabel}a)</span>
+                )}
+              </span>
+              <span className="text-[10px] text-muted-foreground shrink-0 hidden sm:inline">
+                {formatDate(record.record_date)}
+              </span>
+              {isBest && (
+                <Trophy className="h-3 w-3 text-rank-gold shrink-0" />
+              )}
+              {isAgeExpanded ? (
+                <ChevronUp className="h-3 w-3 text-muted-foreground shrink-0" />
+              ) : (
+                <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+              )}
+            </button>
+
+            {/* Inline ranking for this age */}
+            {isAgeExpanded && (
+              <InlineRanking
+                record={record}
+                rankingData={rankingData}
+                rankingLoading={rankingLoading}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-// ── Ranking List (replaces nested tables) ──
+// ── Inline Ranking (nested within age breakdown) ──
 
-function RankingList({
+function InlineRanking({
   record,
-  label,
   rankingData,
   rankingLoading,
-  isCascaded,
-  originalAgeLabel,
 }: {
   record: ClubRecord;
-  label: string;
   rankingData?: ClubPerformanceRanked[];
   rankingLoading: boolean;
-  isCascaded: boolean;
-  originalAgeLabel: string | null;
 }) {
+  const isCascaded =
+    record.original_age != null && record.original_age !== record.age;
+
+  const rows = useMemo(() => {
+    const agePerfs = rankingData ?? [];
+    if (!isCascaded) return agePerfs;
+
+    const recordEntry: ClubPerformanceRanked = {
+      id: -1,
+      athlete_name: record.athlete_name,
+      swimmer_iuf: record.swimmer_iuf ?? null,
+      sex: record.sex,
+      pool_m: record.pool_m,
+      event_code: record.event_code,
+      event_label: record.event_label,
+      age: record.original_age ?? record.age,
+      actual_age: record.original_age ?? record.age,
+      time_ms: record.time_ms,
+      record_date: record.record_date,
+    };
+
+    return [recordEntry, ...agePerfs];
+  }, [rankingData, record, isCascaded]);
+
+  return (
+    <div className="bg-muted/30 px-3.5 py-2 ml-7 border-l-2 border-primary/20">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+        Classement ({getAgeLabel(record.age)} ans)
+      </p>
+      {rankingLoading ? (
+        <div className="space-y-1.5">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-4 w-full rounded bg-muted animate-pulse motion-reduce:animate-none"
+            />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Aucune donnée.</p>
+      ) : (
+        <div className="space-y-0.5">
+          {rows.map((perf, idx) => {
+            const isRecordHolder = idx === 0 && isCascaded && perf.id === -1;
+            return (
+              <div
+                key={perf.id === -1 ? "record-holder" : perf.id}
+                className={cn(
+                  "flex items-center gap-2 text-xs py-0.5",
+                  idx === 0 && "font-semibold text-primary",
+                )}
+              >
+                <span className="w-4 text-center shrink-0 text-[10px]">
+                  {idx === 0 ? (
+                    <Trophy className="inline h-3 w-3 text-rank-gold" />
+                  ) : (
+                    idx + 1
+                  )}
+                </span>
+                <span className="font-mono tabular-nums w-14 shrink-0 text-[11px]">
+                  {formatTime(perf.time_ms)}
+                </span>
+                <span className="flex-1 truncate text-[11px]">
+                  {perf.athlete_name}
+                  {isRecordHolder && (
+                    <span className="ml-1 text-[9px] font-normal text-muted-foreground">
+                      (record)
+                    </span>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Ranking Panel (specific-age mode expansion) ──
+
+function RankingPanel({
+  record,
+  eventLabel,
+  rankingData,
+  rankingLoading,
+}: {
+  record: ClubRecord;
+  eventLabel: string;
+  rankingData?: ClubPerformanceRanked[];
+  rankingLoading: boolean;
+}) {
+  const isCascaded =
+    record.original_age != null && record.original_age !== record.age;
+  const originalAgeLabel = record.original_age
+    ? getAgeLabel(record.original_age)
+    : null;
   const ageLabel = getAgeLabel(record.age);
 
   const rows = useMemo(() => {
@@ -603,9 +778,9 @@ function RankingList({
   }, [rankingData, record, isCascaded]);
 
   return (
-    <div className="border-t border-border bg-muted/30 px-3 py-2.5">
+    <div className="bg-muted/20 px-3.5 py-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-        Classement — {label} ({ageLabel} ans)
+        Classement — {eventLabel} ({ageLabel} ans)
       </p>
 
       {rankingLoading ? (
@@ -618,7 +793,9 @@ function RankingList({
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Aucune donnée de classement.</p>
+        <p className="text-xs text-muted-foreground">
+          Aucune donnée de classement.
+        </p>
       ) : (
         <div className="space-y-0.5">
           {rows.map((perf, idx) => {
@@ -634,7 +811,7 @@ function RankingList({
               >
                 <span className="w-5 text-center shrink-0">
                   {idx === 0 ? (
-                    <Trophy className="inline h-3 w-3 text-yellow-500" />
+                    <Trophy className="inline h-3 w-3 text-rank-gold" />
                   ) : (
                     idx + 1
                   )}
