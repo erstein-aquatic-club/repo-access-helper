@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PasswordStrength } from "@/components/shared/PasswordStrength";
+import { LoginInstallBanner } from "@/components/shared/LoginInstallBanner";
 import { fadeIn, staggerChildren } from "@/lib/animations";
 import { durationsSeconds } from "@/lib/design-tokens";
 import eacLogo from "@assets/logo-eac.png";
@@ -581,6 +582,8 @@ export default function Login() {
               EAC Performance Tracking
             </p>
           </motion.div>
+
+          <LoginInstallBanner />
         </div>
       </div>
 
