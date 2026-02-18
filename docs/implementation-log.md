@@ -64,6 +64,33 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §38 Redesign: Profil + Hall of Fame (mobile first, hero banner, podium) | ✅ Fait | 2026-02-16 |
 | §39 Redesign: Records personnels mobile first (flex cards, no grids) | ✅ Fait | 2026-02-16 |
 | §47 Redesign: RecordsClub épuré (filtres 3→1, sections nage, drill-down) | ✅ Fait | 2026-02-17 |
+| §50 Fix: 8 pre-existing test failures (122/122 pass) | ✅ Fait | 2026-02-18 |
+
+---
+
+## 2026-02-18 — Fix: 8 pre-existing test failures (§50)
+
+**Branche** : `main`
+
+### Contexte
+8 tests échouaient depuis des refactorings successifs : imports cassés, assertions texte périmées, formats de données incompatibles. Le suite passait de 114 pass / 8 fail à 122 pass / 0 fail.
+
+### Changements
+
+| Fichier | Modification |
+|---------|-------------|
+| `src/lib/__tests__/api-errors.test.ts` | Assertion mise à jour : message d'erreur changé en `"Action inconnue côté serveur."` |
+| `src/pages/__tests__/StrengthOrder.test.ts` | Import corrigé : `@/pages/Strength` → `@/components/strength/utils` |
+| `src/pages/Strength.tsx` | Export `createInProgressRun`, `buildInProgressRunCache` ; ajout `resetStrengthRunState` |
+| `src/pages/__tests__/StrengthRunner.test.tsx` | Assertions texte mises à jour (Série, reps, Charge) |
+| `src/components/ui/skeleton.tsx` | Ajout `import React` pour compatibilité `node --test` |
+| `src/pages/__tests__/SwimCatalog.test.tsx` | Assertions loading state (animate-pulse, border-b) |
+| `src/pages/__tests__/TimesheetHelpers.test.ts` | Format temps ISO → `HH:MM:SS` (conforme à `parseTimeMinutes`) |
+
+### Tests
+- **Avant** : 114 pass, 8 fail
+- **Après** : 122 pass, 0 fail
+- TypeScript : pas de nouvelles erreurs (seules erreurs stories.tsx pré-existantes)
 
 ---
 
