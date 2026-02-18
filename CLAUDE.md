@@ -92,7 +92,7 @@ Lire ces fichiers dans cet ordre pour reprendre le contexte :
 | 18 | Redesign RecordsClub épuré mobile | Moyenne | Fait (§47) |
 | 19 | Audit performances + optimisation PWA (Workbox) | Haute | Fait (§48) |
 | 20 | Parser texte → blocs séance natation | Moyenne | Fait (§49) |
-| 19 | Audit performances + optimisation PWA (Workbox) | Haute | Fait (§48) |
+| 21 | Hall of Fame refresh temps réel + sélecteur période | Moyenne | Fait (§51) |
 
 Détail complet dans `docs/ROADMAP.md`.
 

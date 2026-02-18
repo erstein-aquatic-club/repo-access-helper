@@ -28,6 +28,7 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §4 Records club | ✅ Fait | 2026-02-08 |
 | §5 Dette UI/UX | ✅ Fait | 2026-02-08 |
 | §39 Finalisation dashboard pointage heures | ✅ Fait | 2026-02-16 |
+| §51 Hall of Fame refresh + sélecteur période | ✅ Fait | 2026-02-18 |
 | §45 Audit UI/UX — header Strength + login mobile + fixes | ✅ Fait | 2026-02-16 |
 | §46 Harmonisation headers + Login mobile thème clair | ✅ Fait | 2026-02-16 |
 | §6 Fix timers PWA iOS | ✅ Fait | 2026-02-09 |
@@ -65,6 +66,70 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §39 Redesign: Records personnels mobile first (flex cards, no grids) | ✅ Fait | 2026-02-16 |
 | §47 Redesign: RecordsClub épuré (filtres 3→1, sections nage, drill-down) | ✅ Fait | 2026-02-17 |
 | §50 Fix: 8 pre-existing test failures (122/122 pass) | ✅ Fait | 2026-02-18 |
+
+---
+
+## 2026-02-18 — Hall of Fame : rafraîchissement temps réel + sélecteur de période (§51)
+
+**Branche** : `main`
+**Chantier ROADMAP** : §21 — Hall of Fame améliorations
+
+### Contexte
+
+Quand un nageur ajoutait une séance (natation ou musculation), le Hall of Fame ne se mettait pas à jour en direct. Il fallait un refresh complet de la page. Cause racine : le cache React Query `["hall-of-fame"]` n'était jamais invalidé par les mutations de création/modification/suppression de séances.
+
+Demande additionnelle : ajouter un sélecteur de période similaire à celui de la page Progression, et brider le requêtage à 1 an max pour éviter les requêtes trop coûteuses.
+
+### Changements réalisés
+
+**Bug fix — Invalidation cache :**
+- `Dashboard.tsx` : ajout `invalidateQueries(["hall-of-fame"])` dans les 3 mutations (create, update, delete séance natation)
+- `Strength.tsx` : ajout `invalidateQueries(["hall-of-fame"])` dans `updateRun.onSuccess` (fin de séance musculation)
+- React Query utilise le prefix matching → invalide toutes les variantes de période
+
+**Feature — Sélecteur de période :**
+- `HallOfFame.tsx` : ajout `ToggleGroup` avec 4 options (7j, 30j, 3 mois, 1 an), défaut 30j
+- Query key enrichie : `["hall-of-fame", fromDate]` pour cache par période
+- `useState` + `useMemo` pour calculer `fromDate` à partir du nombre de jours
+
+**API — Paramètre `fromDate` :**
+- `records.ts` : `getHallOfFame(fromDate?)` passe `{ from_date }` aux RPCs Supabase
+- `api.ts` : facade mise à jour pour propager le paramètre
+- Fallback localStorage : filtrage des sessions/runs par date
+
+**Migration Supabase — RPCs avec filtre date :**
+- `00025_hall_of_fame_period_filter.sql` : `get_hall_of_fame(from_date date DEFAULT NULL)` et `get_hall_of_fame_strength(from_date date DEFAULT NULL)`
+- Filtre `WHERE session_date >= from_date` (swim) et `WHERE started_at::date >= from_date` (strength)
+- Rétrocompatible : sans paramètre = mêmes résultats qu'avant
+- SECURITY DEFINER conservé pour les agrégats club-wide
+
+### Fichiers modifiés
+
+| Fichier | Nature du changement |
+|---------|---------------------|
+| `src/pages/Dashboard.tsx` | +3 `invalidateQueries(["hall-of-fame"])` dans mutations |
+| `src/pages/Strength.tsx` | +1 `invalidateQueries(["hall-of-fame"])` dans updateRun |
+| `src/pages/HallOfFame.tsx` | Ajout sélecteur de période (ToggleGroup), state, query key enrichie |
+| `src/lib/api/records.ts` | `getHallOfFame(fromDate?)` + params RPC + filtre localStorage |
+| `src/lib/api.ts` | Facade mise à jour |
+| `supabase/migrations/00025_hall_of_fame_period_filter.sql` | Nouvelle migration : paramètre from_date sur 2 RPCs |
+
+### Tests
+
+- [x] `npm run build` — compilation OK (4.52s)
+- [x] `npx tsc --noEmit` — 0 erreur TypeScript
+- [x] RPCs testées en SQL direct : `get_hall_of_fame('2026-01-19')` et `get_hall_of_fame_strength('2026-01-19')` retournent des résultats corrects
+- [x] Rétrocompatibilité : `get_hall_of_fame()` sans paramètre fonctionne
+
+### Décisions prises
+
+- Bridé à 1 an max (pas d'option "Tout") pour éviter les requêtes coûteuses sur l'historique complet
+- Défaut 30j : période la plus pertinente pour le suivi d'entraînement courant
+- Prefix matching de React Query (`["hall-of-fame"]` invalide `["hall-of-fame", date]`) : pas besoin de lister tous les variants
+
+### Limites / dette
+
+- Le sélecteur de période est global (même période pour natation et musculation). Si besoin, on pourrait avoir un sélecteur par onglet.
 
 ---
 

@@ -1,6 +1,6 @@
 # Roadmap de Développement
 
-*Dernière mise à jour : 2026-02-18 (§49 Parser texte séance natation)*
+*Dernière mise à jour : 2026-02-18 (§51 Hall of Fame refresh + sélecteur période)*
 
 Ce document décrit les fonctionnalités à implémenter. Il sert de référence pour reprendre le développement dans une future conversation.
 
@@ -30,6 +30,7 @@ Ce document décrit les fonctionnalités à implémenter. Il sert de référence
 | 18 | Redesign RecordsClub épuré mobile (filtres, sections, drill-down) | Moyenne | Faible | Fait |
 | 19 | Audit performances + optimisation PWA (Workbox) | Haute | Moyenne | Fait |
 | 20 | Parser texte → blocs séance natation | Moyenne | Moyenne | Fait |
+| 21 | Hall of Fame refresh temps réel + sélecteur période | Moyenne | Faible | Fait |
 
 ---
 
