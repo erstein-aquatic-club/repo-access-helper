@@ -550,7 +550,7 @@ export function useDashboardState({ sessions, assignments, userId, user }: UseDa
   useEffect(() => {
     const activeSession = sessionsForSelectedDay.find((s) => s.id === activeSessionId);
     if (activeSession) {
-      const plannedMeters = kmToMeters(activeSession.km ?? 0);
+      const plannedMeters = activeSession.km != null ? kmToMeters(activeSession.km) : 5000;
 
       // Get planned strokes from assignment items
       let plannedStrokes: StrokeDraft = emptyStrokeDraft;
