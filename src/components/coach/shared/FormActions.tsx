@@ -15,6 +15,7 @@ import { ChevronLeft, Play, Save } from "lucide-react";
 interface FormActionsProps {
   isEditing: boolean;
   isSaving?: boolean;
+  saveDisabled?: boolean;
   onSave: () => void;
   onCancel: () => void;
   onPreview?: () => void;
@@ -35,6 +36,7 @@ interface FormActionsProps {
 export function FormActions({
   isEditing,
   isSaving,
+  saveDisabled,
   onSave,
   onCancel,
   onPreview,
@@ -81,7 +83,7 @@ export function FormActions({
             variant="default"
             size="sm"
             onClick={onSave}
-            disabled={isSaving}
+            disabled={isSaving || saveDisabled}
             className="h-10 rounded-full"
           >
             <Save className="h-4 w-4" /> Sauver

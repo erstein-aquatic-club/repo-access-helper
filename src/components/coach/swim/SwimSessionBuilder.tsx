@@ -9,11 +9,15 @@ import { FormActions } from "../shared/FormActions";
 import {
   ArrowDown,
   ArrowUp,
+  FileText,
+  Layers,
   Plus,
   Repeat,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import { intensityTone } from "@/components/swim/IntensityDots";
 import { calculateSwimTotalDistance } from "@/lib/swimSessionUtils";
 import type { SwimSessionItem } from "@/lib/api";
@@ -178,6 +182,9 @@ export function SwimSessionBuilder({
   userId,
   isSaving,
 }: SwimSessionBuilderProps) {
+  const { toast } = useToast();
+  const [editorMode, setEditorMode] = React.useState<"blocks" | "text">("blocks");
+  const [rawText, setRawText] = React.useState("");
   const [expandedExercise, setExpandedExercise] = React.useState<{
     blockIndex: number;
     exerciseIndex: number;
@@ -297,16 +304,17 @@ export function SwimSessionBuilder({
       <FormActions
         isEditing={Boolean(session.id)}
         isSaving={isSaving}
+        saveDisabled={editorMode === "text"}
         onSave={onSave}
         onCancel={onCancel}
-        onPreview={() =>
+        onPreview={editorMode === "blocks" ? () =>
           setSelectedSession({
             id: session.id ?? Date.now(),
             name: session.name,
             description: session.description,
             created_by: userId ?? null,
             items: buildItemsFromBlocks(session.blocks),
-          })
+          }) : undefined
         }
       />
 
@@ -316,170 +324,231 @@ export function SwimSessionBuilder({
           onNameChange={(value) => onSessionChange({ ...session, name: value })}
           estimatedDuration={session.estimatedDuration}
           onEstimatedDurationChange={(value) => onSessionChange({ ...session, estimatedDuration: value })}
-          totalDistance={totalDistance}
+          totalDistance={editorMode === "blocks" ? totalDistance : undefined}
           showDuration={true}
-          showTotalDistance={true}
+          showTotalDistance={editorMode === "blocks"}
         />
 
-        <div className="space-y-3">
-          {session.blocks.map((block, blockIndex) => (
-            <div key={blockIndex} className="rounded-2xl border border-border bg-card">
-              {/* Block header */}
-              <div className="flex items-center justify-between gap-1 px-3 py-2">
-                <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
-                    <Repeat className="inline h-3 w-3" /> {block.repetitions ?? 1}x
-                  </span>
-                  <Input
-                    value={block.title}
-                    onChange={(e) => updateBlock(blockIndex, "title", e.target.value)}
-                    placeholder={`Bloc ${blockIndex + 1}`}
-                    className="h-7 min-w-0 flex-1 rounded-lg border-none bg-transparent px-1 text-xs font-semibold shadow-none focus-visible:bg-muted focus-visible:ring-1"
-                  />
-                  <div className="shrink-0 text-[11px] text-muted-foreground whitespace-nowrap">
-                    · {block.exercises.length} ex
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-0.5">
-                  <Input
-                    type="number"
-                    min={1}
-                    value={block.repetitions ?? ""}
-                    onChange={(e) =>
-                      updateBlock(blockIndex, "repetitions", e.target.value === "" ? null : Number(e.target.value))
-                    }
-                    className="h-7 w-11 rounded-lg text-center text-xs"
-                    placeholder="1"
-                  />
-                  <button type="button" onClick={() => moveBlock(blockIndex, "up")}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40"
-                    disabled={blockIndex === 0}>
-                    <ArrowUp className="h-3.5 w-3.5" />
-                  </button>
-                  <button type="button" onClick={() => moveBlock(blockIndex, "down")}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40"
-                    disabled={blockIndex === session.blocks.length - 1}>
-                    <ArrowDown className="h-3.5 w-3.5" />
-                  </button>
-                  <button type="button" onClick={() => removeBlock(blockIndex)}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full text-destructive hover:bg-destructive/10">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Exercises */}
-              <div className="border-t border-border">
-                {block.exercises.map((exercise, exerciseIndex) => {
-                  const isExpanded =
-                    expandedExercise?.blockIndex === blockIndex &&
-                    expandedExercise?.exerciseIndex === exerciseIndex;
-                  const normalizedIntensity = normalizeIntensityValue(exercise.intensity);
-                  return (
-                    <div key={exerciseIndex} className="border-b border-border last:border-b-0">
-                      {/* Compact summary row */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpandedExercise(
-                            isExpanded ? null : { blockIndex, exerciseIndex }
-                          )
-                        }
-                        className={cn(
-                          "flex w-full items-center gap-1 px-3 py-2 text-left text-[11px] font-semibold transition-colors hover:bg-muted/50 overflow-hidden",
-                          isExpanded && "bg-muted/50"
-                        )}
-                      >
-                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-                          <span className="text-muted-foreground whitespace-nowrap">
-                            {exercise.repetitions ?? ""}×{exercise.distance ?? ""}m
-                          </span>
-                          <span className="text-muted-foreground whitespace-nowrap">{exercise.stroke}</span>
-                          <span className={cn(
-                            "inline-flex items-center rounded-full px-1.5 py-0.5 ring-1 whitespace-nowrap",
-                            swimTypeTone[exercise.strokeType] ?? "bg-muted ring-border"
-                          )}>
-                            {strokeTypeLabels[exercise.strokeType] ?? exercise.strokeType}
-                          </span>
-                          <span className={cn(
-                            "inline-flex items-center gap-1 rounded-full bg-card px-1.5 py-0.5 ring-1 whitespace-nowrap",
-                            intensityRingTone[normalizedIntensity],
-                            intensityTextTone[normalizedIntensity],
-                          )}>
-                            <span className={cn("h-1.5 w-1.5 rounded-full", intensityTone[normalizedIntensity] ?? "bg-muted")} />
-                            {formatIntensityLabel(normalizedIntensity)}
-                          </span>
-                          {exercise.rest ? (
-                            <span className="text-muted-foreground whitespace-nowrap">
-                              {exercise.restType === "departure" ? "⏱" : "⏸"}{" "}
-                              {exercise.restType === "departure" ? "Dép." : "Repos"}{" "}
-                              {formatRecoveryTime(exercise.rest)}
-                            </span>
-                          ) : null}
-                          {exercise.equipment.length > 0 ? (
-                            <span className="text-muted-foreground whitespace-nowrap">
-                              🏊{exercise.equipment.length}
-                            </span>
-                          ) : null}
-                        </div>
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeExercise(blockIndex, exerciseIndex);
-                          }}
-                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </span>
-                      </button>
-
-                      {/* Expanded edit form */}
-                      {isExpanded ? (
-                        <div className="border-t border-border bg-muted/30 px-3 py-3">
-                          <SwimExerciseForm
-                            exercise={exercise}
-                            onChange={(field, value) =>
-                              updateExercise(blockIndex, exerciseIndex, field, value)
-                            }
-                            onDelete={() => removeExercise(blockIndex, exerciseIndex)}
-                            onDuplicate={() => duplicateExercise(blockIndex, exerciseIndex)}
-                            showDelete={true}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Add exercise button */}
-              <div className="border-t border-border px-3 py-2">
-                <button
-                  type="button"
-                  onClick={() => addExercise(blockIndex)}
-                  className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:bg-muted/80"
-                >
-                  <Plus className="h-3 w-3" /> Exercice
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {!session.blocks.length ? (
-            <div className="rounded-2xl border border-dashed border-border bg-muted px-3 py-6 text-center text-sm text-muted-foreground">
-              Aucun bloc. Ajoute un bloc pour commencer.
-            </div>
-          ) : null}
+        {/* Mode toggle: Blocs / Texte */}
+        <div className="flex items-center rounded-xl border border-border bg-muted/50 p-0.5">
+          <button
+            type="button"
+            onClick={() => setEditorMode("blocks")}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
+              editorMode === "blocks"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Layers className="h-3.5 w-3.5" />
+            Blocs
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditorMode("text")}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
+              editorMode === "text"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Texte
+          </button>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={addBlock}
-          className="h-10 rounded-full px-3 text-xs"
-        >
-          <Plus className="h-4 w-4" /> Ajouter bloc
-        </Button>
+        {editorMode === "text" ? (
+          /* ── Text mode ── */
+          <div className="space-y-3">
+            <textarea
+              value={rawText}
+              onChange={(e) => setRawText(e.target.value)}
+              placeholder={"Collez ou tapez votre séance ici\u2026\n\nExemple :\nÉchauffement\n4x100 crawl V1 R30\n8x50 educ dos V0\n\nCorps de séance\n2x(4x100 NL V3 D1'30)\n6x50 papillon jambes V2 R20\n\nRetour au calme\n200 4N souple"}
+              className="min-h-[280px] w-full resize-y rounded-2xl border border-border bg-card px-4 py-3 text-sm leading-relaxed placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                toast({
+                  title: "Conversion IA",
+                  description: "Cette fonctionnalité sera bientôt disponible.",
+                });
+              }}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              <Sparkles className="h-4 w-4" />
+              Convertir en séance
+            </button>
+            <p className="text-center text-[11px] text-muted-foreground">
+              La conversion automatique analysera votre texte et créera les blocs correspondants.
+            </p>
+          </div>
+        ) : (
+          /* ── Blocks mode ── */
+          <>
+            <div className="space-y-3">
+              {session.blocks.map((block, blockIndex) => (
+                <div key={blockIndex} className="rounded-2xl border border-border bg-card">
+                  {/* Block header */}
+                  <div className="flex items-center justify-between gap-1 px-3 py-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
+                        <Repeat className="inline h-3 w-3" /> {block.repetitions ?? 1}x
+                      </span>
+                      <Input
+                        value={block.title}
+                        onChange={(e) => updateBlock(blockIndex, "title", e.target.value)}
+                        placeholder={`Bloc ${blockIndex + 1}`}
+                        className="h-7 min-w-0 flex-1 rounded-lg border-none bg-transparent px-1 text-xs font-semibold shadow-none focus-visible:bg-muted focus-visible:ring-1"
+                      />
+                      <div className="shrink-0 text-[11px] text-muted-foreground whitespace-nowrap">
+                        · {block.exercises.length} ex
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <Input
+                        type="number"
+                        min={1}
+                        value={block.repetitions ?? ""}
+                        onChange={(e) =>
+                          updateBlock(blockIndex, "repetitions", e.target.value === "" ? null : Number(e.target.value))
+                        }
+                        className="h-7 w-11 rounded-lg text-center text-xs"
+                        placeholder="1"
+                      />
+                      <button type="button" onClick={() => moveBlock(blockIndex, "up")}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40"
+                        disabled={blockIndex === 0}>
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button type="button" onClick={() => moveBlock(blockIndex, "down")}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40"
+                        disabled={blockIndex === session.blocks.length - 1}>
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </button>
+                      <button type="button" onClick={() => removeBlock(blockIndex)}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Exercises */}
+                  <div className="border-t border-border">
+                    {block.exercises.map((exercise, exerciseIndex) => {
+                      const isExpanded =
+                        expandedExercise?.blockIndex === blockIndex &&
+                        expandedExercise?.exerciseIndex === exerciseIndex;
+                      const normalizedIntensity = normalizeIntensityValue(exercise.intensity);
+                      return (
+                        <div key={exerciseIndex} className="border-b border-border last:border-b-0">
+                          {/* Compact summary row */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedExercise(
+                                isExpanded ? null : { blockIndex, exerciseIndex }
+                              )
+                            }
+                            className={cn(
+                              "flex w-full items-center gap-1 px-3 py-2 text-left text-[11px] font-semibold transition-colors hover:bg-muted/50 overflow-hidden",
+                              isExpanded && "bg-muted/50"
+                            )}
+                          >
+                            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+                              <span className="text-muted-foreground whitespace-nowrap">
+                                {exercise.repetitions ?? ""}×{exercise.distance ?? ""}m
+                              </span>
+                              <span className="text-muted-foreground whitespace-nowrap">{exercise.stroke}</span>
+                              <span className={cn(
+                                "inline-flex items-center rounded-full px-1.5 py-0.5 ring-1 whitespace-nowrap",
+                                swimTypeTone[exercise.strokeType] ?? "bg-muted ring-border"
+                              )}>
+                                {strokeTypeLabels[exercise.strokeType] ?? exercise.strokeType}
+                              </span>
+                              <span className={cn(
+                                "inline-flex items-center gap-1 rounded-full bg-card px-1.5 py-0.5 ring-1 whitespace-nowrap",
+                                intensityRingTone[normalizedIntensity],
+                                intensityTextTone[normalizedIntensity],
+                              )}>
+                                <span className={cn("h-1.5 w-1.5 rounded-full", intensityTone[normalizedIntensity] ?? "bg-muted")} />
+                                {formatIntensityLabel(normalizedIntensity)}
+                              </span>
+                              {exercise.rest ? (
+                                <span className="text-muted-foreground whitespace-nowrap">
+                                  {exercise.restType === "departure" ? "⏱" : "⏸"}{" "}
+                                  {exercise.restType === "departure" ? "Dép." : "Repos"}{" "}
+                                  {formatRecoveryTime(exercise.rest)}
+                                </span>
+                              ) : null}
+                              {exercise.equipment.length > 0 ? (
+                                <span className="text-muted-foreground whitespace-nowrap">
+                                  🏊{exercise.equipment.length}
+                                </span>
+                              ) : null}
+                            </div>
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeExercise(blockIndex, exerciseIndex);
+                              }}
+                              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </span>
+                          </button>
+
+                          {/* Expanded edit form */}
+                          {isExpanded ? (
+                            <div className="border-t border-border bg-muted/30 px-3 py-3">
+                              <SwimExerciseForm
+                                exercise={exercise}
+                                onChange={(field, value) =>
+                                  updateExercise(blockIndex, exerciseIndex, field, value)
+                                }
+                                onDelete={() => removeExercise(blockIndex, exerciseIndex)}
+                                onDuplicate={() => duplicateExercise(blockIndex, exerciseIndex)}
+                                showDelete={true}
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add exercise button */}
+                  <div className="border-t border-border px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => addExercise(blockIndex)}
+                      className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:bg-muted/80"
+                    >
+                      <Plus className="h-3 w-3" /> Exercice
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {!session.blocks.length ? (
+                <div className="rounded-2xl border border-dashed border-border bg-muted px-3 py-6 text-center text-sm text-muted-foreground">
+                  Aucun bloc. Ajoute un bloc pour commencer.
+                </div>
+              ) : null}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addBlock}
+              className="h-10 rounded-full px-3 text-xs"
+            >
+              <Plus className="h-4 w-4" /> Ajouter bloc
+            </Button>
+          </>
+        )}
 
         <div className="h-8" />
       </div>
