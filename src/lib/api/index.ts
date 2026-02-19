@@ -125,6 +125,7 @@ export {
 export {
   getAssignmentsForCoach,
   getAssignments,
+  getCoachAssignments,
   assignments_create,
   assignments_delete,
 } from './assignments';

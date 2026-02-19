@@ -11,7 +11,7 @@ import {
   fetchUserGroupIds,
   STORAGE_KEYS,
 } from './client';
-import type { Assignment } from './types';
+import type { Assignment, CoachAssignment } from './types';
 import { localStorageGet, localStorageSave } from './localStorage';
 import { getSwimCatalog } from './swim';
 import { getStrengthSessions } from './strength';
@@ -245,4 +245,60 @@ export async function assignments_delete(assignmentId: number) {
   const updated = assignments.filter((assignment: any) => assignment.id !== assignmentId);
   localStorageSave(STORAGE_KEYS.ASSIGNMENTS, updated);
   return { status: "deleted" };
+}
+
+export async function getCoachAssignments(filters: {
+  groupId?: number | null;
+  userId?: number | null;
+  from: string;   // ISO date
+  to: string;     // ISO date
+}): Promise<CoachAssignment[]> {
+  if (!canUseSupabase()) return [];
+
+  let query = supabase
+    .from("session_assignments")
+    .select("*")
+    .gte("scheduled_date", filters.from)
+    .lte("scheduled_date", filters.to);
+
+  if (filters.groupId) {
+    query = query.eq("target_group_id", filters.groupId);
+  } else if (filters.userId) {
+    query = query.eq("target_user_id", filters.userId);
+  } else {
+    return [];
+  }
+
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  if (!data?.length) return [];
+
+  const [swimCatalogs, strengthCatalogs] = await Promise.all([
+    getSwimCatalog(),
+    getStrengthSessions(),
+  ]);
+  const swimById = new Map(swimCatalogs.map((c) => [c.id, c]));
+  const strengthById = new Map(strengthCatalogs.map((s) => [s.id, s]));
+
+  return data.map((row: any) => {
+    const type = row.assignment_type === "strength" ? "strength" : "swim";
+    const sessionId = safeOptionalInt(
+      type === "swim" ? row.swim_catalog_id : row.strength_session_id
+    ) ?? 0;
+    const swim = type === "swim" ? swimById.get(sessionId) : undefined;
+    const strength = type === "strength" ? strengthById.get(sessionId) : undefined;
+
+    return {
+      id: safeInt(row.id, 0),
+      title: type === "swim"
+        ? (swim?.name ?? "Séance natation")
+        : (strength?.title ?? "Séance musculation"),
+      type,
+      scheduledDate: row.scheduled_date ?? "",
+      scheduledSlot: row.scheduled_slot ?? null,
+      targetLabel: "",  // Will be enriched by the caller if needed
+      targetType: row.target_group_id ? "group" : "user",
+      status: row.status ?? "assigned",
+    } satisfies CoachAssignment;
+  });
 }

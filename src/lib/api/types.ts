@@ -367,3 +367,14 @@ export interface SwimExerciseLogInput {
   stroke_count?: StrokeCountEntry[];
   notes?: string | null;
 }
+
+export interface CoachAssignment {
+  id: number;
+  title: string;
+  type: "swim" | "strength";
+  scheduledDate: string;        // ISO date "YYYY-MM-DD"
+  scheduledSlot: "morning" | "evening" | null;
+  targetLabel: string;           // Group name or swimmer name
+  targetType: "group" | "user";
+  status: string;
+}

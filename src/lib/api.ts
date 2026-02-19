@@ -35,6 +35,7 @@ export type {
   SwimExerciseLog,
   SwimExerciseLogInput,
   StrengthFolder,
+  CoachAssignment,
 } from "./api/types";
 
 import type {
@@ -100,6 +101,7 @@ import {
 import {
   getAssignmentsForCoach as _getAssignmentsForCoach,
   getAssignments as _getAssignments,
+  getCoachAssignments as _getCoachAssignments,
   assignments_create as _assignments_create,
   assignments_delete as _assignments_delete,
 } from "./api/assignments";
@@ -431,6 +433,7 @@ export const api = {
   // DELEGATION STUBS — Assignments
   // ══════════════════════════════════════════════════════════════════
   async getAssignmentsForCoach() { return _getAssignmentsForCoach(); },
+  async getCoachAssignments(filters: Parameters<typeof _getCoachAssignments>[0]) { return _getCoachAssignments(filters); },
   async getAssignments(athleteName: string, athleteId?: number | null, options?: Parameters<typeof _getAssignments>[2]) { return _getAssignments(athleteName, athleteId, options); },
   async assignments_create(data: Parameters<typeof _assignments_create>[0]) {
     const currentUserId = useAuth.getState().userId;
