@@ -17,6 +17,7 @@ interface CalendarGridProps {
   monthCursor: Date;
   gridDates: Date[];
   completionByISO: Record<string, { completed: number; total: number; slots: Array<{ slotKey: "AM" | "PM"; expected: boolean; completed: boolean; absent: boolean }> }>;
+  strengthByISO?: Record<string, boolean>;
   selectedISO: string;
   selectedDayIndex: number | null;
   today: Date;
@@ -28,6 +29,7 @@ export function CalendarGrid({
   monthCursor,
   gridDates,
   completionByISO,
+  strengthByISO,
   selectedISO,
   selectedDayIndex,
   today,
@@ -60,6 +62,7 @@ export function CalendarGrid({
               isSelected={isSel}
               isFocused={isFocused}
               status={status}
+              strengthAssigned={strengthByISO?.[iso]}
               onClick={() => onDayClick(iso)}
               onKeyDown={(e) => onKeyDown(e, index)}
             />

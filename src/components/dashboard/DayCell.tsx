@@ -19,6 +19,7 @@ interface DayCellProps {
   isSelected: boolean;
   isFocused: boolean;
   status: { completed: number; total: number; slots: SlotStatus[] };
+  strengthAssigned?: boolean;
   onClick: () => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
 }
@@ -30,6 +31,7 @@ export const DayCell = memo(function DayCell({
   isSelected,
   isFocused,
   status,
+  strengthAssigned,
   onClick,
   onKeyDown,
 }: DayCellProps) {
@@ -73,26 +75,29 @@ export const DayCell = memo(function DayCell({
           <div className="h-[14px] w-[14px]" />
         </div>
 
-        <div className="flex items-center justify-end">
-          {isRest ? (
+        <div className="flex items-center justify-end gap-1">
+          {isRest && !strengthAssigned ? (
             <Moon className="h-3 w-3 text-muted-foreground/40" />
           ) : (
-            <div className="w-6">
-              <div className="flex gap-1">
-                {/* AM pill (left position) */}
-                {amSlot?.expected ? (
-                  <span className={cn("h-1.5 flex-1 rounded-full", amSlot.completed ? "bg-status-success" : amSlot.absent ? "bg-muted-foreground/15" : "bg-muted-foreground/30")} />
-                ) : (
-                  <span className="flex-1" />
-                )}
-                {/* PM pill (right position) */}
-                {pmSlot?.expected ? (
-                  <span className={cn("h-1.5 flex-1 rounded-full", pmSlot.completed ? "bg-status-success" : pmSlot.absent ? "bg-muted-foreground/15" : "bg-muted-foreground/30")} />
-                ) : (
-                  <span className="flex-1" />
-                )}
+            <>
+              <div className="w-6">
+                <div className="flex gap-1">
+                  {amSlot?.expected ? (
+                    <span className={cn("h-1.5 flex-1 rounded-full", amSlot.completed ? "bg-status-success" : amSlot.absent ? "bg-muted-foreground/15" : "bg-muted-foreground/30")} />
+                  ) : (
+                    <span className="flex-1" />
+                  )}
+                  {pmSlot?.expected ? (
+                    <span className={cn("h-1.5 flex-1 rounded-full", pmSlot.completed ? "bg-status-success" : pmSlot.absent ? "bg-muted-foreground/15" : "bg-muted-foreground/30")} />
+                  ) : (
+                    <span className="flex-1" />
+                  )}
+                </div>
               </div>
-            </div>
+              {strengthAssigned ? (
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-400 shrink-0" />
+              ) : null}
+            </>
           )}
         </div>
       </div>
