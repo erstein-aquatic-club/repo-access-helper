@@ -534,9 +534,9 @@ function assembleBlock(raw: RawBlock, blockIndex: number): SwimBlock {
   const flushPending = () => {
     if (pendingExercise) {
       if (pendingSubDetailsA.length > 0) {
-        const subText = pendingSubDetailsA.join(" / ");
+        const subText = pendingSubDetailsA.join("\n");
         pendingExercise.modalities = pendingExercise.modalities
-          ? `${pendingExercise.modalities} / ${subText}`
+          ? `${pendingExercise.modalities}\n${subText}`
           : subText;
       }
       block.exercises.push(tokensToExercise(pendingExercise));
