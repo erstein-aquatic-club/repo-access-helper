@@ -83,6 +83,18 @@
   --color-tag-educ-text: hsl(var(--tag-educ-text));
 }
 
+/* Timeline block reveal animation */
+@keyframes timeline-block-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 :root {
   /* EAC Theme: Red (#E30613), Black, White */
   --background: 0 0% 98%; /* White smoke */
