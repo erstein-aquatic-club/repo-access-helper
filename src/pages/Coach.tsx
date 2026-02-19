@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, CalendarDays, Download, Dumbbell, HeartPulse, Mail, Trophy, Users, Waves } from "lucide-react";
+import { Bell, CalendarDays, Download, Dumbbell, HeartPulse, Mail, Trophy, Users, UsersRound, Waves } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import CoachSectionHeader from "./coach/CoachSectionHeader";
 import CoachAssignScreen from "./coach/CoachAssignScreen";
 import CoachMessagesScreen from "./coach/CoachMessagesScreen";
 import CoachCalendar from "./coach/CoachCalendar";
+import CoachGroupsScreen from "./coach/CoachGroupsScreen";
 import ComingSoon from "./ComingSoon";
 import { FEATURES } from "@/lib/features";
 import type { LocalStrengthRun } from "@/lib/types";
@@ -22,7 +23,7 @@ import type { LocalStrengthRun } from "@/lib/types";
 const StrengthCatalog = lazy(() => import("./coach/StrengthCatalog"));
 const SwimCatalog = lazy(() => import("./coach/SwimCatalog"));
 
-type CoachSection = "home" | "swim" | "strength" | "swimmers" | "assignments" | "messaging" | "calendar";
+type CoachSection = "home" | "swim" | "strength" | "swimmers" | "assignments" | "messaging" | "calendar" | "groups";
 type KpiLookbackPeriod = 7 | 30 | 365;
 
 type CoachHomeProps = {
@@ -171,6 +172,14 @@ const CoachHome = ({
           <CalendarDays className="h-3.5 w-3.5" />
           Calendrier
         </button>
+        <button
+          type="button"
+          onClick={() => onNavigate("groups")}
+          className="flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <UsersRound className="h-3.5 w-3.5" />
+          Groupes
+        </button>
       </div>
 
       {/* Navigation Grid 2x2 */}
@@ -294,8 +303,9 @@ export default function Coach() {
     activeSection === "assignments" ||
     activeSection === "messaging" ||
     activeSection === "swimmers" ||
-    activeSection === "calendar";
-  const shouldLoadGroups = activeSection === "assignments" || activeSection === "messaging" || activeSection === "calendar";
+    activeSection === "calendar" ||
+    activeSection === "groups";
+  const shouldLoadGroups = activeSection === "assignments" || activeSection === "messaging" || activeSection === "calendar" || activeSection === "groups";
   const shouldLoadBirthdays = activeSection === "home" || activeSection === "swimmers";
 
   // Queries
@@ -604,6 +614,15 @@ export default function Coach() {
           groups={groups}
           swimSessions={swimSessions}
           strengthSessions={strengthSessions}
+        />
+      ) : null}
+
+      {activeSection === "groups" ? (
+        <CoachGroupsScreen
+          onBack={() => setActiveSection("home")}
+          athletes={athletes}
+          groups={groups}
+          athletesLoading={athletesLoading}
         />
       ) : null}
     </div>
