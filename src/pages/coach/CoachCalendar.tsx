@@ -1,48 +1,25 @@
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarHeader } from "@/components/dashboard/CalendarHeader";
 import { CalendarGrid } from "@/components/dashboard/CalendarGrid";
 import { useCoachCalendarState } from "@/hooks/useCoachCalendarState";
+import type { DaySlot } from "@/hooks/useCoachCalendarState";
 import CoachSectionHeader from "./CoachSectionHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { CalendarPlus, Dumbbell, Waves } from "lucide-react";
-import type { CoachAssignment } from "@/lib/api/types";
+import { Dumbbell, Waves, Trash2, RefreshCw } from "lucide-react";
+import { api } from "@/lib/api";
 
 type FilterMode = "group" | "user";
 
 interface CoachCalendarProps {
   onBack: () => void;
-  onAssign: (prefillDate?: string) => void;
   athletes: Array<{ id: number | null; display_name: string; group_label?: string | null }>;
   groups: Array<{ id: number | string; name: string }>;
-}
-
-function slotLabel(slot: string | null): string {
-  if (!slot) return "—";
-  const norm = slot.toLowerCase();
-  if (norm === "morning" || norm.includes("mat") || norm === "am") return "Matin";
-  if (norm === "evening" || norm.includes("soir") || norm === "pm") return "Soir";
-  return slot;
-}
-
-function statusLabel(status: string): string {
-  switch (status) {
-    case "assigned": return "Assigné";
-    case "in_progress": return "En cours";
-    case "completed": return "Terminé";
-    default: return status;
-  }
-}
-
-function statusVariant(status: string): "default" | "secondary" | "outline" {
-  switch (status) {
-    case "completed": return "default";
-    case "in_progress": return "secondary";
-    default: return "outline";
-  }
+  swimSessions?: Array<{ id: number; name: string }>;
+  strengthSessions?: Array<{ id: number; title: string }>;
 }
 
 function formatDateFR(iso: string): string {
@@ -55,7 +32,7 @@ function formatDateFR(iso: string): string {
   });
 }
 
-export default function CoachCalendar({ onBack, onAssign, athletes, groups }: CoachCalendarProps) {
+export default function CoachCalendar({ onBack, athletes, groups, swimSessions, strengthSessions }: CoachCalendarProps) {
   const [filterMode, setFilterMode] = useState<FilterMode>("group");
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const [selectedUserId, setSelectedUserId] = useState<string>("");
@@ -72,7 +49,8 @@ export default function CoachCalendar({ onBack, onAssign, athletes, groups }: Co
     gridDates,
     completionByISO,
     selectedDayStatus,
-    assignmentsForSelectedDay,
+    slotsForSelectedDay,
+    hasStrengthByISO,
     hasFilter,
     setSelectedISO,
     setSelectedDayIndex,
@@ -81,10 +59,29 @@ export default function CoachCalendar({ onBack, onAssign, athletes, groups }: Co
     nextMonth,
     jumpToday,
     openDay,
-  } = useCoachCalendarState({
-    groupId,
-    userId,
-    enabled: true,
+  } = useCoachCalendarState({ groupId, userId, enabled: true });
+
+  const queryClient = useQueryClient();
+
+  const assignMutation = useMutation({
+    mutationFn: (params: {
+      assignment_type: "swim" | "strength";
+      session_id: number;
+      scheduled_date: string;
+      scheduled_slot?: "morning" | "evening";
+      target_group_id?: number | null;
+      target_user_id?: number | null;
+    }) => api.assignments_create(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["coach-calendar-assignments"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (assignmentId: number) => api.assignments_delete(assignmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["coach-calendar-assignments"] });
+    },
   });
 
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
@@ -182,6 +179,7 @@ export default function CoachCalendar({ onBack, onAssign, athletes, groups }: Co
             monthCursor={monthCursor}
             gridDates={gridDates}
             completionByISO={completionByISO}
+            strengthByISO={hasStrengthByISO}
             selectedISO={selectedISO}
             selectedDayIndex={selectedDayIndex}
             today={today}
@@ -197,37 +195,49 @@ export default function CoachCalendar({ onBack, onAssign, athletes, groups }: Co
           <SheetHeader className="pb-3">
             <SheetTitle className="capitalize text-left">
               {formatDateFR(selectedISO)}
-              {assignmentsForSelectedDay.length > 0 && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({assignmentsForSelectedDay.length} assignation{assignmentsForSelectedDay.length !== 1 ? "s" : ""})
-                </span>
-              )}
             </SheetTitle>
             <SheetDescription className="sr-only">
-              Détail des assignations pour cette journée
+              Gérer les assignations pour cette journée
             </SheetDescription>
           </SheetHeader>
 
-          {assignmentsForSelectedDay.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Aucune assignation ce jour.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {assignmentsForSelectedDay.map((a) => (
-                <AssignmentCard key={a.id} assignment={a} />
-              ))}
-            </div>
-          )}
-
-          <div className="pt-4">
-            <Button
-              className="w-full"
-              onClick={() => onAssign(selectedISO)}
-            >
-              <CalendarPlus className="mr-2 h-4 w-4" />
-              Assigner une séance
-            </Button>
+          <div className="space-y-3">
+            {slotsForSelectedDay.map((slot) => (
+              <SlotRow
+                key={slot.key}
+                slot={slot}
+                swimSessions={swimSessions}
+                strengthSessions={strengthSessions}
+                onAssign={(sessionId) => {
+                  assignMutation.mutate({
+                    assignment_type: slot.type,
+                    session_id: sessionId,
+                    scheduled_date: selectedISO,
+                    scheduled_slot: slot.scheduledSlot ?? undefined,
+                    target_group_id: groupId,
+                    target_user_id: userId,
+                  });
+                }}
+                onDelete={(assignmentId) => {
+                  deleteMutation.mutate(assignmentId);
+                }}
+                onReplace={(oldAssignmentId, newSessionId) => {
+                  deleteMutation.mutate(oldAssignmentId, {
+                    onSuccess: () => {
+                      assignMutation.mutate({
+                        assignment_type: slot.type,
+                        session_id: newSessionId,
+                        scheduled_date: selectedISO,
+                        scheduled_slot: slot.scheduledSlot ?? undefined,
+                        target_group_id: groupId,
+                        target_user_id: userId,
+                      });
+                    },
+                  });
+                }}
+                isPending={assignMutation.isPending || deleteMutation.isPending}
+              />
+            ))}
           </div>
         </SheetContent>
       </Sheet>
@@ -235,31 +245,109 @@ export default function CoachCalendar({ onBack, onAssign, athletes, groups }: Co
   );
 }
 
-function AssignmentCard({ assignment }: { assignment: CoachAssignment }) {
-  const isSwim = assignment.type === "swim";
+function SlotRow({
+  slot,
+  swimSessions,
+  strengthSessions,
+  onAssign,
+  onDelete,
+  onReplace,
+  isPending,
+}: {
+  slot: DaySlot;
+  swimSessions?: Array<{ id: number; name: string }>;
+  strengthSessions?: Array<{ id: number; title: string }>;
+  onAssign: (sessionId: number) => void;
+  onDelete: (assignmentId: number) => void;
+  onReplace: (oldAssignmentId: number, newSessionId: number) => void;
+  isPending: boolean;
+}) {
+  const [isChanging, setIsChanging] = useState(false);
+  const isSwim = slot.type === "swim";
+  const catalog = isSwim
+    ? (swimSessions ?? []).map((s) => ({ id: s.id, label: s.name }))
+    : (strengthSessions ?? []).map((s) => ({ id: s.id, label: s.title }));
+  const hasAssignment = slot.assignment !== null;
+
+  const handleSelect = (value: string) => {
+    const sessionId = Number(value);
+    if (!sessionId) return;
+
+    if (hasAssignment && isChanging) {
+      onReplace(slot.assignment!.id, sessionId);
+      setIsChanging(false);
+    } else {
+      onAssign(sessionId);
+    }
+  };
+
   return (
-    <div className="flex items-start gap-3 rounded-xl border p-3">
-      <div className="mt-0.5">
+    <div className="rounded-xl border p-3 space-y-2">
+      <div className="flex items-center gap-2">
         {isSwim ? (
-          <Waves className="h-4 w-4 text-blue-500" />
+          <Waves className="h-4 w-4 text-blue-500 shrink-0" />
         ) : (
-          <Dumbbell className="h-4 w-4 text-orange-500" />
+          <Dumbbell className="h-4 w-4 text-orange-500 shrink-0" />
         )}
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          {slot.label}
+        </span>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold truncate">{assignment.title}</p>
-        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-            {isSwim ? "Nage" : "Muscu"}
-          </Badge>
-          <span className="text-[11px] text-muted-foreground">
-            {slotLabel(assignment.scheduledSlot)}
-          </span>
-          <Badge variant={statusVariant(assignment.status)} className="text-[10px] px-1.5 py-0">
-            {statusLabel(assignment.status)}
-          </Badge>
+
+      {hasAssignment && !isChanging ? (
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold truncate flex-1">{slot.assignment!.title}</p>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 shrink-0"
+            disabled={isPending}
+            onClick={() => setIsChanging(true)}
+            title="Changer"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+            disabled={isPending}
+            onClick={() => onDelete(slot.assignment!.id)}
+            title="Supprimer"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
-      </div>
+      ) : (
+        <Select
+          value=""
+          onValueChange={handleSelect}
+          disabled={isPending || catalog.length === 0}
+        >
+          <SelectTrigger className="h-9 text-xs">
+            <SelectValue placeholder={isChanging ? "Choisir le remplacement" : "Choisir une séance"} />
+          </SelectTrigger>
+          <SelectContent>
+            {catalog.map((item) => (
+              <SelectItem key={item.id} value={String(item.id)}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {isChanging ? (
+        <button
+          type="button"
+          className="text-xs text-muted-foreground hover:text-foreground"
+          onClick={() => setIsChanging(false)}
+        >
+          Annuler
+        </button>
+      ) : null}
     </div>
   );
 }
