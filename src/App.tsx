@@ -56,7 +56,6 @@ const Profile = lazyWithRetry(() => import("@/pages/Profile"));
 const Records = lazyWithRetry(() => import("@/pages/Records"));
 const RecordsAdmin = lazyWithRetry(() => import("@/pages/RecordsAdmin"));
 const RecordsClub = lazyWithRetry(() => import("@/pages/RecordsClub"));
-const Notifications = lazyWithRetry(() => import("@/pages/Notifications"));
 const SwimSessionView = lazyWithRetry(() => import("@/pages/SwimSessionView"));
 const ComingSoon = lazyWithRetry(() => import("@/pages/ComingSoon"));
 const NotFound = lazyWithRetry(() => import("@/pages/not-found"));
@@ -246,7 +245,6 @@ function AppRouter() {
             <Route path="/records-club" component={RecordsClub} />
             <Route path="/swim-session" component={SwimSessionView} />
             <Route path="/profile" component={Profile} />
-            <Route path="/notifications" component={Notifications} />
             <Route path="/coming-soon" component={ComingSoon} />
             <Route component={NotFound} />
           </Switch>

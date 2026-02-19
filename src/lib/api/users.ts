@@ -130,18 +130,18 @@ export async function getAthletes(): Promise<AthleteSummary[]> {
   if (!groups?.length) {
     const { data: users, error: usersError } = await supabase
       .from("users")
-      .select("id, display_name")
+      .select("id, display_name, email")
       .eq("role", "athlete")
       .eq("is_active", true);
     if (usersError) throw new Error(usersError.message);
     return (users ?? [])
-      .map((u: any) => ({ id: u.id, display_name: u.display_name, ffn_iuf: profileMap.get(u.id)?.ffn_iuf ?? null }))
+      .map((u: any) => ({ id: u.id, display_name: u.display_name, email: u.email ?? null, ffn_iuf: profileMap.get(u.id)?.ffn_iuf ?? null }))
       .filter((a: AthleteSummary) => a.display_name)
       .sort((a, b) => a.display_name.localeCompare(b.display_name, "fr"));
   }
   const { data: members, error: membersError } = await supabase
     .from("group_members")
-    .select("user_id, group_id, users!inner(display_name, role)")
+    .select("user_id, group_id, users!inner(display_name, role, email)")
     .eq("users.role", "athlete");
   if (membersError) throw new Error(membersError.message);
   const groupMap = new Map(groups.map((g: any) => [g.id, g.name]));
@@ -152,6 +152,8 @@ export async function getAthletes(): Promise<AthleteSummary[]> {
     athleteMap.set(userId, {
       id: userId,
       display_name: (m.users as any)?.display_name ?? "",
+      email: (m.users as any)?.email ?? null,
+      group_id: m.group_id ?? null,
       group_label: groupMap.get(m.group_id) ?? null,
       ffn_iuf: profileMap.get(userId)?.ffn_iuf ?? null,
     });

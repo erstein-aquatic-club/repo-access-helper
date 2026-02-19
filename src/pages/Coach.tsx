@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, CalendarDays, Download, Dumbbell, HeartPulse, MessageSquare, Trophy, Users, Waves } from "lucide-react";
+import { Bell, CalendarDays, Download, Dumbbell, HeartPulse, Mail, Trophy, Users, Waves } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
@@ -160,8 +160,8 @@ const CoachHome = ({
           onClick={() => onNavigate("messaging")}
           className="flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <MessageSquare className="h-3.5 w-3.5" />
-          Message
+          <Mail className="h-3.5 w-3.5" />
+          Email
         </button>
         <button
           type="button"
@@ -526,8 +526,8 @@ export default function Coach() {
             onBack={() => setActiveSection("home")}
             actions={
               <Button variant="outline" size="sm" onClick={() => setActiveSection("messaging")}>
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Message
+                <Mail className="mr-2 h-4 w-4" />
+                Email
               </Button>
             }
           />

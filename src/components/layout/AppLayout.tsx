@@ -5,30 +5,14 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import eacLogo from "@assets/logo-eac.png";
 import { getNavItemsForRole } from "@/components/layout/navItems";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
 import { OfflineDetector } from "@/components/shared/OfflineDetector";
 import { InstallPrompt } from "@/components/shared/InstallPrompt";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { role, userId, user } = useAuth();
+  const { role } = useAuth();
   const [isFocusMode, setIsFocusMode] = useState(false);
   const navItems = getNavItemsForRole(role);
-  const { data: notificationsResult } = useQuery({
-    queryKey: ["notifications", userId, user, "threads"],
-    queryFn: () =>
-      api.notifications_list({
-        targetUserId: userId,
-        targetAthleteName: user,
-        limit: 200,
-        offset: 0,
-        type: "message",
-        order: "desc",
-      }),
-    enabled: Boolean(userId),
-  });
-  const unreadCount = notificationsResult?.notifications?.filter((notification) => !notification.read).length ?? 0;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -97,8 +81,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Link key={item.href} href={item.href}>
                 <a className={cn(
                   "flex flex-col items-center justify-center gap-0.5 py-2 flex-1 min-w-0 max-w-[72px] transition-colors relative active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg",
-                  isActive 
-                    ? "text-primary" 
+                  isActive
+                    ? "text-primary"
                     : "text-muted-foreground active:text-foreground"
                 )}>
                   <div className={cn(
@@ -107,9 +91,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   )}>
                     <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
                   </div>
-                  {item.label === "Messagerie" && unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1/2 translate-x-4 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card animate-pulse motion-reduce:animate-none" aria-label={`${unreadCount} messages non lus`} />
-                  )}
                   <span className={cn(
                     "text-[10px] font-semibold tracking-tight truncate w-full text-center px-0.5",
                     isActive ? "text-primary" : "text-muted-foreground"

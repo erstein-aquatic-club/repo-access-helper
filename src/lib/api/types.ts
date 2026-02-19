@@ -162,6 +162,8 @@ export interface UserProfile {
 export interface AthleteSummary {
   id: number | null;
   display_name: string;
+  email?: string | null;
+  group_id?: number | null;
   group_label?: string | null;
   ffn_iuf?: string | null;
 }

@@ -7,7 +7,6 @@ test("Coach nav items include coach tab first and expected labels", () => {
   const labels = items.map((item) => item.label);
 
   assert.equal(labels[0], "Coach");
-  assert.ok(labels.includes("Messagerie"));
   assert.ok(labels.includes("Administratif"));
   assert.ok(labels.includes("Profil"));
 });
