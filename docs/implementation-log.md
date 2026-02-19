@@ -4834,3 +4834,74 @@ Le coach n'avait pas de vue calendrier pour visualiser les assignations (nage + 
 - Pas de test unitaire dédié pour CoachCalendar ou useCoachCalendarState (testé implicitement via tsc + build).
 - Le filtre par nageur individuel charge toutes les assignations du nageur sans pagination.
 - Pas de distinction visuelle entre assignations nage vs muscu dans les pills du calendrier (toutes vertes).
+
+---
+
+## §54 — 2026-02-19 — Refonte drawer calendrier coach avec 3 slots éditables inline
+
+**Branche** : `main`
+**Chantier ROADMAP** : §22b — Calendrier coach — Slots éditables inline
+
+### Contexte
+
+Le drawer du calendrier coach (§53) était passif : il affichait les assignations du jour sous forme de cartes en lecture seule avec un bouton "Assigner une séance" qui renvoyait vers l'écran d'assignation. Le coach devait naviguer entre deux écrans pour gérer le planning d'un jour. Ce patch remplace le drawer par 3 slots éditables inline (Nage Matin, Nage Soir, Musculation) avec des Select pickers pour assigner/remplacer/supprimer directement.
+
+### Changements réalisés
+
+1. **Hook `useCoachCalendarState` — modèle 3 slots** (`src/hooks/useCoachCalendarState.ts`)
+   - Ajout type `DaySlot` exporté : key, label, type (swim/strength), scheduledSlot, assignment
+   - Constante `DAY_SLOTS` définissant les 3 créneaux fixes
+   - Nouveau computed `slotsForSelectedDay` : mappe les assignations du jour aux 3 slots
+   - Nouveau computed `hasStrengthByISO` : map ISO → boolean pour l'indicateur DayCell
+   - Les deux valeurs ajoutées au return du hook
+
+2. **DayCell — indicateur musculation optionnel** (`src/components/dashboard/DayCell.tsx`)
+   - Nouvelle prop optionnelle `strengthAssigned?: boolean`
+   - Point orange (1.5×1.5 rounded-full bg-orange-400) à droite des pills AM/PM quand la prop est true
+   - Restructuration du bloc pills dans un wrapper flex avec gap-1
+
+3. **CalendarGrid — forward du prop** (`src/components/dashboard/CalendarGrid.tsx`)
+   - Nouvelle prop optionnelle `strengthByISO?: Record<string, boolean>`
+   - Passage de `strengthAssigned={strengthByISO?.[iso]}` à chaque DayCell
+
+4. **CoachCalendar — réécriture drawer inline** (`src/pages/coach/CoachCalendar.tsx`)
+   - Props : suppression `onAssign`, ajout `swimSessions` et `strengthSessions` (catalogues)
+   - Mutations `useMutation` pour `assignments_create` et `assignments_delete` avec invalidation React Query
+   - Extraction `slotsForSelectedDay` et `hasStrengthByISO` du hook
+   - Passage `strengthByISO` au CalendarGrid pour les points orange
+   - Nouveau drawer : 3 `SlotRow` avec icône type (Waves/Dumbbell), titre assignation, actions (RefreshCw/Trash2)
+   - `SlotRow` sub-component : Select picker pour assigner, mode "remplacement" (delete+create), bouton supprimer
+   - Suppression `AssignmentCard` et imports non utilisés
+
+5. **Coach.tsx — wiring** (`src/pages/Coach.tsx`)
+   - `shouldLoadCatalogs` étendu à `activeSection === "calendar"`
+   - Props CoachCalendar : suppression `onAssign`, ajout `swimSessions` et `strengthSessions`
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/hooks/useCoachCalendarState.ts` | Ajout DaySlot, slotsForSelectedDay, hasStrengthByISO |
+| `src/components/dashboard/DayCell.tsx` | Ajout prop strengthAssigned + point orange |
+| `src/components/dashboard/CalendarGrid.tsx` | Ajout prop strengthByISO, forward à DayCell |
+| `src/pages/coach/CoachCalendar.tsx` | Réécriture drawer (SlotRow inline, mutations, suppression onAssign) |
+| `src/pages/Coach.tsx` | Wiring catalogs + suppression onAssign |
+
+### Tests
+
+- [x] `npx tsc --noEmit` — 0 erreur TypeScript
+- [x] `npm test` — 116 tests passent (0 fail)
+
+### Décisions prises
+
+1. **3 slots fixes (Nage Matin, Nage Soir, Muscu)** — Modèle simple et prévisible plutôt que N slots dynamiques. Couvre 100% des cas d'usage du club.
+2. **Select pickers inline** — Pas de navigation vers un autre écran. Le coach voit et agit dans le même drawer.
+3. **Delete + Create pour remplacement** — Plutôt qu'un update de l'assignation existante, on supprime et recrée. Plus simple, pas d'ambiguïté sur les champs modifiés.
+4. **Point orange pour muscu dans DayCell** — Distinction visuelle swim (pills vertes) vs strength (point orange) demandée pour résoudre la dette de §53.
+5. **Props optionnelles** — `strengthAssigned` et `strengthByISO` sont optionnels pour ne pas casser le dashboard nageur qui ne les utilise pas.
+
+### Limites / dette
+
+- Pas de test unitaire dédié pour SlotRow ou les mutations (testé via tsc + build).
+- Le remplacement (delete+create) fait 2 appels réseau séquentiels — un endpoint bulk serait plus optimal.
+- Pas de feedback visuel de chargement par slot individuel (un seul isPending global).
