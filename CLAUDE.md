@@ -39,6 +39,8 @@ Application web de suivi d'entraînement (natation + musculation) pour l'Erstein
 | `src/lib/api/swim.ts` | Catalogue nage, sessions | ~160 lignes |
 | `src/lib/api/swim-logs.ts` | Notes techniques exercices natation | ~90 lignes |
 | `src/lib/swimTextParser.ts` | Parser texte → SwimBlock[], normaliseurs partagés | ~400 lignes |
+| `src/lib/swimConsultationUtils.ts` | Helpers partagés consultation séance (BlockGroup, groupItemsByBlock) | ~197 lignes |
+| `src/components/swim/SwimSessionTimeline.tsx` | Timeline verticale colorée, rail intensité, toggle 3 niveaux | ~555 lignes |
 | `src/lib/auth.ts` | Gestion auth, session, rôles | ~240 lignes |
 | `src/lib/supabase.ts` | Client Supabase | ~70 lignes |
 | `src/lib/features.ts` | Feature flags | 5 lignes |
@@ -96,6 +98,7 @@ Lire ces fichiers dans cet ordre pour reprendre le contexte :
 | 20 | Parser texte → blocs séance natation | Moyenne | Fait (§49) |
 | 21 | Hall of Fame refresh temps réel + sélecteur période | Moyenne | Fait (§51) |
 | 22 | Calendrier coach (vue mensuelle assignations) | Moyenne | Fait (§53) |
+| 23 | Swim Session Timeline (refonte visualisation séances) | Moyenne | Fait (§55) |
 
 Détail complet dans `docs/ROADMAP.md`.
 

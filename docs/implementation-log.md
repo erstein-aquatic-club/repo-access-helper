@@ -31,6 +31,7 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §51 Hall of Fame refresh + sélecteur période | ✅ Fait | 2026-02-18 |
 | §52 Fix parser natation — Form A sub-details | ✅ Fait | 2026-02-18 |
 | §53 Calendrier coach (vue mensuelle assignations) | ✅ Fait | 2026-02-19 |
+| §55 Swim Session Timeline (visualisation séances natation) | ✅ Fait | 2026-02-19 |
 | §45 Audit UI/UX — header Strength + login mobile + fixes | ✅ Fait | 2026-02-16 |
 | §46 Harmonisation headers + Login mobile thème clair | ✅ Fait | 2026-02-16 |
 | §6 Fix timers PWA iOS | ✅ Fait | 2026-02-09 |
@@ -4905,3 +4906,81 @@ Le drawer du calendrier coach (§53) était passif : il affichait les assignatio
 - Pas de test unitaire dédié pour SlotRow ou les mutations (testé via tsc + build).
 - Le remplacement (delete+create) fait 2 appels réseau séquentiels — un endpoint bulk serait plus optimal.
 - Pas de feedback visuel de chargement par slot individuel (un seul isPending global).
+
+---
+
+## 2026-02-19 — §55 Swim Session Timeline (refonte visualisation séances natation)
+
+**Branche** : `main`
+**Chantier ROADMAP** : §55 — Swim Session Timeline
+
+### Contexte — Pourquoi ce patch
+
+L'affichage existant des séances de natation (`SwimSessionConsultation`) souffrait de surcharge de badges/pilules, d'absence de hiérarchie visuelle et de mauvaise adaptation mobile. Les nageurs (ados 13-17 ans + adultes) avaient du mal à mémoriser les séances et à les lire au bord du bassin. L'objectif : une visualisation épurée, mobile-first, permettant de comprendre la séance en un coup d'œil.
+
+### Changements réalisés
+
+1. **Extraction helpers partagés** (`swimConsultationUtils.ts`)
+   - `BlockGroup`, `SwimExerciseDetail`, `normalizeIntensity()`, `getStrokeLabel()`, `formatRecoveryDisplay()`, `groupItemsByBlock()`, `strokeTypeLabels`, `strokeTypeTone`
+   - `SwimSessionConsultation.tsx` ré-importe depuis ce module
+
+2. **Animation CSS** (`src/index.css`)
+   - Ajout `@keyframes timeline-block-reveal` (fade-in + slide-up par bloc avec stagger)
+
+3. **EquipmentIconCompact** (`src/components/swim/EquipmentIconCompact.tsx`)
+   - Icône SVG dans cercle bg-muted (h-7/h-8) + label 3 lettres (Pal, Tub, Plq, Pul, Éla)
+   - Variantes taille `sm`/`md`
+
+4. **SwimSessionTimeline** (`src/components/swim/SwimSessionTimeline.tsx`) — composant principal
+   - Rail vertical coloré 4px à gauche (couleur = intensité dominante du bloc : V0→bleu, V1→vert, V2→ambre, V3→orange, Max→rouge, Prog→dégradé)
+   - Header sticky : distance totale en gros, durée estimée + nombre de blocs
+   - En-tête de bloc : titre majuscules + badge ×N si répétitions + distance alignée à droite
+   - Exercices compacts : `[reps×]distance nage [type] [intensité] [repos]` sur une ligne
+   - Badges nage colorés (Cr→sky, Do→violet, Br→emerald, Pa→amber, 4N→slate, Spé→pink)
+   - Matériel SVG compact sous chaque exercice (EquipmentIconCompact)
+   - Modalités dépliées par défaut sous chaque exercice
+   - Toggle 3 niveaux : Détail (tout visible) → Compact (modalités masquées) → Bassin (blocs repliés, gros texte)
+   - Collapse/expand individuel par bloc
+   - Milestones visuels tous les 1000m
+
+5. **Remplacement dans les 3 consommateurs**
+   - `SwimSessionView.tsx` : import SwimSessionTimeline, suppression toggle Condensé/Détail et badges dupliqués
+   - `SwimCatalog.tsx` : swap dans le DialogContent de preview
+   - `SwimSessionBuilder.tsx` : swap dans le DialogContent de preview
+
+6. **Suppression de l'ancien composant** (`SwimSessionConsultation.tsx`)
+   - Plus aucun import dans la codebase
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/lib/swimConsultationUtils.ts` | Créé — helpers partagés extraits |
+| `src/index.css` | Modifié — ajout keyframes animation |
+| `src/components/swim/EquipmentIconCompact.tsx` | Créé — icône matériel compacte |
+| `src/components/swim/SwimSessionTimeline.tsx` | Créé — nouveau composant timeline |
+| `src/components/swim/SwimSessionConsultation.tsx` | Supprimé — remplacé par SwimSessionTimeline |
+| `src/pages/SwimSessionView.tsx` | Modifié — utilise SwimSessionTimeline |
+| `src/pages/coach/SwimCatalog.tsx` | Modifié — utilise SwimSessionTimeline |
+| `src/components/coach/swim/SwimSessionBuilder.tsx` | Modifié — utilise SwimSessionTimeline |
+
+### Tests
+
+- [x] `npx tsc --noEmit` — 0 erreur TypeScript
+- [ ] `npm test` — à vérifier
+- [x] Prototype HTML validé visuellement (`docs/prototypes/swim-timeline-prototype.html`)
+
+### Décisions prises
+
+1. **Timeline verticale colorée** — Retenue parmi 3 options (timeline, cartes empilées, grille horizontale). Le rail coloré crée un "profil thermique" de la séance, visible au scroll rapide.
+2. **3 niveaux de toggle** — Détail (mémorisation avant l'entraînement), Compact (consultation rapide), Bassin (poolside, gros texte, blocs collapsés). Demandé par l'utilisateur plutôt que 2 niveaux.
+3. **Modalités dépliées par défaut** — Mode "mémorisation" = tout visible. Le mode Compact les masque.
+4. **SVG custom matériel** — Icônes existantes réutilisées dans cercles compacts avec labels 3 lettres (cross-platform, pas d'emojis).
+5. **Pas de barre d'intensité dans le header** — Le rail vertical donne déjà l'info visuellement.
+6. **Suppression de SwimSessionConsultation** — Remplacement complet, pas de coexistence.
+
+### Limites / dette
+
+- Pas de tests unitaires dédiés pour SwimSessionTimeline (testé via tsc + build + prototype HTML).
+- Le mode "Bord du bassin" (niveau 3) n'a pas de mécanisme de suivi du bloc courant (scroll auto vers le bloc en cours).
+- Les milestones 1000m sont calculés sur la distance cumulée, pas sur les items individuels.

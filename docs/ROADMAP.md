@@ -1,6 +1,6 @@
 # Roadmap de Développement
 
-*Dernière mise à jour : 2026-02-19 (§54 Calendrier coach slots inline)*
+*Dernière mise à jour : 2026-02-19 (§55 Swim Session Timeline)*
 
 Ce document décrit les fonctionnalités à implémenter. Il sert de référence pour reprendre le développement dans une future conversation.
 
@@ -33,6 +33,7 @@ Ce document décrit les fonctionnalités à implémenter. Il sert de référence
 | 21 | Hall of Fame refresh temps réel + sélecteur période | Moyenne | Faible | Fait |
 | 22 | Calendrier coach (vue mensuelle assignations) | Moyenne | Moyenne | Fait (§53) |
 | 22b | Calendrier coach — Slots éditables inline | Moyenne | Moyenne | Fait (§54) |
+| 23 | Swim Session Timeline (refonte visualisation séances) | Moyenne | Moyenne | Fait (§55) |
 
 ---
 

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { ChevronLeft, Layers, Route, AlertCircle } from "lucide-react";
+import { ChevronLeft, AlertCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SwimExerciseDetail, SwimSessionConsultation } from "@/components/swim/SwimSessionConsultation";
+import { SwimSessionTimeline } from "@/components/swim/SwimSessionTimeline";
+import type { SwimExerciseDetail } from "@/lib/swimConsultationUtils";
 import { api, Assignment, SwimSessionItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { calculateSwimTotalDistance } from "@/lib/swimSessionUtils";
 import { useToast } from "@/hooks/use-toast";
 
 const statusLabels: Record<string, string> = {
@@ -36,7 +36,6 @@ const formatAssignedDate = (value?: string | null) => {
 export default function SwimSessionView() {
   const { user, userId } = useAuth();
   const [location, setLocation] = useLocation();
-  const [compactMode, setCompactMode] = useState(true);
   const [selectedExercise, setSelectedExercise] = useState<SwimExerciseDetail | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -63,19 +62,6 @@ export default function SwimSessionView() {
   const assignment = assignmentId
     ? swimAssignments.find((item) => item.id === assignmentId)
     : swimAssignments[0];
-
-  const totalDistance = calculateSwimTotalDistance(assignment?.items ?? []);
-  const blockCount = useMemo(() => {
-    if (!assignment?.items) return 0;
-    const blocks = new Set<string>();
-    assignment.items.forEach((item) => {
-      const payload = (item.raw_payload as Record<string, unknown>) ?? {};
-      const title = payload.block_title || payload.section || "Bloc";
-      const order = payload.block_order ?? 0;
-      blocks.add(`${order}-${title}`);
-    });
-    return blocks.size;
-  }, [assignment?.items]);
 
   const deleteAssignmentMutation = useMutation({
     mutationFn: (assignmentId: number) => api.assignments_delete(assignmentId),
@@ -137,17 +123,9 @@ export default function SwimSessionView() {
             ) : null}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="text-xs">
-                {formatAssignedDate(assignment?.assigned_date)}
-              </Badge>
-              <Badge variant="secondary" className="text-xs">
-                <Route className="mr-1 h-3.5 w-3.5" /> {totalDistance}m
-              </Badge>
-              <Badge variant="secondary" className="text-xs">
-                <Layers className="mr-1 h-3.5 w-3.5" /> {blockCount} blocs
-              </Badge>
-            </div>
+            <Badge variant="outline" className="text-xs">
+              {formatAssignedDate(assignment?.assigned_date)}
+            </Badge>
             {assignment ? (
               <Button
                 variant="ghost"
@@ -162,28 +140,6 @@ export default function SwimSessionView() {
                 Retirer de mon feed
               </Button>
             ) : null}
-            <div className="flex items-center rounded-full border border-border bg-muted p-1 text-xs font-semibold">
-              <button
-                type="button"
-                aria-pressed={compactMode}
-                onClick={() => setCompactMode(true)}
-                className={`rounded-full px-3 py-1 transition ${
-                  compactMode ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
-                }`}
-              >
-                Condensé
-              </button>
-              <button
-                type="button"
-                aria-pressed={!compactMode}
-                onClick={() => setCompactMode(false)}
-                className={`rounded-full px-3 py-1 transition ${
-                  !compactMode ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
-                }`}
-              >
-                Détail
-              </button>
-            </div>
           </div>
           <Separator />
           {isLoading ? (
@@ -201,12 +157,11 @@ export default function SwimSessionView() {
               </div>
             </div>
           ) : assignment ? (
-            <SwimSessionConsultation
+            <SwimSessionTimeline
               title={assignment.title}
               description={assignment.description}
               items={assignment.items}
-              showHeader={false}
-              compactMode={compactMode}
+              showHeader={true}
               onExerciseSelect={(detail) => {
                 setSelectedExercise(detail);
               }}

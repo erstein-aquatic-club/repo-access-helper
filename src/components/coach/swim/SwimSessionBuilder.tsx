@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { SwimSessionConsultation } from "@/components/swim/SwimSessionConsultation";
+import { SwimSessionTimeline } from "@/components/swim/SwimSessionTimeline";
 import { SwimExerciseForm } from "./SwimExerciseForm";
 import { SessionMetadataForm } from "../shared/SessionMetadataForm";
 import { FormActions } from "../shared/FormActions";
@@ -520,7 +520,7 @@ export function SwimSessionBuilder({
         }}
       >
         <DialogContent className="max-w-4xl">
-          <SwimSessionConsultation
+          <SwimSessionTimeline
             title={selectedSession?.name ?? ""}
             description={selectedSession?.description ?? undefined}
             items={selectedSession?.items}

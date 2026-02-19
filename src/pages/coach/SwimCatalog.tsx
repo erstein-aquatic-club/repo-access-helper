@@ -24,7 +24,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { SwimSessionConsultation } from "@/components/swim/SwimSessionConsultation";
+import { SwimSessionTimeline } from "@/components/swim/SwimSessionTimeline";
 import { SessionListView } from "@/components/coach/shared/SessionListView";
 import { SwimSessionBuilder } from "@/components/coach/swim/SwimSessionBuilder";
 import { AlertCircle, Archive, FolderOpen, FolderPlus, Home, Layers, Plus, Route, Search, Timer } from "lucide-react";
@@ -671,7 +671,7 @@ export default function SwimCatalog() {
         }}
       >
         <DialogContent className="max-w-4xl">
-          <SwimSessionConsultation
+          <SwimSessionTimeline
             title={selectedSession?.name ?? ""}
             description={selectedSession?.description ?? undefined}
             items={selectedSession?.items}

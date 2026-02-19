@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-19 (§54 Calendrier coach slots inline)*
+*Dernière mise à jour : 2026-02-19 (§55 Swim Session Timeline)*
 
 ## Légende
 
@@ -54,7 +54,7 @@ Tous les feature flags sont activés.
 | Notes techniques exercice | ✅ | `TechnicalNotesSection.tsx`, `swim-logs.ts` | Temps/rep, tempo, coups de bras, notes par exercice |
 | Historique notes techniques | ✅ | `SwimExerciseLogsHistory.tsx` | Vue chronologique groupée par date |
 | Présence/absence | ✅ | `Dashboard.tsx` | Toggle par créneau |
-| Consultation séances | ✅ | `SwimSessionView.tsx` | Liste + détail |
+| Consultation séances | ✅ | `SwimSessionView.tsx`, `SwimSessionTimeline.tsx` | Timeline verticale colorée, rail d'intensité, toggle 3 niveaux (Détail/Compact/Bassin), icônes matériel SVG (§55) |
 | Historique/Progression | ✅ | `Progress.tsx` | Apple Health style: hero KPI + tendance, sticky header compact (§46), AreaChart gradient, ProgressBar ressentis, Collapsible detail |
 
 ### Natation — Coach
@@ -63,7 +63,7 @@ Tous les feature flags sont activés.
 |----------------|--------|----------|-------|
 | Création séance | ✅ | `SwimCatalog.tsx`, `SwimSessionBuilder.tsx` | Blocs, exercices, intensité, matériel, récupération départ/repos |
 | Édition séance | ✅ | `SwimCatalog.tsx`, `SwimSessionBuilder.tsx` | Vue accordion inline, duplication exercice |
-| Récupération entre exercices | ✅ | `SwimExerciseForm.tsx`, `SwimSessionConsultation.tsx` | Départ (temps de départ) OU Repos (pause), affiché côté nageur |
+| Récupération entre exercices | ✅ | `SwimExerciseForm.tsx`, `SwimSessionTimeline.tsx` | Départ (temps de départ) OU Repos (pause), affiché côté nageur |
 | Catalogue | ✅ | `SwimCatalog.tsx` | Dossiers/sous-dossiers, archivage BDD, restauration, déplacement |
 | Intensité Progressif | ✅ | `IntensityDots.tsx`, `IntensityDotsSelector.tsx` | Intensité "Prog" avec icône TrendingUp, couleur orange |
 | Conversion texte → blocs | ✅ | `swimTextParser.ts`, `SwimSessionBuilder.tsx` | Parser déterministe, 50 tests, format coach structuré (§49). Fix §52 : exercices parents préservés avec sous-détails Form A en modalities |
