@@ -63,11 +63,11 @@ const strokeBadgeMap: Record<string, { label: string; className: string }> = {
   Brasse: { label: "Brasse", className: "bg-emerald-100 text-emerald-800" },
   Pap: { label: "Pap", className: "bg-amber-100 text-amber-800" },
   "4 nages": { label: "4N", className: "bg-slate-100 text-slate-700" },
-  "Sp\u00e9": { label: "Sp\u00e9", className: "bg-pink-100 text-pink-800" },
+  "Spé": { label: "Spé", className: "bg-pink-100 text-pink-800" },
 };
 
 const typeBadgeMap: Record<string, { label: string; className: string }> = {
-  "\u00c9ducatif": { label: "\u00c9duc", className: "bg-violet-100 text-violet-800 italic" },
+  "Éducatif": { label: "Éduc", className: "bg-violet-100 text-violet-800 italic" },
   Jambes: { label: "Jambes", className: "bg-teal-100 text-teal-800" },
 };
 
@@ -106,9 +106,9 @@ const formatExerciseLabel = (item: SwimSessionItem): string => {
   const p = (item.raw_payload as SwimPayloadFields) ?? {};
   const reps = Number(p.exercise_repetitions);
   const dist = Number(item.distance);
-  if (reps > 1 && dist > 0) return `${reps}\u00d7${dist}m`;
+  if (reps > 1 && dist > 0) return `${reps}×${dist}m`;
   if (dist > 0) return `${dist}m`;
-  return item.label || "\u2014";
+  return item.label || "—";
 };
 
 // ---------------------------------------------------------------------------
@@ -194,7 +194,7 @@ export function SwimSessionTimeline({
   if (blocks.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-muted/70 bg-muted/30 p-6 text-sm text-muted-foreground">
-        Aucun contenu d\u00e9taill\u00e9 pour cette s\u00e9ance.
+        Aucun contenu détaillé pour cette séance.
       </div>
     );
   }
@@ -212,33 +212,40 @@ export function SwimSessionTimeline({
               <Layers className="h-3.5 w-3.5" /> {blocks.length} blocs
             </span>
           </div>
-          {/* 3-level toggle button */}
-          <button
-            type="button"
-            onClick={cycleViewLevel}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition",
-              viewLevel === 0 && "border-border bg-card text-muted-foreground",
-              viewLevel === 1 && "border-muted-foreground/30 bg-muted text-foreground",
-              viewLevel === 2 && "border-primary bg-primary text-primary-foreground",
-            )}
-          >
-            {viewLevel === 0 && (
-              <>
-                <Eye className="h-3.5 w-3.5" /> D\u00e9tail
-              </>
-            )}
-            {viewLevel === 1 && (
-              <>
-                <List className="h-3.5 w-3.5" /> Compact
-              </>
-            )}
-            {viewLevel === 2 && (
-              <>
-                <Waves className="h-3.5 w-3.5" /> Bassin
-              </>
-            )}
-          </button>
+          {/* 3-level toggle — segmented so user sees all 3 options */}
+          <div className="flex items-center rounded-full border border-border bg-muted/50 p-0.5">
+            {([
+              { level: 0 as const, icon: Eye, label: "Détail" },
+              { level: 1 as const, icon: List, label: "Compact" },
+              { level: 2 as const, icon: Waves, label: "Bassin" },
+            ]).map(({ level, icon: Icon, label }) => (
+              <button
+                key={level}
+                type="button"
+                onClick={() => {
+                  setViewLevel(level);
+                  if (level === 2) {
+                    setCollapsedBlocks(new Set(blocks.map((b) => b.key)));
+                  } else if (level === 0) {
+                    setCollapsedBlocks(new Set());
+                  }
+                }}
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-all",
+                  viewLevel === level
+                    ? level === 2
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground",
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span className={cn(viewLevel !== level && "hidden sm:inline")}>
+                  {label}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -279,7 +286,7 @@ export function SwimSessionTimeline({
                 </div>
 
                 {/* Content column */}
-                <div className="min-w-0 flex-1 pb-2 pl-3">
+                <div className="min-w-0 flex-1 pb-4 pl-3">
                   {/* Block header */}
                   <button
                     type="button"
@@ -290,7 +297,7 @@ export function SwimSessionTimeline({
                     <span
                       className={cn(
                         "font-display font-bold uppercase tracking-[0.08em]",
-                        isBassin ? "text-sm" : "text-[13px]",
+                        isBassin ? "text-base" : "text-sm",
                         intensityTextMap[dominant] ?? "text-foreground",
                       )}
                     >
@@ -303,14 +310,14 @@ export function SwimSessionTimeline({
                           railColorMap[dominant],
                         )}
                       >
-                        \u00d7{block.repetitions}
+                        ×{block.repetitions}
                       </span>
                     ) : null}
                     <span className="flex-1" />
                     <span
                       className={cn(
                         "font-display font-bold tabular-nums tracking-tight text-foreground",
-                        isBassin ? "text-[17px]" : "text-[15px]",
+                        isBassin ? "text-lg" : "text-base",
                       )}
                     >
                       {blockDist.toLocaleString("fr-FR")}m
@@ -332,7 +339,7 @@ export function SwimSessionTimeline({
 
                   {/* Exercise list (hidden when collapsed) */}
                   {!isCollapsed && (
-                    <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-1">
                       {block.items.map((item, itemIndex) => {
                         const payload =
                           (item.raw_payload as SwimPayloadFields) ?? {};
@@ -366,8 +373,8 @@ export function SwimSessionTimeline({
                           <div
                             key={`${block.key}-${itemIndex}`}
                             className={cn(
-                              "py-1.5",
-                              itemIndex > 0 && "border-t border-border/30",
+                              "py-2",
+                              itemIndex > 0 && "border-t border-border/40",
                               onExerciseSelect && "cursor-pointer active:bg-muted/50 rounded",
                             )}
                             onClick={
@@ -414,7 +421,7 @@ export function SwimSessionTimeline({
                                   "font-display font-bold tabular-nums tracking-tight text-foreground",
                                   isBassin
                                     ? "min-w-[95px] text-xl"
-                                    : "min-w-[72px] text-base",
+                                    : "min-w-[76px] text-lg",
                                 )}
                               >
                                 {formatExerciseLabel(item)}
@@ -426,8 +433,8 @@ export function SwimSessionTimeline({
                                   className={cn(
                                     "rounded-full font-display font-bold whitespace-nowrap leading-tight",
                                     isBassin
-                                      ? "px-2.5 py-1 text-[13px]"
-                                      : "px-2 py-0.5 text-[11px]",
+                                      ? "px-2.5 py-1 text-sm"
+                                      : "px-2 py-0.5 text-xs",
                                     strokeBadge.className,
                                   )}
                                 >
@@ -439,7 +446,7 @@ export function SwimSessionTimeline({
                               {!isBassin && typeBadge ? (
                                 <span
                                   className={cn(
-                                    "rounded-full px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap leading-tight",
+                                    "rounded-full px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap leading-tight",
                                     typeBadge.className,
                                   )}
                                 >
@@ -451,7 +458,7 @@ export function SwimSessionTimeline({
                               {!isBassin && normalizedIntensity ? (
                                 <span
                                   className={cn(
-                                    "font-display text-xs font-bold whitespace-nowrap",
+                                    "font-display text-sm font-bold whitespace-nowrap",
                                     intensityTextMap[normalizedIntensity] ??
                                       "text-foreground",
                                   )}
@@ -465,7 +472,7 @@ export function SwimSessionTimeline({
 
                               {/* Rest (hidden in bassin) */}
                               {!isBassin && restSeconds > 0 ? (
-                                <span className="ml-auto flex items-center gap-1 whitespace-nowrap text-xs font-medium text-muted-foreground">
+                                <span className="ml-auto flex items-center gap-1 whitespace-nowrap text-sm font-medium text-muted-foreground">
                                   <Clock className="h-3 w-3" />
                                   {restType === "departure" ? "d:" : "r:"}
                                   {formatRecoveryDisplay(restSeconds)}
@@ -490,7 +497,7 @@ export function SwimSessionTimeline({
                             {viewLevel === 0 && modalitiesLines.length > 0 ? (
                               <div
                                 className={cn(
-                                  "mt-1 rounded-md border-l-[3px] bg-muted/60 px-2.5 py-1.5 text-xs leading-relaxed text-muted-foreground",
+                                  "mt-1.5 rounded-md border-l-[3px] bg-muted/60 px-2.5 py-1.5 text-sm leading-relaxed text-muted-foreground",
                                   (() => {
                                     // Use the dominant intensity border color
                                     const borderMap: Record<string, string> = {
@@ -528,14 +535,14 @@ export function SwimSessionTimeline({
               {/* ── Milestone ── */}
               {blockIndex < blocks.length - 1 && (
                 <div
-                  className="flex items-center py-1"
+                  className="flex items-center py-2"
                   style={{ marginLeft: "15px" }}
                 >
-                  <div className="h-px flex-1 bg-border/50" />
-                  <span className="px-2 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="px-2.5 text-[11px] font-bold tabular-nums text-muted-foreground">
                     {cumulDist.toLocaleString("fr-FR")}m
                   </span>
-                  <div className="h-px flex-1 bg-border/50" />
+                  <div className="h-px flex-1 bg-border" />
                 </div>
               )}
             </div>
@@ -546,7 +553,7 @@ export function SwimSessionTimeline({
         <div className="flex items-center gap-2 pl-2.5 pt-2">
           <div className="h-2.5 w-2.5 rounded-full bg-muted" />
           <span className="text-xs font-semibold text-muted-foreground">
-            Fin de s\u00e9ance \u2014 {totalDistance.toLocaleString("fr-FR")}m
+            Fin de séance — {totalDistance.toLocaleString("fr-FR")}m
           </span>
         </div>
       </div>
