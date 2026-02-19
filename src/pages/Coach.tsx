@@ -288,7 +288,7 @@ export default function Coach() {
 
   const coachAccess = role === "coach" || role === "admin";
   const shouldLoadAssignments = activeSection === "assignments";
-  const shouldLoadCatalogs = activeSection === "home" || activeSection === "assignments";
+  const shouldLoadCatalogs = activeSection === "home" || activeSection === "assignments" || activeSection === "calendar";
   const shouldLoadAthletes =
     activeSection === "home" ||
     activeSection === "assignments" ||
@@ -600,11 +600,10 @@ export default function Coach() {
       {activeSection === "calendar" ? (
         <CoachCalendar
           onBack={() => setActiveSection("home")}
-          onAssign={(prefillDate) => {
-            setActiveSection("assignments");
-          }}
           athletes={athletes}
           groups={groups}
+          swimSessions={swimSessions}
+          strengthSessions={strengthSessions}
         />
       ) : null}
     </div>
