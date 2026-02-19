@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-18 (§51 Hall of Fame refresh + sélecteur période)*
+*Dernière mise à jour : 2026-02-19 (§53 Calendrier coach)*
 
 ## Légende
 
@@ -90,6 +90,7 @@ Tous les feature flags sont activés.
 | Dossiers exercices | ✅ | `StrengthCatalog.tsx`, `FolderSection.tsx`, `MoveToFolderPopover.tsx` | Même système que séances, types séparés (§32) |
 | Assignation | ✅ | `CoachAssignScreen.tsx` | Via écran d'assignation partagé |
 | Dashboard coach | ✅ | `Coach.tsx` | Mobile first, KPI unifié, grille 2x2 avec compteurs, cards nageurs (§35) |
+| Calendrier coach | ✅ | `CoachCalendar.tsx`, `useCoachCalendarState.ts` | Vue mensuelle assignations, filtre groupe/nageur, réutilise CalendarGrid (§53) |
 
 ### Records & FFN
 

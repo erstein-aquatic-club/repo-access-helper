@@ -30,6 +30,7 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §39 Finalisation dashboard pointage heures | ✅ Fait | 2026-02-16 |
 | §51 Hall of Fame refresh + sélecteur période | ✅ Fait | 2026-02-18 |
 | §52 Fix parser natation — Form A sub-details | ✅ Fait | 2026-02-18 |
+| §53 Calendrier coach (vue mensuelle assignations) | ✅ Fait | 2026-02-19 |
 | §45 Audit UI/UX — header Strength + login mobile + fixes | ✅ Fait | 2026-02-16 |
 | §46 Harmonisation headers + Login mobile thème clair | ✅ Fait | 2026-02-16 |
 | §6 Fix timers PWA iOS | ✅ Fait | 2026-02-09 |
@@ -4761,3 +4762,75 @@ Le coach peut saisir du texte libre dans le mode "Texte" du swim session builder
 - Les formats de texte très libres (phrases complètes, descriptions narratives) ne sont pas parsés — seul le format structuré des 6 exemples est supporté.
 - Les annotations `B1 :` / `S1 :` sont capturées en description mais pas interprétées structurellement.
 - Le parser ne valide pas la cohérence des distances (sous-détails Form A vs distance parent).
+
+---
+
+## 2026-02-19 — Calendrier coach (vue mensuelle des assignations)
+
+**Branche** : `main`
+**Chantier ROADMAP** : §22 — Calendrier coach
+
+### Contexte
+
+Le coach n'avait pas de vue calendrier pour visualiser les assignations (nage + musculation) par jour/mois. Il devait naviguer dans l'écran d'assignation pour comprendre le planning. Ce patch ajoute une vue calendrier mensuelle interactive, réutilisant les composants CalendarHeader/CalendarGrid/DayCell du dashboard nageur, avec des filtres par groupe ou par nageur individuel.
+
+### Changements réalisés
+
+1. **Nouveau type `CoachAssignment`** dans `src/lib/api/types.ts`
+   - Interface typée : id, title, type (swim/strength), scheduledDate, scheduledSlot, status, groupId, userId
+
+2. **Nouvelle fonction API `getCoachAssignments()`** dans `src/lib/api/assignments.ts`
+   - Requête Supabase avec filtres : groupId, userId, date range (from/to)
+   - Jointure sur swim_catalog et strength_sessions pour le titre
+   - Re-exportée dans `src/lib/api/index.ts` et `src/lib/api.ts`
+
+3. **Nouveau hook `useCoachCalendarState`** dans `src/hooks/useCoachCalendarState.ts` (187 lignes)
+   - Gestion du curseur mois, grille 42 jours, sélection de jour
+   - React Query pour charger les assignations de la plage visible
+   - Construction de `completionByISO` compatible avec CalendarGrid (slots AM/PM)
+   - Index assignmentsByISO pour le drill-down par jour
+
+4. **Nouveau composant `CoachCalendar`** dans `src/pages/coach/CoachCalendar.tsx` (266 lignes)
+   - Barre de filtre : ToggleGroup (Groupe/Nageur) + Select dropdown
+   - Réutilise CalendarHeader + CalendarGrid du dashboard nageur
+   - Sheet bottom pour le détail du jour sélectionné
+   - AssignmentCard interne : icône nage/muscu, badge statut, label slot
+   - Bouton "Assigner une séance" pré-rempli avec la date sélectionnée
+   - Navigation clavier (flèches, Enter, Espace)
+
+5. **Wiring dans `Coach.tsx`**
+   - Nouvelle section "calendar" dans le type CoachSection
+   - Import lazy du composant CoachCalendar
+   - Bouton "Calendrier" avec icône CalendarDays dans le dashboard coach
+   - Passage des props athletes/groups + callbacks onBack/onAssign
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/lib/api/types.ts` | Ajout interface CoachAssignment |
+| `src/lib/api/assignments.ts` | Ajout getCoachAssignments() |
+| `src/lib/api/index.ts` | Re-export getCoachAssignments + CoachAssignment |
+| `src/lib/api.ts` | Export facade getCoachAssignments |
+| `src/hooks/useCoachCalendarState.ts` | Nouveau — hook état calendrier coach |
+| `src/pages/coach/CoachCalendar.tsx` | Nouveau — composant calendrier coach |
+| `src/pages/Coach.tsx` | Ajout section calendar, import, navigation, wiring |
+
+### Tests
+
+- [x] `npx tsc --noEmit` — 0 erreur TypeScript
+- [x] `npm test` — 122 tests passent (0 fail)
+- [x] `npm run build` — build propre
+
+### Décisions prises
+
+1. **Réutilisation CalendarHeader/CalendarGrid/DayCell** — Même composants que le dashboard nageur, avec un shape `completionByISO` compatible (slots AM/PM). Pas de duplication.
+2. **Filtre groupe OU nageur** — ToggleGroup exclusif pour éviter la confusion. Le calendrier est vide sans filtre (message d'invite).
+3. **Sheet bottom pour le détail** — Cohérent avec le pattern du dashboard nageur (FeedbackDrawer).
+4. **Bouton "Assigner une séance"** — Pré-remplit la date sélectionnée pour un workflow fluide coach.
+
+### Limites / dette
+
+- Pas de test unitaire dédié pour CoachCalendar ou useCoachCalendarState (testé implicitement via tsc + build).
+- Le filtre par nageur individuel charge toutes les assignations du nageur sans pagination.
+- Pas de distinction visuelle entre assignations nage vs muscu dans les pills du calendrier (toutes vertes).

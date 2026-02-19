@@ -51,6 +51,8 @@ Application web de suivi d'entraînement (natation + musculation) pour l'Erstein
 | `src/pages/RecordsClub.tsx` | Records club (sections nage, drill-down progressif) | ~840 lignes |
 | `src/pages/RecordsAdmin.tsx` | Admin records + gestion nageurs | ~300 lignes |
 | `src/pages/Login.tsx` | Login + inscription | ~340 lignes |
+| `src/pages/coach/CoachCalendar.tsx` | Calendrier coach (vue mensuelle assignations) | ~266 lignes |
+| `src/hooks/useCoachCalendarState.ts` | Hook état calendrier coach (grille, query, slots) | ~187 lignes |
 
 ## Edge Functions Supabase
 
@@ -93,6 +95,7 @@ Lire ces fichiers dans cet ordre pour reprendre le contexte :
 | 19 | Audit performances + optimisation PWA (Workbox) | Haute | Fait (§48) |
 | 20 | Parser texte → blocs séance natation | Moyenne | Fait (§49) |
 | 21 | Hall of Fame refresh temps réel + sélecteur période | Moyenne | Fait (§51) |
+| 22 | Calendrier coach (vue mensuelle assignations) | Moyenne | Fait (§53) |
 
 Détail complet dans `docs/ROADMAP.md`.
 
