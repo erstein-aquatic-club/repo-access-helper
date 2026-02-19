@@ -39,6 +39,20 @@ function slotToSlotKey(slot: string | null): "AM" | "PM" {
   return "AM";
 }
 
+export type DaySlot = {
+  key: "swim-morning" | "swim-evening" | "strength";
+  label: string;
+  type: "swim" | "strength";
+  scheduledSlot: "morning" | "evening" | null;
+  assignment: CoachAssignment | null;
+};
+
+const DAY_SLOTS: Omit<DaySlot, "assignment">[] = [
+  { key: "swim-morning", label: "Nage — Matin", type: "swim", scheduledSlot: "morning" },
+  { key: "swim-evening", label: "Nage — Soir", type: "swim", scheduledSlot: "evening" },
+  { key: "strength", label: "Musculation", type: "strength", scheduledSlot: null },
+];
+
 interface UseCoachCalendarStateProps {
   groupId?: number | null;
   userId?: number | null;
@@ -135,6 +149,28 @@ export function useCoachCalendarState({ groupId, userId, enabled }: UseCoachCale
     [assignmentsByISO, selectedISO]
   );
 
+  const slotsForSelectedDay = useMemo((): DaySlot[] => {
+    const dayAssignments = assignmentsForSelectedDay;
+    return DAY_SLOTS.map((slot) => {
+      const match = dayAssignments.find((a) => {
+        if (slot.type !== a.type) return false;
+        if (slot.type === "swim") return slotToSlotKey(a.scheduledSlot) === (slot.scheduledSlot === "morning" ? "AM" : "PM");
+        return true; // strength: any strength assignment matches
+      });
+      return { ...slot, assignment: match ?? null };
+    });
+  }, [assignmentsForSelectedDay]);
+
+  const hasStrengthByISO = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    for (const d of gridDates) {
+      const iso = toISODate(d);
+      const dayAssignments = assignmentsByISO.get(iso) ?? [];
+      map[iso] = dayAssignments.some((a) => a.type === "strength");
+    }
+    return map;
+  }, [gridDates, assignmentsByISO]);
+
   const selectedDayStatus = completionByISO[selectedISO] ?? {
     completed: 0,
     total: 0,
@@ -173,6 +209,8 @@ export function useCoachCalendarState({ groupId, userId, enabled }: UseCoachCale
     selectedDate,
     selectedDayStatus,
     assignmentsForSelectedDay,
+    slotsForSelectedDay,
+    hasStrengthByISO,
     isLoading,
     hasFilter,
     setSelectedISO,
