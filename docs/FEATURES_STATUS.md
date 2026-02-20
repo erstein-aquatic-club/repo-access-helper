@@ -1,6 +1,6 @@
 # État des fonctionnalités
 
-*Dernière mise à jour : 2026-02-19 (§56 Groupes temporaires coach)*
+*Dernière mise à jour : 2026-02-20 (§57 Partage public séances natation)*
 
 ## Légende
 
@@ -55,6 +55,7 @@ Tous les feature flags sont activés.
 | Historique notes techniques | ✅ | `SwimExerciseLogsHistory.tsx` | Vue chronologique groupée par date |
 | Présence/absence | ✅ | `Dashboard.tsx` | Toggle par créneau |
 | Consultation séances | ✅ | `SwimSessionView.tsx`, `SwimSessionTimeline.tsx` | Timeline verticale colorée, rail d'intensité, toggle 3 niveaux (Détail/Compact/Bassin), icônes matériel SVG (§55) |
+| Partage public séance | ✅ | `SwimSessionView.tsx`, `SharedSwimSession.tsx`, `swim.ts` | Lien partageable UUID, page publique sans auth, CTA inscription (§57) |
 | Historique/Progression | ✅ | `Progress.tsx` | Apple Health style: hero KPI + tendance, sticky header compact (§46), AreaChart gradient, ProgressBar ressentis, Collapsible detail |
 
 ### Natation — Coach
@@ -65,6 +66,7 @@ Tous les feature flags sont activés.
 | Édition séance | ✅ | `SwimCatalog.tsx`, `SwimSessionBuilder.tsx` | Vue accordion inline, duplication exercice |
 | Récupération entre exercices | ✅ | `SwimExerciseForm.tsx`, `SwimSessionTimeline.tsx` | Départ (temps de départ) OU Repos (pause), affiché côté nageur |
 | Catalogue | ✅ | `SwimCatalog.tsx` | Dossiers/sous-dossiers, archivage BDD, restauration, déplacement |
+| Partage public séance | ✅ | `SwimCatalog.tsx`, `swim.ts` | Bouton partage dans preview, génération token UUID (§57) |
 | Intensité Progressif | ✅ | `IntensityDots.tsx`, `IntensityDotsSelector.tsx` | Intensité "Prog" avec icône TrendingUp, couleur orange |
 | Conversion texte → blocs | ✅ | `swimTextParser.ts`, `SwimSessionBuilder.tsx` | Parser déterministe, 50 tests, format coach structuré (§49). Fix §52 : exercices parents préservés avec sous-détails Form A en modalities |
 | Assignation | ✅ | `CoachAssignScreen.tsx` | Nage + muscu |

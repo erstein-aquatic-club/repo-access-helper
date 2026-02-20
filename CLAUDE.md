@@ -36,7 +36,8 @@ Application web de suivi d'entraînement (natation + musculation) pour l'Erstein
 | `src/lib/api/assignments.ts` | Assignments CRUD | ~230 lignes |
 | `src/lib/api/notifications.ts` | Notifications CRUD | ~210 lignes |
 | `src/lib/api/timesheet.ts` | Pointage heures CRUD | ~180 lignes |
-| `src/lib/api/swim.ts` | Catalogue nage, sessions | ~160 lignes |
+| `src/lib/api/swim.ts` | Catalogue nage, sessions, partage public | ~220 lignes |
+| `src/pages/SharedSwimSession.tsx` | Page publique séance partagée (token UUID) | ~130 lignes |
 | `src/lib/api/swim-logs.ts` | Notes techniques exercices natation | ~90 lignes |
 | `src/lib/api/temporary-groups.ts` | CRUD groupes temporaires (stages) | ~300 lignes |
 | `src/lib/swimTextParser.ts` | Parser texte → SwimBlock[], normaliseurs partagés | ~400 lignes |
@@ -102,6 +103,7 @@ Lire ces fichiers dans cet ordre pour reprendre le contexte :
 | 22 | Calendrier coach (vue mensuelle assignations) | Moyenne | Fait (§53) |
 | 23 | Swim Session Timeline (refonte visualisation séances) | Moyenne | Fait (§55) |
 | 24 | Groupes temporaires coach (stages, sous-groupes) | Moyenne | Fait (§56) |
+| 25 | Partage public séances natation (token UUID) | Moyenne | Fait (§57) |
 
 Détail complet dans `docs/ROADMAP.md`.
 

@@ -33,6 +33,7 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §53 Calendrier coach (vue mensuelle assignations) | ✅ Fait | 2026-02-19 |
 | §55 Swim Session Timeline (visualisation séances natation) | ✅ Fait | 2026-02-19 |
 | §56 Groupes temporaires coach (stages) | ✅ Fait | 2026-02-19 |
+| §57 Partage public séances natation (token UUID) | ✅ Fait | 2026-02-20 |
 | §45 Audit UI/UX — header Strength + login mobile + fixes | ✅ Fait | 2026-02-16 |
 | §46 Harmonisation headers + Login mobile thème clair | ✅ Fait | 2026-02-16 |
 | §6 Fix timers PWA iOS | ✅ Fait | 2026-02-09 |
@@ -5056,3 +5057,77 @@ Le coach part en stage avec des nageurs issus de différents groupes permanents.
 - Pas de tests d'intégration pour le CRUD Supabase (seulement la fonction pure partitionGroupIds est testée).
 - Pas de pagination sur la liste des groupes temporaires (suffisant pour le volume actuel).
 - Le `created_by` n'est pas renseigné à la création (le RLS de groups n'a pas accès à `app_user_id()` côté insert facilement).
+
+---
+
+## 2026-02-20 — §57 Partage public de séances natation (token UUID)
+
+**Branche** : `main`
+**Chantier ROADMAP** : §57 — Partage public séances natation
+
+### Contexte — Pourquoi ce patch
+
+Les coachs veulent envoyer un lien (WhatsApp, SMS) à des nageurs qui n'ont pas de compte pour qu'ils puissent visualiser une séance avant l'entraînement. Toutes les routes étaient protégées par l'authentification.
+
+### Changements réalisés
+
+1. **Migration Supabase** (`supabase/migrations/00025_swim_share_token.sql`)
+   - Ajout `share_token UUID` à `swim_sessions_catalog` (null par défaut)
+   - Index unique partiel sur tokens non-null
+   - Policies RLS anon : SELECT autorisé sur sessions et items avec token
+   - RPC `generate_swim_share_token()` (SECURITY DEFINER) pour création atomique
+
+2. **API** (`src/lib/api/swim.ts`)
+   - `generateShareToken(catalogId)` — vérifie si token existe, sinon appelle RPC
+   - `getSharedSession(token)` — fetch session + items par token (clé anon)
+   - Re-exporté depuis `index.ts` et ajouté à l'objet `api`
+
+3. **Page publique** (`src/pages/SharedSwimSession.tsx`)
+   - Route `/#/s/:token` accessible avec ou sans authentification
+   - Affiche `SwimSessionTimeline` avec les données de la session
+   - Bandeau CTA fixe en bas : "Rejoins l'EAC" + bouton "S'inscrire"
+   - États loading/erreur/succès
+
+4. **Routes** (`src/App.tsx`)
+   - Route `/s/:token` ajoutée dans les blocs authentifié et non-authentifié
+   - Lazy loading avec `lazyWithRetry`
+
+5. **Bouton partage coach** (`src/pages/coach/SwimCatalog.tsx`)
+   - Bouton "Partager" dans le dialog preview de séance
+   - `navigator.share` sur mobile, clipboard + toast sur desktop
+
+6. **Bouton partage nageur** (`src/pages/SwimSessionView.tsx`)
+   - Icône Share2 dans le header de la séance
+   - Même logique share/clipboard que SwimCatalog
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `supabase/migrations/00025_swim_share_token.sql` | Créé — migration BDD |
+| `src/lib/api/swim.ts` | Modifié — 2 nouvelles fonctions |
+| `src/lib/api/index.ts` | Modifié — re-exports |
+| `src/lib/api.ts` | Modifié — ajout à l'objet api |
+| `src/pages/SharedSwimSession.tsx` | Créé — page publique |
+| `src/App.tsx` | Modifié — route publique |
+| `src/pages/coach/SwimCatalog.tsx` | Modifié — bouton partage |
+| `src/pages/SwimSessionView.tsx` | Modifié — bouton partage |
+
+### Tests
+
+- [x] `npx tsc --noEmit` — 0 erreur TypeScript
+- [x] Migration appliquée via Supabase MCP (projet fscnobivsgornxdwqwlk)
+
+### Décisions prises
+
+1. **Token UUID plutôt qu'ID direct** — Non devinable, révocable (set null).
+2. **Bandeau CTA fixe plutôt que popup** — Moins intrusif, toujours visible.
+3. **RPC SECURITY DEFINER** — Le coach doit pouvoir générer un token même si l'UPDATE RLS limite l'accès.
+4. **navigator.share en priorité** — Expérience native sur mobile (WhatsApp, SMS, etc.).
+5. **Route courte `/#/s/:token`** — URL compacte pour le partage.
+
+### Limites / dette
+
+- Pas de mécanisme de révocation de token (pourrait être ajouté via un bouton "Désactiver le lien").
+- Pas de compteur de vues sur les sessions partagées.
+- Le CTA ne pré-remplit pas le formulaire d'inscription avec un contexte (ex: "invité par coach X").
