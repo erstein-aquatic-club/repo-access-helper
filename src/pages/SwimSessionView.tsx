@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { ChevronLeft, AlertCircle } from "lucide-react";
+import { ChevronLeft, AlertCircle, Share2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import type { SwimExerciseDetail } from "@/lib/swimConsultationUtils";
 import { api, Assignment, SwimSessionItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { generateShareToken } from "@/lib/api/swim";
 
 const statusLabels: Record<string, string> = {
   assigned: "Assignée",
@@ -75,6 +76,22 @@ export default function SwimSessionView() {
     },
   });
 
+  const handleShare = async () => {
+    if (!assignment) return;
+    try {
+      const token = await generateShareToken(assignment.session_id);
+      const url = `${window.location.origin}${window.location.pathname}#/s/${token}`;
+      if (navigator.share) {
+        await navigator.share({ title: assignment.title, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Lien copié !", description: "Le lien de partage a été copié dans le presse-papier." });
+      }
+    } catch (err) {
+      toast({ title: "Erreur", description: "Impossible de générer le lien de partage.", variant: "destructive" });
+    }
+  };
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -105,11 +122,18 @@ export default function SwimSessionView() {
             <h1 className="text-2xl font-display font-bold uppercase">Lecture</h1>
           </div>
         </div>
-        {assignment ? (
-          <Badge variant="secondary" className="text-xs">
-            {statusLabels[assignment.status] ?? "Assignée"}
-          </Badge>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {assignment ? (
+            <Button variant="ghost" size="icon" onClick={handleShare} aria-label="Partager la séance">
+              <Share2 className="h-5 w-5" />
+            </Button>
+          ) : null}
+          {assignment ? (
+            <Badge variant="secondary" className="text-xs">
+              {statusLabels[assignment.status] ?? "Assignée"}
+            </Badge>
+          ) : null}
+        </div>
       </div>
 
       <Card className="border border-border shadow-sm">

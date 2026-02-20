@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { SwimSessionTimeline } from "@/components/swim/SwimSessionTimeline";
 import { SessionListView } from "@/components/coach/shared/SessionListView";
 import { SwimSessionBuilder } from "@/components/coach/swim/SwimSessionBuilder";
-import { AlertCircle, Archive, FolderOpen, FolderPlus, Home, Layers, Plus, Route, Search, Timer } from "lucide-react";
+import { AlertCircle, Archive, FolderOpen, FolderPlus, Home, Layers, Plus, Route, Search, Share2, Timer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useBeforeUnload } from "@/hooks/use-before-unload";
 import { useAuth } from "@/lib/auth";
@@ -35,6 +35,7 @@ import { formatSwimSessionDefaultTitle } from "@/lib/date";
 import { calculateSwimTotalDistance } from "@/lib/swimSessionUtils";
 import { normalizeIntensityValue, normalizeEquipmentValue } from "@/lib/swimTextParser";
 import type { SwimBlock, SwimExercise } from "@/lib/swimTextParser";
+import { generateShareToken } from "@/lib/api/swim";
 
 interface SwimSessionDraft {
   id: number | null;
@@ -433,6 +434,21 @@ export default function SwimCatalog() {
     moveMutation.mutate({ sessionId: pendingMoveSession.id, folder });
   };
 
+  const handleShare = async (session: SwimSessionTemplate) => {
+    try {
+      const token = await generateShareToken(session.id);
+      const url = `${window.location.origin}${window.location.pathname}#/s/${token}`;
+      if (navigator.share) {
+        await navigator.share({ title: session.name, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Lien copié !", description: "Le lien de partage a été copié dans le presse-papier." });
+      }
+    } catch (err) {
+      toast({ title: "Erreur", description: "Impossible de générer le lien de partage.", variant: "destructive" });
+    }
+  };
+
   const renderMetrics = (session: SwimSessionTemplate) => {
     const totalDistance = calculateSwimTotalDistance(session.items ?? []);
     const hasDuration = session.items?.some((item) => item.duration != null) ?? false;
@@ -671,6 +687,20 @@ export default function SwimCatalog() {
         }}
       >
         <DialogContent className="max-w-4xl">
+          <div className="flex items-center justify-between pb-2">
+            <span className="text-lg font-display font-bold uppercase tracking-tight">
+              {selectedSession?.name}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectedSession && handleShare(selectedSession)}
+              className="gap-1.5"
+            >
+              <Share2 className="h-4 w-4" />
+              Partager
+            </Button>
+          </div>
           <SwimSessionTimeline
             title={selectedSession?.name ?? ""}
             description={selectedSession?.description ?? undefined}
