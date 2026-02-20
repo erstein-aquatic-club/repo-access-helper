@@ -5,13 +5,12 @@ import { api } from "@/lib/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, CalendarDays, Download, Dumbbell, HeartPulse, Mail, Trophy, Users, UsersRound, Waves } from "lucide-react";
+import { CalendarDays, Download, Dumbbell, HeartPulse, Mail, Trophy, Users, UsersRound, Waves } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import CoachSectionHeader from "./coach/CoachSectionHeader";
-import CoachAssignScreen from "./coach/CoachAssignScreen";
 import CoachMessagesScreen from "./coach/CoachMessagesScreen";
 import CoachCalendar from "./coach/CoachCalendar";
 import CoachGroupsScreen from "./coach/CoachGroupsScreen";
@@ -23,7 +22,7 @@ import type { LocalStrengthRun } from "@/lib/types";
 const StrengthCatalog = lazy(() => import("./coach/StrengthCatalog"));
 const SwimCatalog = lazy(() => import("./coach/SwimCatalog"));
 
-type CoachSection = "home" | "swim" | "strength" | "swimmers" | "assignments" | "messaging" | "calendar" | "groups";
+type CoachSection = "home" | "swim" | "strength" | "swimmers" | "messaging" | "calendar" | "groups";
 type KpiLookbackPeriod = 7 | 30 | 365;
 
 type CoachHomeProps = {
@@ -150,10 +149,10 @@ const CoachHome = ({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => onNavigate("assignments")}
+          onClick={() => onNavigate("calendar")}
           className="flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-3.5 py-2 text-sm font-semibold active:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <Bell className="h-3.5 w-3.5" />
+          <CalendarDays className="h-3.5 w-3.5" />
           Assigner
         </button>
         <button
@@ -163,14 +162,6 @@ const CoachHome = ({
         >
           <Mail className="h-3.5 w-3.5" />
           Email
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate("calendar")}
-          className="flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          <CalendarDays className="h-3.5 w-3.5" />
-          Calendrier
         </button>
         <button
           type="button"
@@ -296,16 +287,14 @@ export default function Coach() {
   const [kpiPeriod, setKpiPeriod] = useState<KpiLookbackPeriod>(7);
 
   const coachAccess = role === "coach" || role === "admin";
-  const shouldLoadAssignments = activeSection === "assignments";
-  const shouldLoadCatalogs = activeSection === "home" || activeSection === "assignments" || activeSection === "calendar";
+  const shouldLoadCatalogs = activeSection === "home" || activeSection === "calendar";
   const shouldLoadAthletes =
     activeSection === "home" ||
-    activeSection === "assignments" ||
     activeSection === "messaging" ||
     activeSection === "swimmers" ||
     activeSection === "calendar" ||
     activeSection === "groups";
-  const shouldLoadGroups = activeSection === "assignments" || activeSection === "messaging" || activeSection === "calendar" || activeSection === "groups";
+  const shouldLoadGroups = activeSection === "messaging" || activeSection === "calendar" || activeSection === "groups";
   const shouldLoadBirthdays = activeSection === "home" || activeSection === "swimmers";
 
   // Queries
@@ -469,16 +458,6 @@ export default function Coach() {
         />
       ) : null}
 
-      {activeSection === "assignments" ? (
-        <CoachAssignScreen
-          onBack={() => setActiveSection("home")}
-          swimSessions={swimSessions}
-          strengthSessions={strengthSessions}
-          athletes={athletes}
-          groups={groups}
-        />
-      ) : null}
-
       {activeSection === "swim" ? (
         <div className="space-y-6">
           <CoachSectionHeader
@@ -486,8 +465,8 @@ export default function Coach() {
             description="Accédez aux séances et aux templates natation."
             onBack={() => setActiveSection("home")}
             actions={
-              <Button variant="outline" size="sm" onClick={() => setActiveSection("assignments")}>
-                <Bell className="mr-1.5 h-3.5 w-3.5" />
+              <Button variant="outline" size="sm" onClick={() => setActiveSection("calendar")}>
+                <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
                 Assigner
               </Button>
             }
@@ -505,8 +484,8 @@ export default function Coach() {
             description="Consultez et créez des séances musculation."
             onBack={() => setActiveSection("home")}
             actions={
-              <Button variant="outline" size="sm" onClick={() => setActiveSection("assignments")}>
-                <Bell className="mr-1.5 h-3.5 w-3.5" />
+              <Button variant="outline" size="sm" onClick={() => setActiveSection("calendar")}>
+                <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
                 Assigner
               </Button>
             }
