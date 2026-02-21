@@ -1,22 +1,22 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { ChevronLeft, AlertCircle, Share2 } from "lucide-react";
+import { ChevronLeft, AlertCircle, Share2, Save, Loader2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SwimSessionTimeline } from "@/components/swim/SwimSessionTimeline";
-import type { SwimExerciseDetail } from "@/lib/swimConsultationUtils";
 import { api, Assignment, SwimSessionItem } from "@/lib/api";
+import type { SwimExerciseLog, SwimExerciseLogInput } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { generateShareToken } from "@/lib/api/swim";
+import { supabase } from "@/lib/supabase";
 
 const statusLabels: Record<string, string> = {
   assigned: "Assignée",
@@ -34,12 +34,46 @@ const formatAssignedDate = (value?: string | null) => {
     : format(parsed, "dd MMM", { locale: fr });
 };
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function buildLogsMap(logs: SwimExerciseLog[]): Map<number, SwimExerciseLogInput> {
+  const map = new Map<number, SwimExerciseLogInput>();
+  for (const log of logs) {
+    if (log.source_item_id == null) continue;
+    map.set(log.source_item_id, {
+      exercise_label: log.exercise_label,
+      source_item_id: log.source_item_id,
+      split_times: log.split_times,
+      tempo: log.tempo,
+      stroke_count: log.stroke_count,
+      notes: log.notes,
+    });
+  }
+  return map;
+}
+
+function inferSlot(assignedDate?: string | null): string {
+  if (!assignedDate) return "Matin";
+  const d = new Date(assignedDate);
+  return d.getHours() >= 14 ? "Soir" : "Matin";
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export default function SwimSessionView() {
   const { user, userId } = useAuth();
   const [location, setLocation] = useLocation();
-  const [selectedExercise, setSelectedExercise] = useState<SwimExerciseDetail | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Edit mode state
+  const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
+  const [localLogs, setLocalLogs] = useState<Map<number, SwimExerciseLogInput> | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   const assignmentId = useMemo(() => {
     const [, queryString] = location.split("?");
@@ -63,6 +97,103 @@ export default function SwimSessionView() {
   const assignment = assignmentId
     ? swimAssignments.find((item) => item.id === assignmentId)
     : swimAssignments[0];
+
+  const sessionCatalogId = assignment?.session_id;
+
+  // Load existing exercise logs
+  const { data: existingLogs } = useQuery({
+    queryKey: ["swim-exercise-logs-by-catalog", sessionCatalogId, userId],
+    queryFn: async () => {
+      const { data: authData } = await supabase.auth.getSession();
+      const authUid = authData.session?.user?.id;
+      if (!authUid) return [];
+      const sessions = await api.getSessions(user!, userId);
+      const sessionIds = sessions.map((s) => s.id);
+      if (sessionIds.length === 0) return [];
+      const allLogs: SwimExerciseLog[] = [];
+      for (const sid of sessionIds.slice(0, 10)) {
+        const logs = await api.getSwimExerciseLogs(sid);
+        allLogs.push(...logs.filter((l) => l.user_id === authUid));
+      }
+      const itemIds = new Set(
+        (assignment?.items ?? []).map((i) => i.id).filter(Boolean) as number[],
+      );
+      return allLogs.filter(
+        (l) => l.source_item_id != null && itemIds.has(l.source_item_id),
+      );
+    },
+    enabled: !!sessionCatalogId && !!userId && !!user,
+  });
+
+  // Merged logs map: local edits override DB data
+  const logsMap = useMemo(() => {
+    if (localLogs) return localLogs;
+    if (!existingLogs) return new Map<number, SwimExerciseLogInput>();
+    return buildLogsMap(existingLogs);
+  }, [localLogs, existingLogs]);
+
+  const handleToggleExpand = useCallback((itemId: number) => {
+    setExpandedItemId((prev) => (prev === itemId ? null : itemId));
+  }, []);
+
+  const handleLogChange = useCallback(
+    (itemId: number, log: SwimExerciseLogInput) => {
+      setLocalLogs((prev) => {
+        const next = new Map(prev ?? logsMap);
+        next.set(itemId, log);
+        return next;
+      });
+      setDirty(true);
+    },
+    [logsMap],
+  );
+
+  // Save mutation
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const { data: authData } = await supabase.auth.getSession();
+      const authUid = authData.session?.user?.id;
+      if (!authUid || !user) throw new Error("Non authentifié");
+
+      const date = assignment?.assigned_date
+        ? new Date(assignment.assigned_date).toISOString().slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+      const slot = inferSlot(assignment?.assigned_date);
+
+      const sessionId = await api.ensureSwimSession({
+        athleteName: user,
+        athleteId: userId,
+        date,
+        slot,
+      });
+
+      // Filter to only logs with actual data
+      const allLogs: SwimExerciseLogInput[] = [];
+      for (const [, log] of logsMap) {
+        const hasSplits = (log.split_times ?? []).some((s) => s.time_seconds > 0);
+        const hasStrokes = (log.stroke_count ?? []).some((s) => s.count > 0);
+        const hasData = hasSplits || hasStrokes || log.tempo != null || (log.notes?.trim());
+        if (hasData) allLogs.push(log);
+      }
+
+      if (allLogs.length === 0) throw new Error("Aucune donnée à sauvegarder");
+
+      await api.saveSwimExerciseLogs(sessionId, authUid, allLogs);
+    },
+    onSuccess: () => {
+      setDirty(false);
+      queryClient.invalidateQueries({ queryKey: ["swim-exercise-logs-by-catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["swim-exercise-logs-history"] });
+      toast({ title: "Notes techniques sauvegardées" });
+    },
+    onError: (err) => {
+      toast({
+        title: "Erreur",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const deleteAssignmentMutation = useMutation({
     mutationFn: (assignmentId: number) => api.assignments_delete(assignmentId),
@@ -106,7 +237,7 @@ export default function SwimSessionView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button
@@ -119,7 +250,7 @@ export default function SwimSessionView() {
           </Button>
           <div>
             <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Séance natation</div>
-            <h1 className="text-2xl font-display font-bold uppercase">Lecture</h1>
+            <h1 className="text-2xl font-display font-bold uppercase">Détails</h1>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -166,6 +297,14 @@ export default function SwimSessionView() {
             ) : null}
           </div>
           <Separator />
+
+          {/* Instruction text */}
+          {assignment && !isLoading ? (
+            <div className="rounded-xl bg-muted/50 px-3 py-2 text-xs text-muted-foreground leading-relaxed">
+              Tapez sur un exercice pour ajouter vos temps et détails techniques.
+            </div>
+          ) : null}
+
           {isLoading ? (
             <div className="space-y-4" aria-live="polite" aria-busy="true">
               <div className="sr-only">Chargement de la séance...</div>
@@ -186,9 +325,10 @@ export default function SwimSessionView() {
               description={assignment.description}
               items={assignment.items}
               showHeader={true}
-              onExerciseSelect={(detail) => {
-                setSelectedExercise(detail);
-              }}
+              exerciseLogs={logsMap}
+              expandedItemId={expandedItemId}
+              onToggleExpand={handleToggleExpand}
+              onLogChange={handleLogChange}
             />
           ) : (
             <div className="rounded-2xl border border-dashed border-muted/70 bg-muted/30 p-6 text-sm text-muted-foreground">
@@ -197,76 +337,24 @@ export default function SwimSessionView() {
           )}
         </CardContent>
       </Card>
-      <Sheet
-        open={Boolean(selectedExercise)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedExercise(null);
-        }}
-      >
-        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Détails de l'exercice</SheetTitle>
-          </SheetHeader>
-          {selectedExercise ? (
-            <div className="mt-4 space-y-3">
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  {selectedExercise.blockTitle && selectedExercise.blockIndex !== undefined
-                    ? `Bloc ${selectedExercise.blockIndex + 1}`
-                    : "Bloc"}
-                </p>
-                <p className="text-lg font-semibold">{selectedExercise.label}</p>
-              </div>
-              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                {selectedExercise.repetitions ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-2 py-1">
-                    {selectedExercise.repetitions}x
-                  </span>
-                ) : null}
-                {selectedExercise.distance ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-2 py-1">
-                    {selectedExercise.distance}m
-                  </span>
-                ) : null}
-                {selectedExercise.rest ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-2 py-1">
-                    Récup {selectedExercise.rest}s
-                  </span>
-                ) : null}
-                {selectedExercise.stroke ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-2 py-1">
-                    Nage : {selectedExercise.stroke}
-                  </span>
-                ) : null}
-                {selectedExercise.strokeType ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-2 py-1">
-                    Type : {selectedExercise.strokeType}
-                  </span>
-                ) : null}
-                {selectedExercise.intensity ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-2 py-1">
-                    Intensité : {selectedExercise.intensity}
-                  </span>
-                ) : null}
-              </div>
-              {selectedExercise.modalities ? (
-                <div className="rounded-2xl border bg-muted/10 p-3 text-sm text-muted-foreground">
-                  {selectedExercise.modalities}
-                </div>
-              ) : null}
-              {selectedExercise.equipment?.length ? (
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  {selectedExercise.equipment.map((equipment) => (
-                    <span key={equipment} className="rounded-full border px-2 py-1">
-                      {equipment}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </SheetContent>
-      </Sheet>
+
+      {/* Sticky save button */}
+      {dirty && (
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50 px-4">
+          <Button
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending}
+            className="gap-2 shadow-lg"
+          >
+            {saveMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Enregistrer
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
