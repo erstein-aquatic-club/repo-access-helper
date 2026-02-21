@@ -238,6 +238,51 @@ export const api = {
     return { status: "ok", sessionId: newId };
   },
 
+  async ensureSwimSession(params: {
+    athleteName: string;
+    athleteId?: number | string | null;
+    date: string;
+    slot: string;
+  }): Promise<number> {
+    if (!canUseSupabase()) throw new Error("Supabase required");
+
+    let query = supabase
+      .from("dim_sessions")
+      .select("id")
+      .eq("session_date", params.date)
+      .eq("time_slot", params.slot);
+
+    if (params.athleteId) {
+      query = query.eq("athlete_id", Number(params.athleteId));
+    } else {
+      query = query.eq("athlete_name", params.athleteName);
+    }
+
+    const { data: existing } = await query.maybeSingle();
+    if (existing?.id) return existing.id as number;
+
+    const payload: Record<string, unknown> = {
+      athlete_name: params.athleteName,
+      session_date: params.date,
+      time_slot: params.slot,
+      distance: 0,
+      duration: 0,
+      rpe: 5,
+      performance: 5,
+      engagement: 5,
+      fatigue: 5,
+    };
+    if (params.athleteId) payload.athlete_id = Number(params.athleteId);
+
+    const { data, error } = await supabase
+      .from("dim_sessions")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return data.id as number;
+  },
+
   async getSessions(athleteName: string, athleteId?: number | string | null): Promise<Session[]> {
     const hasAthleteId = athleteId !== null && athleteId !== undefined && String(athleteId) !== "";
     if (canUseSupabase()) {
