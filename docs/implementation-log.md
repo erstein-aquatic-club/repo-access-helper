@@ -34,6 +34,7 @@ Ce document trace l'avancement de **chaque patch** du projet. Il est la source d
 | §55 Swim Session Timeline (visualisation séances natation) | ✅ Fait | 2026-02-19 |
 | §56 Groupes temporaires coach (stages) | ✅ Fait | 2026-02-19 |
 | §57 Partage public séances natation (token UUID) | ✅ Fait | 2026-02-20 |
+| §58 Détails techniques inline timeline nageur | ✅ Fait | 2026-02-21 |
 | §45 Audit UI/UX — header Strength + login mobile + fixes | ✅ Fait | 2026-02-16 |
 | §46 Harmonisation headers + Login mobile thème clair | ✅ Fait | 2026-02-16 |
 | §6 Fix timers PWA iOS | ✅ Fait | 2026-02-09 |
@@ -5057,6 +5058,55 @@ Le coach part en stage avec des nageurs issus de différents groupes permanents.
 - Pas de tests d'intégration pour le CRUD Supabase (seulement la fonction pure partitionGroupIds est testée).
 - Pas de pagination sur la liste des groupes temporaires (suffisant pour le volume actuel).
 - Le `created_by` n'est pas renseigné à la création (le RLS de groups n'a pas accès à `app_user_id()` côté insert facilement).
+
+---
+
+## 2026-02-21 — §58 Détails techniques inline dans la timeline nageur
+
+**Branche** : `main`
+**Chantier ROADMAP** : §58 — Saisie technique par exercice (inline timeline)
+
+### Contexte — Pourquoi ce patch
+
+Les notes techniques (temps, tempo, coups de bras) étaient enfouies dans le FeedbackDrawer. Le nageur devait ouvrir le ressenti, déplier "Notes techniques", ajouter manuellement chaque exercice un par un. Déconnecté de la vue séance et peu intuitif.
+
+### Changements réalisés
+
+- **`ensureSwimSession`** : nouvel helper API qui vérifie si une `dim_sessions` existe pour un athlète+date+slot, la crée si absente (nécessaire car `swim_exercise_logs.session_id` est NOT NULL et le nageur peut saisir ses détails avant le ressenti)
+- **`ExerciseLogInline`** : nouveau composant inline avec auto-détection du nombre de reps (depuis `raw_payload.exercise_repetitions` ou parsing du label "6x50m"), grille de saisie 3 colonnes pour temps/coups par rep, tempo global, notes
+- **`SwimSessionTimeline`** : nouvelles props optionnelles (`exerciseLogs`, `expandedItemId`, `onToggleExpand`, `onLogChange`) pour le mode édition inline. Badge "✓" sur les exercices ayant des données. Backward compatible.
+- **`SwimSessionView`** : réécrit pour supporter l'édition inline. Charge les logs existants, gère l'état local, bouton sticky "Enregistrer", instruction contextuelle
+- **`TechnicalNotesSection`** : simplifié de 347 à 57 lignes. Affiche un résumé + lien de navigation vers la vue timeline
+
+### Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `src/lib/api.ts` | Ajout `ensureSwimSession` |
+| `src/components/swim/ExerciseLogInline.tsx` | Nouveau composant |
+| `src/components/swim/SwimSessionTimeline.tsx` | Ajout props edit mode |
+| `src/pages/SwimSessionView.tsx` | Réécriture complète |
+| `src/components/dashboard/TechnicalNotesSection.tsx` | Simplification |
+| `src/components/dashboard/FeedbackDrawer.tsx` | Nettoyage props |
+| `src/pages/Dashboard.tsx` | Suppression `activeAssignmentItems` |
+
+### Tests
+
+- [x] `npm run build` — succès
+- [x] `npx tsc --noEmit` — aucune erreur
+- [x] `npm test` — 121 tests, 0 failures
+- [ ] Test manuel : login nageur → séance → expansion inline → saisie → enregistrer
+
+### Décisions prises
+
+- Auto-création d'une `dim_sessions` minimale (valeurs par défaut) plutôt que de changer le schéma DB
+- Chargement des logs via scan des 10 dernières sessions du nageur (pragmatique, à optimiser si besoin)
+- TechnicalNotesSection simplifié en lien vers la timeline (un seul point d'entrée principal)
+
+### Limites / dette
+
+- Le chargement des logs scanne les 10 dernières sessions — pourrait être optimisé avec une requête directe par `source_item_id`
+- La `dim_sessions` auto-créée a des valeurs par défaut (effort=5, etc.) qui peuvent fausser les stats si le nageur ne remplit pas le ressenti ensuite
 
 ---
 

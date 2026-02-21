@@ -51,10 +51,10 @@ Tous les feature flags sont activés.
 |----------------|--------|----------|-------|
 | Dashboard calendrier | ✅ | `Dashboard.tsx`, `DayCell.tsx`, `CalendarHeader.tsx`, `CalendarGrid.tsx`, `useDashboardState.ts` | Pills dynamiques par créneau (AM/PM), vert si rempli, gris si attendu, repos avec icône Minus |
 | Saisie ressenti | ✅ | `Dashboard.tsx` | Difficulté, fatigue, perf, engagement, distance, commentaire |
-| Notes techniques exercice | ✅ | `TechnicalNotesSection.tsx`, `swim-logs.ts` | Temps/rep, tempo, coups de bras, notes par exercice |
+| Notes techniques exercice | ✅ | `ExerciseLogInline.tsx`, `SwimSessionTimeline.tsx`, `swim-logs.ts` | Saisie inline depuis la timeline (§58), expansion par exercice, auto-détection reps, temps/coups par rep |
 | Historique notes techniques | ✅ | `SwimExerciseLogsHistory.tsx` | Vue chronologique groupée par date |
 | Présence/absence | ✅ | `Dashboard.tsx` | Toggle par créneau |
-| Consultation séances | ✅ | `SwimSessionView.tsx`, `SwimSessionTimeline.tsx` | Timeline verticale colorée, rail d'intensité, toggle 3 niveaux (Détail/Compact/Bassin), icônes matériel SVG (§55) |
+| Consultation séances | ✅ | `SwimSessionView.tsx`, `SwimSessionTimeline.tsx` | Timeline + saisie technique inline (§58), rail d'intensité, toggle 3 niveaux, icônes matériel SVG (§55) |
 | Partage public séance | ✅ | `SwimSessionView.tsx`, `SharedSwimSession.tsx`, `swim.ts` | Lien partageable UUID, page publique sans auth, CTA inscription (§57) |
 | Historique/Progression | ✅ | `Progress.tsx` | Apple Health style: hero KPI + tendance, sticky header compact (§46), AreaChart gradient, ProgressBar ressentis, Collapsible detail |
 

@@ -1,6 +1,6 @@
 # Roadmap de Développement
 
-*Dernière mise à jour : 2026-02-20 (§57 Partage public séances natation)*
+*Dernière mise à jour : 2026-02-21 (§58 Détails techniques inline timeline nageur)*
 
 Ce document décrit les fonctionnalités à implémenter. Il sert de référence pour reprendre le développement dans une future conversation.
 
@@ -36,6 +36,7 @@ Ce document décrit les fonctionnalités à implémenter. Il sert de référence
 | 23 | Swim Session Timeline (refonte visualisation séances) | Moyenne | Moyenne | Fait (§55) |
 | 24 | Groupes temporaires coach (stages, sous-groupes) | Moyenne | Haute | Fait (§56) |
 | 25 | Partage public séances natation (token UUID) | Moyenne | Moyenne | Fait (§57) |
+| 26 | Détails techniques inline timeline nageur | Moyenne | Moyenne | Fait (§58) |
 
 ---
 
