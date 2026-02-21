@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { ChevronLeft, AlertCircle, Share2, Save, Loader2 } from "lucide-react";
+import { ChevronLeft, AlertCircle, Share2, Save, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SwimSessionTimeline } from "@/components/swim/SwimSessionTimeline";
+import { ExerciseLogInline, detectRepetitions } from "@/components/swim/ExerciseLogInline";
 import { api, Assignment, SwimSessionItem } from "@/lib/api";
 import type { SwimExerciseLog, SwimExerciseLogInput } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -75,13 +76,25 @@ export default function SwimSessionView() {
   const [localLogs, setLocalLogs] = useState<Map<number, SwimExerciseLogInput> | null>(null);
   const [dirty, setDirty] = useState(false);
 
+  // Manual mode state (no assignment)
+  const [manualExercises, setManualExercises] = useState<
+    { id: number; label: string; reps: number; log: SwimExerciseLogInput }[]
+  >([]);
+  const [manualLabel, setManualLabel] = useState("");
+  const [manualReps, setManualReps] = useState(1);
+  const [manualExpandedId, setManualExpandedId] = useState<number | null>(null);
+
   const assignmentId = useMemo(() => {
-    const [, queryString] = location.split("?");
-    if (!queryString) return null;
-    const params = new URLSearchParams(queryString);
+    // Read from window.location.hash because the hash-based router
+    // strips query params from the location value returned by useLocation()
+    const hash = window.location.hash || "";
+    const qIdx = hash.indexOf("?");
+    if (qIdx === -1) return null;
+    const params = new URLSearchParams(hash.slice(qIdx));
     const id = params.get("assignmentId");
     const parsed = id ? Number(id) : NaN;
     return Number.isFinite(parsed) ? parsed : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
   const { data: assignments, isLoading, error, refetch } = useQuery({
@@ -147,6 +160,39 @@ export default function SwimSessionView() {
     },
     [logsMap],
   );
+
+  // -- Manual mode handlers ---------------------------------------------------
+
+  const addManualExercise = useCallback(() => {
+    const label = manualLabel.trim();
+    if (!label) return;
+    const id = Date.now();
+    setManualExercises((prev) => [
+      ...prev,
+      {
+        id,
+        label,
+        reps: manualReps,
+        log: { exercise_label: label, split_times: [], stroke_count: [], tempo: null, notes: null },
+      },
+    ]);
+    setManualLabel("");
+    setManualReps(1);
+    setManualExpandedId(id);
+    setDirty(true);
+  }, [manualLabel, manualReps]);
+
+  const removeManualExercise = useCallback((id: number) => {
+    setManualExercises((prev) => prev.filter((e) => e.id !== id));
+    setDirty(true);
+  }, []);
+
+  const updateManualLog = useCallback((id: number, log: SwimExerciseLogInput) => {
+    setManualExercises((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, log } : e)),
+    );
+    setDirty(true);
+  }, []);
 
   // Save mutation
   const saveMutation = useMutation({
